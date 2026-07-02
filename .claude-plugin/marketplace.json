@@ -1,0 +1,15 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "sodam-seomedic-marketplace",
+  "description": "SeoMedic(SEO/GEO 진단·수정 플러그인) 마켓플레이스",
+  "owner": {
+    "name": "SoDam"
+  },
+  "plugins": [
+    {
+      "name": "seomedic",
+      "source": "./packages/plugin",
+      "description": "SEO/GEO 진단 + Next.js 소스 수정(승인형) + 회귀 감지 + GitHub 저장소 PR 제안"
+    }
+  ]
+}

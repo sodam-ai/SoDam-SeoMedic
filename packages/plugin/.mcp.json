@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "seomedic": {
+      "command": "npx",
+      "args": ["-y", "@seomedic/mcp"]
+    }
+  }
+}

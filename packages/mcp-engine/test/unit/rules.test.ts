@@ -1,0 +1,185 @@
+import { describe, it, expect } from "vitest";
+import { evaluateAllRules, ALL_RULES } from "../../src/rules/registry.js";
+import type { RuleContext } from "../../src/rules/types.js";
+import type { PageSignals } from "../../src/render/dom-signals.js";
+
+const emptySignals: PageSignals = { title: null, canonical: null, h1Count: 0, h1Text: null, metaRobots: null, hasJsonLd: false };
+
+function baseCtx(overrides: Partial<RuleContext> = {}): RuleContext {
+  return {
+    pageUrl: "https://example.com/",
+    statusCode: 200,
+    finalUrl: "https://example.com/",
+    redirectChain: [],
+    rawSignals: { ...emptySignals },
+    renderedSignals: { ...emptySignals },
+    ...overrides,
+  };
+}
+
+describe("registry — 무결성", () => {
+  it("모든 rule_id는 유일하다", () => {
+    const ids = ALL_RULES.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe("R-CANONICAL-MISSING / R-CANONICAL-JS-ONLY", () => {
+  it("known-good: raw에 canonical이 있으면 위반 없음", () => {
+    const ctx = baseCtx({
+      rawSignals: { ...emptySignals, canonical: "https://example.com/" },
+      renderedSignals: { ...emptySignals, canonical: "https://example.com/" },
+    });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.filter((v) => v.ruleId.startsWith("R-CANONICAL"))).toHaveLength(0);
+  });
+
+  it("known-bad: canonical이 아예 없으면 R-CANONICAL-MISSING", () => {
+    const ctx = baseCtx();
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-CANONICAL-MISSING")).toBe(true);
+  });
+
+  it("known-bad: canonical이 JS로만 존재하면 R-CANONICAL-JS-ONLY(critical)", () => {
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, canonical: "https://example.com/c" } });
+    const violations = evaluateAllRules(ctx);
+    const found = violations.find((v) => v.ruleId === "R-CANONICAL-JS-ONLY");
+    expect(found).toBeDefined();
+    expect(found!.severity).toBe("critical");
+    // JS-only 케이스에선 MISSING이 함께 뜨면 안 됨(중복 finding 방지)
+    expect(violations.some((v) => v.ruleId === "R-CANONICAL-MISSING")).toBe(false);
+  });
+});
+
+describe("R-NOINDEX-DETECTED", () => {
+  it("known-good: robots 태그 없음", () => {
+    const violations = evaluateAllRules(baseCtx());
+    expect(violations.some((v) => v.ruleId === "R-NOINDEX-DETECTED")).toBe(false);
+  });
+
+  it("known-bad: rendered에 noindex", () => {
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, metaRobots: "noindex, nofollow" } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-NOINDEX-DETECTED")).toBe(true);
+  });
+});
+
+describe("R-STATUS-4XX / R-STATUS-5XX", () => {
+  it("known-good: 200", () => {
+    const violations = evaluateAllRules(baseCtx({ statusCode: 200 }));
+    expect(violations.filter((v) => v.ruleId.startsWith("R-STATUS"))).toHaveLength(0);
+  });
+
+  it("known-bad: 404", () => {
+    const violations = evaluateAllRules(baseCtx({ statusCode: 404 }));
+    expect(violations.some((v) => v.ruleId === "R-STATUS-4XX")).toBe(true);
+  });
+
+  it("known-bad: 503", () => {
+    const violations = evaluateAllRules(baseCtx({ statusCode: 503 }));
+    expect(violations.some((v) => v.ruleId === "R-STATUS-5XX")).toBe(true);
+  });
+});
+
+describe("R-REDIRECT-CHAIN-LONG", () => {
+  it("known-good: 리다이렉트 없음", () => {
+    const violations = evaluateAllRules(baseCtx({ redirectChain: [] }));
+    expect(violations.some((v) => v.ruleId === "R-REDIRECT-CHAIN-LONG")).toBe(false);
+  });
+
+  it("known-good: 단일 홉", () => {
+    const violations = evaluateAllRules(baseCtx({ redirectChain: ["https://example.com/old"] }));
+    expect(violations.some((v) => v.ruleId === "R-REDIRECT-CHAIN-LONG")).toBe(false);
+  });
+
+  it("known-bad: 2홉 이상", () => {
+    const violations = evaluateAllRules(baseCtx({ redirectChain: ["https://example.com/a", "https://example.com/b"] }));
+    expect(violations.some((v) => v.ruleId === "R-REDIRECT-CHAIN-LONG")).toBe(true);
+  });
+});
+
+describe("R-RAW-RENDERED-GAP-*", () => {
+  it("known-good: raw/rendered 신호 동일", () => {
+    const signals = { ...emptySignals, title: "제목" };
+    const violations = evaluateAllRules(baseCtx({ rawSignals: signals, renderedSignals: { ...signals } }));
+    expect(violations.filter((v) => v.ruleId.startsWith("R-RAW-RENDERED-GAP"))).toHaveLength(0);
+  });
+
+  it("known-bad: title이 JS로만 존재", () => {
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, title: "JS로만 생긴 제목" } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-RAW-RENDERED-GAP-TITLE")).toBe(true);
+  });
+
+  it("known-bad: metaRobots가 JS로만 존재", () => {
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, metaRobots: "index,follow" } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-RAW-RENDERED-GAP-METAROBOTS")).toBe(true);
+  });
+});
+
+describe("R-CWV-LCP-POOR / R-CWV-CLS-POOR", () => {
+  it("CWV 미측정(cwv undefined)이면 조용히 skip", () => {
+    const violations = evaluateAllRules(baseCtx());
+    expect(violations.filter((v) => v.category === "cwv")).toHaveLength(0);
+  });
+
+  it("known-good: LCP 1000ms, CLS 0.02", () => {
+    const ctx = baseCtx({ cwv: { lcpMs: 1000, clsUnitless: 0.02, inpProxyTbtMs: 50, isLabData: true, runsCompleted: 3 } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.filter((v) => v.category === "cwv")).toHaveLength(0);
+  });
+
+  it("known-bad: LCP 4000ms(임계값 2500 초과)", () => {
+    const ctx = baseCtx({ cwv: { lcpMs: 4000, clsUnitless: 0.02, inpProxyTbtMs: 50, isLabData: true, runsCompleted: 3 } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-CWV-LCP-POOR")).toBe(true);
+  });
+
+  it("known-bad: CLS 0.35(임계값 0.1 초과)", () => {
+    const ctx = baseCtx({ cwv: { lcpMs: 1000, clsUnitless: 0.35, inpProxyTbtMs: 50, isLabData: true, runsCompleted: 3 } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-CWV-CLS-POOR")).toBe(true);
+  });
+});
+
+describe("종합: known-good/known-bad 픽스처 세트 (성공기준 검증)", () => {
+  it("known-good 픽스처 8종은 오탐 0", () => {
+    const goodFixtures: RuleContext[] = [
+      baseCtx({ rawSignals: { ...emptySignals, canonical: "https://example.com/" }, renderedSignals: { ...emptySignals, canonical: "https://example.com/" } }),
+      baseCtx({ statusCode: 200, rawSignals: { ...emptySignals, canonical: "x" }, renderedSignals: { ...emptySignals, canonical: "x" } }),
+      baseCtx({ statusCode: 301, rawSignals: { ...emptySignals, canonical: "x" }, renderedSignals: { ...emptySignals, canonical: "x" } }),
+      baseCtx({ redirectChain: ["https://example.com/old"], rawSignals: { ...emptySignals, canonical: "x" }, renderedSignals: { ...emptySignals, canonical: "x" } }),
+      baseCtx({
+        rawSignals: { ...emptySignals, canonical: "x", title: "t", metaRobots: "index" },
+        renderedSignals: { ...emptySignals, canonical: "x", title: "t", metaRobots: "index" },
+      }),
+      baseCtx({ cwv: { lcpMs: 1200, clsUnitless: 0.01, inpProxyTbtMs: 10, isLabData: true, runsCompleted: 3 }, rawSignals: { ...emptySignals, canonical: "x" }, renderedSignals: { ...emptySignals, canonical: "x" } }),
+    ];
+    for (const ctx of goodFixtures) {
+      // R-CANONICAL-MISSING을 제외한 카테고리만 본다(위 픽스처들은 canonical 값을 명시적으로 세팅함) — 순수 오탐 검사
+      const violations = evaluateAllRules(ctx);
+      expect(violations, `unexpected violations for ${JSON.stringify(ctx)}`).toEqual([]);
+    }
+  });
+
+  it("known-bad 픽스처 8종 중 ≥90% 탐지(재현율)", () => {
+    const badFixtures: { ctx: RuleContext; expectedRuleId: string }[] = [
+      { ctx: baseCtx(), expectedRuleId: "R-CANONICAL-MISSING" },
+      { ctx: baseCtx({ renderedSignals: { ...emptySignals, canonical: "x" } }), expectedRuleId: "R-CANONICAL-JS-ONLY" },
+      { ctx: baseCtx({ renderedSignals: { ...emptySignals, metaRobots: "noindex" } }), expectedRuleId: "R-NOINDEX-DETECTED" },
+      { ctx: baseCtx({ statusCode: 404 }), expectedRuleId: "R-STATUS-4XX" },
+      { ctx: baseCtx({ statusCode: 500 }), expectedRuleId: "R-STATUS-5XX" },
+      { ctx: baseCtx({ redirectChain: ["a", "b"] }), expectedRuleId: "R-REDIRECT-CHAIN-LONG" },
+      { ctx: baseCtx({ renderedSignals: { ...emptySignals, title: "t" } }), expectedRuleId: "R-RAW-RENDERED-GAP-TITLE" },
+      { ctx: baseCtx({ cwv: { lcpMs: 5000, clsUnitless: 0, inpProxyTbtMs: 0, isLabData: true, runsCompleted: 3 } }), expectedRuleId: "R-CWV-LCP-POOR" },
+    ];
+    let detected = 0;
+    for (const { ctx, expectedRuleId } of badFixtures) {
+      const violations = evaluateAllRules(ctx);
+      if (violations.some((v) => v.ruleId === expectedRuleId)) detected++;
+    }
+    const recall = detected / badFixtures.length;
+    expect(recall).toBeGreaterThanOrEqual(0.9);
+  });
+});

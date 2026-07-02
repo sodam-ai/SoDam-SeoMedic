@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.log
+!AUDIT.log
+.env
+.env.*
+!.env.example
+.seomedic/
+coverage/
+*.tsbuildinfo
+
+# 다른 설치된 Claude Code 플러그인(코드복잡도모니터·oh-my-claudecode·TODO수집기·pair-programming 등)이
+# 세션 중 자동으로 남기는 부산물 — SeoMedic 프로젝트 목적과 무관해 추적하지 않음(모노레포 전 위치에서 제외)
+.complexity-log.md
+.omc/
+.todos-report.md/
+.plugin-config/
+.pair-programming-session.md

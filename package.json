@@ -1,0 +1,19 @@
+{
+  "name": "sodam-seomedic",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SeoMedic monorepo — Claude Code plugin (packages/plugin) + npm engine (packages/mcp-engine)",
+  "workspaces": [
+    "packages/mcp-engine"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build --workspace=packages/mcp-engine",
+    "test": "npm run test --workspace=packages/mcp-engine",
+    "typecheck": "npm run typecheck --workspace=packages/mcp-engine",
+    "audit": "npm audit --audit-level=high"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,10 @@
+{
+  "name": "seomedic",
+  "version": "0.1.0",
+  "description": "URL이면 SEO/GEO 진단(스택 무관), Next.js 소스면 실제 코드 수정(승인 게이트), 회귀 감지, GitHub 저장소는 PR 제안.",
+  "author": {
+    "name": "SoDam"
+  },
+  "license": "MIT",
+  "keywords": ["seo", "geo", "lighthouse", "playwright", "nextjs", "core-web-vitals"]
+}

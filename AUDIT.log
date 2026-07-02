@@ -1,0 +1,73 @@
+[2026-07-03T00:00] claude PLAN_APPROVED Phase1 구현 착수 계획 승인(cheeky-whistling-yao.md)
+[2026-07-03T00:00] claude MILESTONE_START M0 모노레포 스캐폴딩 시작
+[2026-07-03T00:30] claude FIX workspaces 글롭이 package.json 없는 packages/plugin과 매칭되어 npm install 실패 유발 가능 → 명시적 workspace 경로로 수정
+[2026-07-03T00:31] claude VERIFY npm view로 실제 최신 패키지 버전 확인 후 고정(playwright 1.61.1·lighthouse 13.4.0·better-sqlite3 12.11.1 등, 추측 아님)
+[2026-07-03T00:40] claude VERIFY npm install 완료(341 packages, exit 0), Playwright chromium 바이너리 실존 확인(C:\Users\PC\AppData\Local\ms-playwright\chromium-1228)
+[2026-07-03T00:41] claude FIX tsconfig "types" 미지정으로 무관한 전이 @types 오염 + Node 전역타입(process) 인식 실패(TS2591) → "types":["node"] 명시 후 typecheck 0에러 재검증
+[2026-07-03T00:42] claude VERIFY npm audit: high/critical 0, moderate 17(lighthouse 전이 의존성, M9 게이트 기준 충족, 추적 필요로 CHECKPOINT에 기록)
+[2026-07-03T00:43] claude MILESTONE_DONE M0 모노레포 스캐폴딩 완료 — 검증 커맨드 실행 결과로 확인(추측 아님)
+[2026-07-03T01:00] claude MILESTONE_START M1 크롤러+SSRF가드 시작
+[2026-07-03T01:05] claude VERIFY undici Agent connect.lookup으로 DNS 조회시점 SSRF 차단 가능함을 소스 타입 직접 확인 후 구현(추측 아님)
+[2026-07-03T01:06] claude VERIFY undici fetch의 redirect:'manual'이 서버사이드에서 실제 status/location 노출함을 로컬 서버로 실측(브라우저 opaqueredirect 규칙 미적용 확인)
+[2026-07-03T01:08] claude FIX User-Agent 헤더에 한글 포함 시 ByteString 변환 실패로 모든 fetch 즉시 예외(실행 중 재현) → ASCII로 수정
+[2026-07-03T01:09] claude FIX robots-parser@3.0.1 자체 타입선언 결함(index.d.ts 내부 모순)으로 "not callable" 에러 → 로컬 인터페이스로 우회
+[2026-07-03T01:10] claude VERIFY 전체 테스트 스위트 60/60 통과(ssrf-guard 27·fetch-client 10·robots 4·sitemap 6·queue 6·crawler 7), 실제 네트워크(example.com) 다중 계층 검증 포함
+[2026-07-03T01:10] claude MILESTONE_DONE M1 크롤러+SSRF가드 완료
+[2026-07-03T01:15] claude MILESTONE_START M2 렌더+raw/rendered비교 시작
+[2026-07-03T01:16] claude VERIFY Playwright chromium 실제 launch+goto+title 추출 실측 성공 확인 후 render 모듈 설계 착수
+[2026-07-03T01:22] claude FIX linkedom이 속성명 대소문자를 보존(정규화 안 함)하는 걸 실측 발견 → meta/link/a 속성 셀렉터가 대문자 HTML에서 조용히 0건 매칭되는 심각한 잠재 결함 확인
+[2026-07-03T01:23] claude FIX 위 결함이 이미 done 처리한 M1 crawler.ts 링크추출에도 있었음을 발견 → 함께 수정, 대문자HTML 회귀테스트 추가
+[2026-07-03T01:24] claude VERIFY 실제 브라우저(Chromium)는 속성명을 정상 정규화함을 별도 실측 확인(linkedom만의 결함으로 확정, 렌더 경로는 수정 불필요)
+[2026-07-03T01:25] claude VERIFY Playwright route() 기반 SSRF 가드: 로컬 사설IP서버 실제 차단 + 가드없는 대조군은 정상접속 양쪽 실측 확인
+[2026-07-03T01:26] claude VERIFY 전체 테스트 스위트 74/74 통과(9개 파일)
+[2026-07-03T01:26] claude MILESTONE_DONE M2 렌더+raw/rendered비교 완료
+[2026-07-03T01:30] claude MILESTONE_START M3 CWV측정 시작
+[2026-07-03T01:32] claude VERIFY Playwright Page를 Lighthouse에 직접 전달 시 실패 실측("this._page.target is not a function") → flags.port(CDP 엔드포인트) 방식으로 결정
+[2026-07-03T01:34] claude VERIFY 해당 Lighthouse 버전에 interaction-to-next-paint 감사 자체가 없음 실측 확인 → total-blocking-time을 INP 근사 프록시로 채택
+[2026-07-03T01:35] claude RISK_ACCEPT Lighthouse 내부 페이지는 M2 수준 route() SSRF 재검증 불가 — 진입 URL 검증만 적용됨을 문서화(은폐 안 함), Phase1 MVP 범위로 수용
+[2026-07-03T01:37] claude VERIFY 전체 테스트 스위트 80/80 통과(10개 파일), 실제 Lighthouse 측정 2회 완주 확인
+[2026-07-03T01:37] claude MILESTONE_DONE M3 CWV측정 완료
+[2026-07-03T01:40] claude MILESTONE_START M4 규칙엔진 시작
+[2026-07-03T01:50] claude FIX 테스트 자체 결함(내 실수) — known-good 픽스처가 canonical 미설정이라 R-CANONICAL-MISSING 정당 발생 → 픽스처 수정(코드는 정상이었음)
+[2026-07-03T01:51] claude VERIFY 전체 테스트 스위트 101/101 통과(11개 파일), known-good 오탐 0 · known-bad 재현율 100%(8/8)
+[2026-07-03T01:51] claude MILESTONE_DONE M4 규칙엔진 완료
+[2026-07-03T02:00] claude RISK PRD 재검토 결과 "플러그인 통합 검증"이 M5 이전 최우선 과제로 판단 → M4.5 삽입 제안, 사용자 승인
+[2026-07-03T02:05] claude FIX tsconfig.json이 test/를 exclude해 M0~M4 내내 typecheck가 test 파일을 실제로 검사 안 하고 있었음(vitest 타입스트립만 거침) 발견 → tsconfig.test.json 신설, 재검사 0에러 확인
+[2026-07-03T02:10] claude MCP SDK 실제 API(McpServer/StdioServerTransport, server/mcp.js, server/stdio.js) 문서·타입 직접 확인 후 server.ts 작성
+[2026-07-03T02:15] claude RISK claude plugin marketplace add + install(user 스코프) 실행 → 사용자 실제 전역 환경 변경(미출시 npm 패키지 참조로 다른 프로젝트에 에러 유발 위험) → 사용자 개입으로 중단
+[2026-07-03T02:16] user INTERVENE 전역 상태 변경 작업 중단 지시
+[2026-07-03T02:20] claude FIX uninstall + marketplace remove로 원상복구 완료(실측 확인: plugin list/marketplace list에서 제거 확인)
+[2026-07-03T02:22] claude VERIFY --plugin-dir + --mcp-config + --strict-mcp-config(세션 한정, 전역 미변경) 방식으로 전환
+[2026-07-03T02:25] claude VERIFY 실제 격리 Claude Code 세션에서 /seo-audit https://example.com 실행 → MCP 서버 실제 spawn+stdio+툴호출+크롤+렌더+규칙엔진 전체 파이프라인 실제 동작 확인, R-CANONICAL-MISSING(high) 실제 탐지
+[2026-07-03T02:25] claude MILESTONE_DONE M4.5 완료
+[2026-07-03T02:30] claude MILESTONE_START M5 SQLite+finding_key 시작
+[2026-07-03T02:31] claude FIX crawler/queue.ts의 URL dedup 정규화를 finding-key.ts의 normalizeUrl로 통일(불일치 위험 사전 제거)
+[2026-07-03T02:40] claude FIX .sql 마이그레이션 파일이 tsc dist 빌드에 복사 안 되는 것을 인지 → .ts 문자열 상수로 전환
+[2026-07-03T02:45] claude VERIFY 실제 symlink(junction) 생성해 path-guard의 프로젝트 밖 탈출 차단 실측 확인
+[2026-07-03T02:47] claude VERIFY SQL 파라미터 바인딩: DROP TABLE 포함 악성 문자열이 값으로만 저장되고 테이블 생존 확인(문자열결합쿼리 0 실증)
+[2026-07-03T02:48] claude VERIFY 전체 테스트 스위트 123/123 통과(15개 파일)
+[2026-07-03T02:48] claude MILESTONE_DONE M5 완료
+[2026-07-03T02:50] claude MILESTONE_START M6 회귀감지 시작
+[2026-07-03T02:51] claude FIX classify.ts에서 RegressionClassification 타입을 잘못된 파일(baseline.js)에서 import → regression.js로 수정(즉시 타입에러로 발견)
+[2026-07-03T02:55] claude VERIFY PRD 성공기준 문구 그대로 "2회 audit 통합테스트" 실행: 1차(빈 베이스라인)→2차(canonical 소실)로 원복 1건 정확 탐지, 승인 후 재baseline로 재알림 억제까지 확인
+[2026-07-03T02:56] claude VERIFY 전체 테스트 스위트 131/131 통과(17개 파일)
+[2026-07-03T02:56] claude MILESTONE_DONE M6 완료
+[2026-07-03T03:00] claude MILESTONE_START M7 리포트생성 시작
+[2026-07-03T03:05] claude VERIFY JSON 리포트에 overallScore/score 등 숫자 절대점수 필드가 전혀 없음을 테스트로 확인(라벨만 존재)
+[2026-07-03T03:06] claude VERIFY 전체 테스트 스위트 142/142 통과(18개 파일)
+[2026-07-03T03:06] claude MILESTONE_DONE M7 완료
+[2026-07-03T03:10] claude MILESTONE_START M8 CLI+MCP통합 시작
+[2026-07-03T03:15] claude FIX audit-orchestrator에서 finishAuditRun 후 옛 객체 반환하던 실제 버그 발견(재현 테스트로 확인) → 재조회 후 반환
+[2026-07-03T03:20] user INTERVENE server-integration.test.ts 전체 재작성(Write) 거부 → 재고 요청
+[2026-07-03T03:21] claude FIX 재고 결과: seomedic_save_baseline이 불필요하게 재감사를 실행하던 설계결함 발견(PRD "베이스라인=기존 audit 스냅샷"과 불일치) → 최신 AuditRun 재사용으로 재설계, DB 커넥션 중복오픈도 함께 정리
+[2026-07-03T03:25] claude VERIFY 전체 테스트 스위트 145/145 통과(19개 파일)
+[2026-07-03T03:27] claude VERIFY 실제 격리 Claude Code 세션(--plugin-dir+--mcp-config, 전역상태 미변경)에서 audit→save_baseline→check 3단계 전부 실제 호출·정상 동작 확인
+[2026-07-03T03:27] claude MILESTONE_DONE M8 완료
+[2026-07-03T03:30] claude RISK CHECKPOINT의 M9 정의가 보안만 다루고 PRD의 법률/문서 게이트를 누락한 것 발견 → M9를 3갈래(법률/문서/보안)로 재정의
+[2026-07-03T03:35] claude VERIFY license-checker로 353개 서드파티 패키지 전체 스캔 — GPL/AGPL 0건 확인(추측 아님)
+[2026-07-03T03:38] claude VERIFY 실제 NOTICE 파일 3개(playwright·playwright-core·import-in-the-middle) 발견해 THIRD_PARTY_NOTICES.md에 원문 재게시
+[2026-07-03T03:45] claude 왕초보 문서 5종(README·README.en·GUIDE·TROUBLESHOOTING·FAQ) 작성 완료
+[2026-07-03T03:48] claude SECURITY.md/DISCLAIMER.md에 실측 npm audit 상태·라이선스스캔 결과·상표무관 고지 반영
+[2026-07-03T03:52] claude VERIFY 전체 테스트 145/145 재통과, npm audit --audit-level=high exit=0, plugin/marketplace validate --strict 통과, 시크릿 스캔 0건
+[2026-07-03T03:52] claude RISK_ACCEPT 크로스플랫폼은 Windows만 실측 가능(개발환경 제약), Mac/Linux 미검증을 정직하게 한계로 기록
+[2026-07-03T03:52] claude MILESTONE_DONE M9 완료(법무 결정 2건은 사용자 영역으로 분리) — Phase 1 코드+문서+보안+법률(스캔) 전부 완료

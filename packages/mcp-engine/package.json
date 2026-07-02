@@ -1,0 +1,39 @@
+{
+  "name": "@seomedic/mcp",
+  "version": "0.1.0",
+  "description": "SeoMedic 진단 엔진 — 크롤+렌더+CWV+회귀감지 (Phase 1, 분석 전용)",
+  "type": "module",
+  "bin": {
+    "seomedic": "dist/cli.js"
+  },
+  "main": "dist/server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "postinstall": "playwright install chromium || echo 'Playwright 브라우저 자동설치 실패 — 수동으로 `npx playwright install chromium` 실행 필요'"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "better-sqlite3": "^12.11.1",
+    "commander": "^15.0.0",
+    "fast-xml-parser": "^5.9.3",
+    "lighthouse": "^13.4.0",
+    "linkedom": "^0.18.12",
+    "playwright": "^1.61.1",
+    "robots-parser": "^3.0.1",
+    "undici": "^8.6.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^26.1.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  },
+  "license": "MIT"
+}
