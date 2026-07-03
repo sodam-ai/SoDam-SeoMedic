@@ -31,10 +31,18 @@
 - **설계 중 발견한 중요 이슈**: sitemap 완전성 검사("크롤된 페이지 vs sitemap 목록 비교")는 본질적으로 **사이트 전체** 단위 판정인데, Phase 1의 `rules/registry.ts`·`evaluateAllRules`는 **페이지 단위**(`RuleContext.pageUrl` 하나)로만 평가하도록 설계돼 있어 이 모델에 안 맞음. 억지로 rules 엔진에 끼워맞추지 않고, **Phase 1.5 fix 오케스트레이터가 크롤 결과+`crawler/sitemap.ts`의 기존 `fetchSitemapUrls()`를 직접 비교해 Finding을 직접 생성**하기로 결정(Phase 1의 rules/registry.ts는 무수정 — 최소 침습 원칙 유지). `fixers/registry.ts` 주석에 명시.
 - 검증: 정적 배열(추가 성공·멱등성·재실행 안전) + 동적 계산(파일 미변경 확인) + 파일없음 케이스. 12/12 테스트(sitemap-fixer 7·add-safe-guard 5).
 
-## 누적 테스트: 190/190 통과(Phase 1의 145개 전부 무손상 + Phase 1.5 신규 45개)
+## 1.5a-6: DB 마이그레이션 0002_fix + fix 리포지토리 — done
+- `db/migrations/0002_fix.ts`(신규 `fix` 테이블, 02_DATA_MODEL.md 필드 그대로 + 감사용 `backup_path` 부가 컬럼) — `0001_init.ts` 무수정, `connection.ts`에 `db.exec(MIGRATION_0002_FIX)` 한 줄만 추가.
+- `db/repositories/fix.ts`(`finding.ts` 패턴 미러링): `insertFix`/`findFixById`/`findFixesByFinding`/`findPendingFixes`
+- **승인 상태머신 이중 방어**(PRD "안전이 불변식" 반영):
+  - `setApprovalStatus`: `WHERE approval_status='pending'` 가드 — 이미 처리된 fix 재승인/재거부 차단(`changed:boolean`으로 호출부에 알림).
+  - `markApplied`: `WHERE approval_status IN ('auto','approved')` 가드 — 오케스트레이터가 조회를 잘못해도 이 UPDATE 자체가 미승인 fix의 적용 기록을 막음(2중 게이트).
+- 검증: 실제 SQLite 파일로 8개 테스트 — auto/pending 생성, 상태 전이 성공/차단, **미승인(pending·rejected) 상태에서 markApplied 시도 시 changed=false + applied_at 그대로 null** 실행 검증, CHECK 제약(fix_type 잘못된 값) 실제 거부 확인.
+- `npm run build`(tsc -p tsconfig.json) + `npm run typecheck`(tsconfig.test.json) 둘 다 0 에러.
+
+## 누적 테스트: 198/198 통과(Phase 1 145개 + Phase 1.5 기존 45개 전부 무손상 + 신규 8개)
 
 ## 남은 작업
-- [ ] 1.5a-6: DB 마이그레이션 0002_fix + fix 리포지토리
 - [ ] 1.5a-7: fix 오케스트레이터 + MCP 툴 5개(seomedic_fix_plan/approve/reject/apply/rollback)
 - [ ] 1.5a-8: 실제 Next.js 프로젝트로 전체 통합 검증(add_safe 실제 적용+build통과, gated 미승인시 무변경, 멱등성, git dirty 거부)
 - [ ] (1.5a 완결 후) 1.5b: GitHub 저장소 모드
