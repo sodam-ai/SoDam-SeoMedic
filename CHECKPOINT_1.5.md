@@ -167,6 +167,39 @@ fork·PR 생성은 자동화 테스트에서 실행하기엔 되돌리기 어려
 - `seomedic_fix_github`를 실제로 1회 호출해 전체 흐름이 진짜로 동작하는지 확인.
 - 위 실증 전까지 GitHub 모드는 "완료"가 아니라 "구현됨·읽기경로검증됨·쓰기경로미검증"으로 표시한다.
 
+## GitHub 쓰기 경로 실증(내 저장소 시나리오) — done (2026-07-04, 실제 GitHub·실제 토큰)
+
+사용자가 직접 발급한 fine-grained PAT(저장소 1개로 범위 제한, 7일 만료)와 실제로 새로 만든 테스트
+저장소(`sodam-ai/seomedic-write-test`)로 `runGithubFix()`를 직접 호출해 실제 GitHub에서 검증했다
+(MCP 서버가 아니라, `createOctokitGithubClient`+`runGithubFix`를 임시 스크립트로 직접 호출하는 방식 —
+이유: MCP 서버는 Claude Code 앱의 자식 프로세스라 별도 터미널에서 설정한 환경변수가 전달되지 않아서,
+같은 프로세스 안에서 토큰을 읽어 바로 호출하는 방식으로 우회함).
+
+**실제로 확인된 것**:
+- `getAuthenticatedLogin` — 실제 인증 성공
+- `getRepoMeta` + `evaluateRepoPolicy` — LICENSE/CONTRIBUTING 부재를 정확히 경고(차단 아님)로 분류
+- `isOwnRepo` — 내 저장소로 정확히 판별(fork 미실행 — 아래 한계 참고)
+- 실제 clone → npm install → 크롤 → 규칙평가 → sitemap 누락 URL 자동수정(add_safe) → build 재검증 → 커밋 → 브랜치 push
+- `createPullRequest` — **실제 PR 생성 확인**: https://github.com/sodam-ai/seomedic-write-test/pull/1
+
+**과정에서 발견한 사실(전부 테스트 준비 과정의 실수였지 제품 코드 결함 아님, 재현 순서대로)**:
+1. Fine-grained 토큰은 저장소를 선택해도 Repository permissions를 별도로 추가+저장(Update)해야
+   실제로 반영됨 — 스크린샷으로 직접 확인.
+2. 신규 저장소에 `.gitignore` 없이 `node_modules`를 그대로 두면 npm install 후 untracked 상태가 되어
+   기존 dirty-복구 로직(`revertViaGitCheckout`, tracked 변경만 되돌림)으로는 못 지움 — orchestrator의
+   버그가 아니라 "실제 저장소엔 보통 .gitignore가 있다"는 당연한 전제가 테스트 저장소엔 없었던 것.
+3. 크롤러는 링크를 따라가는 방식이라, 페이지가 파일로 존재해도 어디서도 링크가 없으면 발견되지 않음
+   (sitemap 자동수정 조건을 실제로 충족시키려면 홈페이지에 링크를 추가해야 했음).
+
+**아직 남은 것(정직하게 축소하지 않음)**: 이번 시나리오는 "내 저장소"라 `createFork`는 실행되지 않았다.
+"남의 저장소 → fork → PR" 경로(PRD 72행이 명시한 별도 요구사항)는 여전히 가짜(fake) client로만
+검증됐고, 실제 GitHub의 `createFork` 응답 형태는 미확인 상태로 남는다. 이걸 닫으려면 별도 계정 소유의
+저장소(또는 협업자 권한이 있는 제3자 저장소) 하나가 추가로 필요하다.
+
+테스트에 쓰인 토큰은 사용자가 테스트 직후 폐기하기로 함(폐기 여부는 사용자 확인 필요 — 이 문서
+작성 시점엔 미확인). 테스트 저장소(`sodam-ai/seomedic-write-test`)와 PR #1의 보관/삭제 여부도
+사용자 결정 대기 중.
+
 ---
 
 ## 프로젝트 전체 최종 상태 (Phase 1 + 1.5a + 1.5b 종합 — 정직한 한계 2건 포함)
@@ -175,17 +208,18 @@ PRD(`01_PRD.md`/`03_PHASES.md`)의 성공기준을 항목별로 실제 증거(�
 대조한 결과, 아래 **2건을 제외한 전체 성공기준이 충족**됨을 확인했다. 이 2건은 코드로 해결할 수 없고
 사용자의 행동(다른 OS 환경 또는 GitHub 토큰 제공)이 필요한 항목이라 별도로 명확히 분리한다.
 
-### 남은 한계 2건(사용자 행동 필요 — 축소·은폐 없이 명시)
+### 남은 한계(2026-07-04 갱신 — 축소·은폐 없이 명시)
 1. **크로스플랫폼(Mac/Linux) 미검증** — `CHECKPOINT.md` M9-3에 이미 기록됨(Windows만 실측, 이 개발
    환경이 Windows라 물리적으로 Mac/Linux 실행 확인 불가). 코드 자체는 `path.join`·argv 배열 등
-   이식성 있게 작성했으나 실제 실행 확인은 못 함.
-2. **GitHub 쓰기 경로(`createFork`/`createPullRequest`/`getAuthenticatedLogin`) 미검증** — 위 1.5b
-   섹션에 기록됨. 읽기 경로는 실제 GitHub 응답으로 검증 완료, 안전장치(강제 push 금지·자동 머지
-   금지·중복 방지·gated 미승인 보호)는 전부 실제 테스트로 검증 완료 — **남은 건 "옥토킷 호출이
-   정확히 동작하는지"라는 기능적 확인 하나**이며, 안전성 리스크는 이미 해소됐다고 판단.
+   이식성 있게 작성했으나 실제 실행 확인은 못 함. **변화 없음.**
+2. ~~GitHub 쓰기 경로 미검증~~ → **"내 저장소" 시나리오는 실제 GitHub PR(#1)로 검증 완료**
+   (`getAuthenticatedLogin`/`createPullRequest`/커밋·push 전부 실증). 다만 **"남의 저장소 → fork → PR"
+   경로(PRD 72행 요구사항)는 여전히 fake client로만 검증됨** — `createFork`의 실제 응답 형태 미확인.
+   안전장치(강제 push 금지·자동 머지 금지·중복 방지·gated 미승인 보호)는 이미 실제 테스트로 검증 완료.
 
 ### 결론
-위 2건을 정직하게 남긴 채, **PRD가 정의한 나머지 모든 성공기준(Phase 1 분석·회귀, Phase 1.5a
-로컬 수정, Phase 1.5b GitHub 모드의 설계·안전성)은 실제 실행 증거로 충족을 확인했다.** 두 한계는
+Mac/Linux 1건은 그대로 남아있고, GitHub 쓰기 경로는 **부분적으로 닫혔다** (내 저장소=완료,
+fork 경로=미완료). **PRD가 정의한 나머지 모든 성공기준(Phase 1 분석·회귀, Phase 1.5a 로컬 수정,
+Phase 1.5b의 add_safe·gated·멱등·PR-only 원칙)은 실제 실행 증거로 충족을 확인했다.** 남은 두 항목은
 숨기지 않고 이 문서와 `CHECKPOINT.md`에 각각 명시했으며, 사용자가 여유가 될 때(Mac/Linux 환경 접근,
-또는 GitHub 테스트 토큰/저장소 제공) 마저 닫을 수 있는 잔여 항목으로 남겨둔다.
+또는 제3자 저장소로 fork 경로 재검증) 마저 닫을 수 있는 잔여 항목으로 남겨둔다.
