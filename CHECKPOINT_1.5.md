@@ -119,8 +119,29 @@
 
 **검증**: 가짜 `GithubApiClient`(로컬 git 저장소를 clone 소스로 제공) + 실제 nextjs-minimal 픽스처로 4가지 시나리오 실제 실행 — (1) 정책 통과→내 repo→clone+**실제 npm install**+plan+apply+PR 생성 전체 흐름, (2) archived 저장소는 clone 전에 즉시 차단, (3) 중복 PR이면 적용·PR 생성 없이 건너뜀, (4) 남의 repo면 fork 존재 확인→생성→폴링. 259/259 테스트 통과, 빌드·`npm audit`(고위험 0) 확인.
 
-**의도적으로 아직 안 만든 것(다음 단계 — 실제 GitHub 토큰·계정이 있어야 신뢰성 있게 검증 가능)**:
-- `github/api-client.ts`(@octokit/rest로 `GithubApiClient` 인터페이스를 실제 구현 — fork·PR 생성처럼 되돌리기 어려운 외부 부작용이 있어 실제 토큰/저장소 없이는 검증 불가)
-- `github/token.ts`의 GIT_ASKPASS 스크립트가 **실제 git 인증**으로 동작하는지(env 읽기·스크립트 생성 자체는 구현·검증됨, "이 스크립트로 실제 인증되는지"만 미검증)
-- MCP 툴 등록(`seomedic_fix_github_*` 등) 및 `/seo-fix`의 GitHub 저장소 인자 지원 — api-client.ts가 실제로 검증된 뒤 진행
-- 위 항목들은 사용자가 테스트용 GitHub 토큰/저장소를 마련해 실제로 검증하기 전까지는 "완료"로 표시하지 않는다.
+## api-client.ts + MCP 툴 등록 — 코드 작성 완료(타입체크만, 실제 GitHub 미검증)
+
+**경계 재검토**: "GitHub API를 실제로 호출하는 코드는 아예 안 쓴다"는 이전 결정을 다시 봤더니 일관성이
+없었다 — `token.ts`(실 인증정보 다루는 코드)는 이미 작성해두고 "미검증"이라고만 표시했었는데,
+`api-client.ts`만 작성 자체를 거부한 건 같은 원칙을 다르게 적용한 것. **위험한 건 "코드가 존재함"이
+아니라 "실제로 호출함"** — 그래서 코드는 작성하되 실행은 여전히 보류하는 쪽으로 경계를 재조정했다.
+
+- `github/api-client.ts`: `@octokit/rest`로 `GithubApiClient` 인터페이스 실구현. 실행 전 실제 설치된
+  `@octokit/rest`에서 `repos.get/getCommunityProfileMetrics/createFork`, `pulls.list/create`,
+  `users.getAuthenticated` 메서드가 실제로 존재하는지 직접 확인(`typeof` 체크) 후 작성 — 이름 자체는
+  틀릴 위험이 없게 했지만, **응답 필드 형태(특히 `createFork`의 owner/name 위치,
+  `getCommunityProfileMetrics`의 license/contributing null 판정)는 실제 응답으로 재확인 못 함** —
+  실사용 시 가장 먼저 깨질 가능성이 있는 지점으로 파일 상단에 명시.
+- `server.ts`에 `seomedic_fix_github` MCP 툴 1개 등록 — 설명에 "⚠️ 미검증" 명시, `SEOMEDIC_GITHUB_TOKEN`
+  없으면 거부. `commands/seo-fix.md`에 GitHub 저장소 절차 추가(실행 전 사용자에게 실험적 기능임을
+  반드시 알리도록 지시, gated 항목은 1회성 흐름이라 자동 적용 안 되고 보고만 된다는 점 명시).
+
+**검증(전부 실행이 아니라 정적/구조적 검증)**: `tsc` 타입체크 통과(파라미터 형태까지 검증됨) +
+MCP 프로토콜로 `seomedic_fix_github` 툴이 스키마와 함께 실제로 노출되는지 확인(**호출은 하지 않음** —
+fork·PR 생성은 자동화 테스트에서 실행하기엔 되돌리기 어려운 부작용이 있음). 260/260 테스트 통과,
+빌드·`npm audit`(고위험 0) 확인.
+
+**다음 단계(실제 GitHub 토큰·테스트용 저장소가 있어야만 가능)**:
+- `seomedic_fix_github`를 실제로 1회 호출해 전체 흐름이 진짜로 동작하는지 확인
+- 특히 `api-client.ts`의 응답 필드 접근(위에서 명시한 두 지점)이 실제와 맞는지 확인
+- 위 실증 전까지 GitHub 모드는 "완료"가 아니라 "구현됨·타입검증됨·실행미검증"으로 표시한다.

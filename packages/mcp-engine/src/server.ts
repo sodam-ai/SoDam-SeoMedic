@@ -15,6 +15,10 @@ import { planLocalFix, FixPlanBlockedError } from "./fix-orchestrator/plan.js";
 import { applyLocalFixes, FixApplyBlockedError } from "./fix-orchestrator/apply.js";
 import { rollbackLocalFix, FixRollbackError } from "./fix-orchestrator/rollback.js";
 import { setApprovalStatus } from "./db/repositories/fix.js";
+import { runGithubFix, GithubFixBlockedError } from "./github/orchestrator.js";
+import { createOctokitGithubClient } from "./github/api-client.js";
+import { getGithubToken, GithubTokenError } from "./github/token.js";
+import { parseRepoUrl, InvalidRepoUrlError } from "./github/types.js";
 
 const server = new McpServer({ name: "seomedic", version: "0.1.0" });
 
@@ -312,6 +316,66 @@ server.registerTool(
       throw err;
     } finally {
       db.close();
+    }
+  },
+);
+
+server.registerTool(
+  "seomedic_fix_github",
+  {
+    title: "GitHub 저장소 자동 수정(PR 제안) — 미검증",
+    description:
+      "⚠️ 실제 GitHub API로 아직 검증되지 않은 기능입니다(타입체크만 통과). GitHub 저장소를 대상으로 add_safe 수정을 적용하고 PR을 생성합니다(제안, main 직접 push·자동 머지 없음). SEOMEDIC_GITHUB_TOKEN 환경변수가 필요합니다. 색인·표시에 영향을 주는(gated) 항목은 이 1회성 흐름에서 대화형 승인이 불가능해 자동 적용하지 않고 보고만 합니다.",
+    inputSchema: {
+      repoUrl: z.string().describe("GitHub 저장소 주소(예: https://github.com/owner/repo 또는 owner/repo)"),
+      maxRepoSizeKb: z.number().int().positive().optional().describe("clone 허용 최대 저장소 크기(KB), 기본 500MB"),
+    },
+  },
+  async ({ repoUrl, maxRepoSizeKb }) => {
+    try {
+      const ref = parseRepoUrl(repoUrl);
+      const token = getGithubToken();
+      const client = createOctokitGithubClient(token);
+      const result = await runGithubFix(client, ref, { maxRepoSizeKb });
+
+      const lines: string[] = [`## GitHub 수정 결과 — ${ref.owner}/${ref.repo}`];
+      if (result.policyWarnings.length > 0) {
+        lines.push("", "### 경고", ...result.policyWarnings.map((w) => `- ${w}`));
+      }
+
+      if (result.duplicateSkipped) {
+        lines.push("", "이미 같은 수정으로 열린 PR이 있어 건너뛰었습니다(중복 방지).");
+      } else if (result.pr) {
+        lines.push(
+          "",
+          "### PR 생성됨",
+          `- ${result.pr.url}`,
+          "",
+          "⚠️ main 브랜치에 직접 반영되지 않았고 자동 머지되지도 않았습니다 — 저장소 관리자가 diff를 검토한 뒤 직접 병합해야 합니다.",
+        );
+      } else if (result.autoFixes.length === 0) {
+        lines.push("", "자동 적용 가능한(add_safe) 수정이 없습니다.");
+      } else {
+        lines.push("", "적용에 실패했습니다:", ...result.applied.map((a) => `- ${a.targetPath ?? "-"}: ${a.outcome} — ${a.detail}`));
+      }
+
+      if (result.gatedFindings.length > 0) {
+        lines.push(
+          "",
+          `### 승인이 필요해 자동 적용하지 않은 항목(${result.gatedFindings.length}건)`,
+          ...result.gatedFindings.map((f) => `- ${f.rule_id} · ${f.page_url}`),
+        );
+      }
+      if (result.reportOnlyFindings.length > 0) {
+        lines.push("", `### 자동 수정 불가(제안만, ${result.reportOnlyFindings.length}건)`);
+      }
+
+      return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+    } catch (err) {
+      if (err instanceof InvalidRepoUrlError || err instanceof GithubTokenError || err instanceof GithubFixBlockedError) {
+        return { content: [{ type: "text" as const, text: `GitHub 수정을 진행할 수 없습니다: ${err.message}` }] };
+      }
+      throw err;
     }
   },
 );
