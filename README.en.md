@@ -2,7 +2,7 @@
 
 > A Claude Code marketplace plugin, installable in any project. Give it a URL and it diagnoses your site's SEO/GEO (Generative Engine Optimization) health.
 >
-> **Current version (Phase 1) capabilities: diagnosis + regression detection only.** Automatic source-code fixing (Phase 1.5) is not yet implemented.
+> **Current capabilities: diagnosis + regression detection + approval-gated auto-fix for local Next.js projects.** Fixing via GitHub repository pull requests is not yet implemented.
 
 ## 1. Overview
 SeoMedic crawls and renders a live URL (via headless Chromium), compares the raw HTML search engines see against the fully-rendered DOM, measures Core Web Vitals, and reports prioritized issues. On repeat runs, it detects regressions — issues that were fixed before but silently came back.
@@ -33,14 +33,14 @@ First run may take 1-2 extra minutes for automatic Chromium browser installation
 - `/seo-audit <url>` — diagnose a URL. Analysis only; no files are modified. You'll be asked to confirm you own or have permission to audit the target.
 - Ask to "save this as a baseline" after reviewing an audit — baselines are never created automatically.
 - `/seo-check <url>` — compare current state against the saved baseline; reports regressions.
-- `/seo-fix` — not yet implemented (planned for Phase 1.5).
+- `/seo-fix <local-folder>` — auto-fix a local **Next.js** project (other frameworks not yet supported). Flow: (1) plan (dry-run) — starts a temporary local server, diagnoses it, and shows a fix plan without touching any files yet; purely additive fixes (e.g. adding a missing sitemap entry) are planned automatically, while changes that affect how the site is indexed/displayed (canonical/robots/sitemap structure, etc.) require your explicit approval with a diff shown first; (2) apply — once approved, writes the files and re-runs `next build` to verify it still passes, automatically rolling back if the build fails; (3) rollback — ask to undo an applied fix at any time. Requires a clean git working tree (no uncommitted changes) — SeoMedic backs up touched files before writing and refuses to start if the tree isn't clean. GitHub-repository PR submission is not yet supported.
 
 ## 6. Command Reference
 | Command | Description |
 |---|---|
 | `/seo-audit <url>` | Diagnose a URL (single-page by default; site-wide crawl available via natural-language request) |
 | `/seo-check <url>` | Check for regressions against the saved baseline |
-| `/seo-fix` | Not implemented yet |
+| `/seo-fix <local-folder>` | Auto-fix a local Next.js project (approval-gated) |
 
 ## 7. Workflow
 ```
@@ -53,6 +53,7 @@ Prepare a URL → /seo-audit → review Markdown report → ask to save baseline
 - Raw crawled HTML is never stored in full — only a hash and a ≤500-character excerpt.
 - Zero telemetry — nothing is sent anywhere except requests to the URL you specify.
 - SSRF protection: private/loopback/link-local/cloud-metadata IPs are blocked automatically.
+- `/seo-fix` only runs when git is clean, and backs up any file it's about to touch. Changes that affect indexing/display are never applied without your approval, and a failed post-apply build triggers an immediate automatic rollback.
 
 ## 9. Architecture
 ```
