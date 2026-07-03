@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SeoMedic — Troubleshooting (English)</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #ffffff;
+    font-size: 16px;
+    word-break: keep-all;
+  }
+  h1, h2, h3, h4 { line-height: 1.35; margin-top: 2em; margin-bottom: 0.6em; }
+  h1 { font-size: 1.9em; border-bottom: 3px solid #2563eb; padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+  h3 { font-size: 1.15em; color: #1d4ed8; }
+  h4 { font-size: 1.05em; }
+  p { margin: 0.8em 0; overflow-wrap: break-word; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.9em;
+    word-break: break-word;
+  }
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.88em;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+  blockquote {
+    border-left: 4px solid #2563eb;
+    background: #eff6ff;
+    margin: 1em 0;
+    padding: 0.6em 1em;
+    border-radius: 0 6px 6px 0;
+  }
+  blockquote p { margin: 0.3em 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.92em;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+  th { background: #f8fafc; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafafa; }
+  ul { padding-left: 1.4em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 2em 0; }
+  .ol-item { padding-left: 0.2em; }
+  .ol-item-nested { padding-left: 1.6em; }
+  ::selection { background: #bfdbfe; }
+  @media (max-width: 600px) {
+    body { font-size: 15px; padding: 16px 14px 60px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.25em; }
+    table { font-size: 0.85em; }
+  }
+</style>
+</head>
+<body>
+<h1 id="troubleshooting-matrix">Troubleshooting Matrix</h1>
+<p>Real-world failure scenarios organized as situation → symptom → fix. If this doesn't resolve your issue, please file it as an issue report.</p>
+<p>This document and its Korean counterpart (<strong><a href="./TROUBLESHOOTING.md" target="_blank" rel="noopener noreferrer">TROUBLESHOOTING.md</a></strong>) contain identical information.</p>
+<hr>
+<h3 id="1-nodejs-isnt-installed-or-the-version-is-too-old">1. Node.js isn't installed, or the version is too old</h3>
+<ul>
+<li><strong>Symptom</strong>: commands don't run at all; "command not found," or the engine fails to start</li>
+<li><strong>Fix</strong>: check with <code>node -v</code> (22+ required). If missing or too old, install the LTS version from https://nodejs.org, then reopen your terminal and check again.</li>
+</ul>
+<h3 id="2-claude-code-or-the-marketplace-isnt-set-up">2. Claude Code or the marketplace isn't set up</h3>
+<ul>
+<li><strong>Symptom</strong>: <code>/plugin marketplace add</code> itself fails</li>
+<li><strong>Fix</strong>: confirm Claude Code is up to date (<code>claude --version</code>), and double-check the marketplace address (repository URL or local path) is correct.</li>
+</ul>
+<h3 id="3-installed-but-didnt-fully-restart-the-most-common-issue">3. Installed, but didn't fully restart (the most common issue)</h3>
+<ul>
+<li><strong>Symptom</strong>: <code>/plugin install</code> reports success, but the <code>/seo-audit</code> command doesn't show up</li>
+<li><strong>Fix</strong>: <strong>fully quit and relaunch the Claude Code application itself.</strong> Opening a new chat window is not enough (confirmed by direct testing). After restarting, re-check with <code>/plugin list</code> that <code>seomedic</code> shows as enabled.</li>
+</ul>
+<h3 id="4-the-playwright-browser-chromium-isnt-installed">4. The Playwright browser (Chromium) isn't installed</h3>
+<ul>
+<li><strong>Symptom</strong>: diagnosis fails with a browser-related error</li>
+<li><strong>Fix</strong>: run <code>npx playwright install chromium</code> directly in a terminal, then retry. On a corporate network/PC, also check item 5 (firewall) below.</li>
+</ul>
+<h3 id="5-a-firewall-proxy-or-antivirus-is-blocking-downloadscrawling">5. A firewall, proxy, or antivirus is blocking downloads/crawling</h3>
+<ul>
+<li><strong>Symptom</strong>: the install download stalls, or every page fails during diagnosis</li>
+<li><strong>Fix</strong>: on a corporate network, ask IT to allow access to the npm registry (registry.npmjs.org) and the target site. On a personal PC, check for an antivirus "new program blocked" notification.</li>
+</ul>
+<h3 id="6-slow-or-intermittent-internet">6. Slow or intermittent internet</h3>
+<ul>
+<li><strong>Symptom</strong>: install/diagnosis appears to hang for a long time</li>
+<li><strong>Fix</strong>: wait a few more minutes, then retry if it still doesn't complete. The first install downloads Chromium (several hundred MB), which can take a while on a slow connection.</li>
+</ul>
+<h3 id="7-the-windows-path-contains-non-ascii-characters-or-spaces">7. The Windows path contains non-ASCII characters or spaces</h3>
+<ul>
+<li><strong>Symptom</strong>: file access errors, "path not found" messages</li>
+<li><strong>Fix</strong>: use an ASCII/numeric-only path for the project folder, or wrap the entire path in double quotes (<code>"..."</code>).</li>
+</ul>
+<h3 id="8-windows-permission-issues">8. Windows permission issues</h3>
+<ul>
+<li><strong>Symptom</strong>: failure to create the <code>.seomedic/</code> folder or write files</li>
+<li><strong>Fix</strong>: confirm you're running from a personal project folder rather than a folder requiring admin rights (e.g., <code>C:\Program Files</code>).</li>
+</ul>
+<h3 id="9-seo-fix-fails-to-start-the-local-server-eg-port-conflict">9. <code>/seo-fix</code> fails to start the local server (e.g., port conflict)</h3>
+<ul>
+<li><strong>Symptom</strong>: <code>/seo-fix</code> fails partway through with a "render bridge error"</li>
+<li><strong>Fix</strong>: another program may be heavily occupying ports (SeoMedic automatically finds a free port each time, so you normally don't need to manually free a specific one). Retry after a moment, or first confirm <code>npx next build</code> runs successfully on its own in the target project folder.</li>
+</ul>
+<h3 id="10-next-build-fails-in-the-seo-fix-target-project">10. <code>next build</code> fails in the <code>/seo-fix</code> target project</h3>
+<ul>
+<li><strong>Symptom</strong>: diagnosis itself fails at the plan stage, or the change is automatically rolled back after being applied</li>
+<li><strong>Fix</strong>: if it fails at the plan stage, first run <code>npx next build</code> directly in the target folder to confirm the project builds at all on its own. If it was rolled back after being applied, that is <strong>expected behavior</strong> (a safety mechanism) — read the displayed build error message, fix the underlying cause, and try again.</li>
+</ul>
+<h3 id="11-crawling-is-blocked-robotstxt-403-bot-blocking-rate-limiting">11. Crawling is blocked (robots.txt, 403, bot blocking, rate limiting)</h3>
+<ul>
+<li><strong>Symptom</strong>: diagnosis results are empty, or show "blocked"</li>
+<li><strong>Fix</strong>: confirm you own the site or have permission. If the target site's <code>robots.txt</code> blocks crawling (which may be an intentional protection measure), check with the site's administrator. SeoMedic always respects robots.txt and never bypasses it.</li>
+</ul>
+<h3 id="12-url-typo-http-instead-of-https-or-unexpected-redirects">12. URL typo, http instead of https, or unexpected redirects</h3>
+<ul>
+<li><strong>Symptom</strong>: diagnosis fails, or an unexpected page gets diagnosed</li>
+<li><strong>Fix</strong>: confirm the address is entered exactly (including <code>https://</code>). If multiple redirects occur, the report will show a "redirect chain" warning.</li>
+</ul>
+<h3 id="13-trying-to-diagnose-a-site-you-dont-have-permission-for">13. Trying to diagnose a site you don't have permission for</h3>
+<ul>
+<li><strong>Symptom</strong>: a warning/confirmation prompt appears before diagnosis runs</li>
+<li><strong>Fix</strong>: only target sites you own or have explicit permission to test. Before answering "yes" to the confirmation prompt, double-check that you genuinely have permission.</li>
+</ul>
+<h3 id="14-git-isnt-installed-or-the-working-folder-is-dirty-seo-fix-only">14. Git isn't installed, or the working folder is dirty — <code>/seo-fix</code> only</h3>
+<ul>
+<li><strong>Symptom</strong>: <code>/seo-fix</code> refuses to run with a "git status is not clean" message</li>
+<li><strong>Fix</strong>: confirm the target project folder is a git repository (<code>git status</code>) and has no uncommitted changes. If it does, commit or stash them first, then retry. This is an <strong>intentional safety mechanism</strong> — auto-fix never starts without a safe rollback point. <code>/seo-audit</code> (diagnosis only) is unaffected by this restriction and always works.</li>
+</ul>
+<h3 id="15-insufficient-disk-space">15. Insufficient disk space</h3>
+<ul>
+<li><strong>Symptom</strong>: install failure, Chromium download failure</li>
+<li><strong>Fix</strong>: free up at least 500MB before retrying.</li>
+</ul>
+<h3 id="16-command-notation-differs-by-os-windowsmaclinux">16. Command notation differs by OS (Windows/Mac/Linux)</h3>
+<ul>
+<li><strong>Symptom</strong>: commands in the docs look different from your environment</li>
+<li><strong>Fix</strong>: commands in this document are OS-agnostic (typed into the Claude Code chat). Terminal commands (like <code>node -v</code>) work identically whether typed into Windows PowerShell or a Mac/Linux terminal app.</li>
+</ul>
+<h3 id="17-github-mode-error-that-seomedicgithubtoken-is-not-set">17. GitHub mode — error that <code>SEOMEDIC_GITHUB_TOKEN</code> is not set</h3>
+<ul>
+<li><strong>Symptom</strong>: running <code>/seo-fix https://github.com/...</code> is immediately refused with a message that the environment variable is missing</li>
+<li><strong>Fix</strong>: even after creating a token, <strong>it won't be recognized unless you register it on your computer (<code>setx</code>/<code>export</code>) AND fully restart Claude Code afterward.</strong> This isn't a random bug — it's structural: the SeoMedic engine is a separate program launched alongside Claude Code, and an already-running instance has no way to learn about a variable set afterward. Re-check Step 6.3 in <code>GUIDE.en.md</code>.</li>
+</ul>
+<h3 id="18-github-mode-404-not-found-even-though-a-token-is-set">18. GitHub mode — "404 Not Found" even though a token is set</h3>
+<ul>
+<li><strong>Symptom</strong>: even after registering the token and restarting, the target repository can't be found</li>
+<li><strong>Fix</strong>: this almost always means <strong>the token doesn't actually have access to that repository</strong> (GitHub responds with "not found" rather than "forbidden" for repositories you can't access, to protect privacy). Check, in order:</li>
+</ul>
+<p class="ol-item ol-item-nested"><strong>1.</strong> Open the token at <code>https://github.com/settings/personal-access-tokens</code> and confirm the target repository is actually selected under <strong>Repository access</strong>.</p>
+<p class="ol-item ol-item-nested"><strong>2.</strong> Confirm <strong>Repository permissions</strong> has both <code>Contents</code> and <code>Pull requests</code> set to "Read and write," and that you clicked <strong>Update</strong> in the top-right corner to actually save it (a very common mistake is selecting the repository but forgetting to save the permissions).</p>
+<p class="ol-item ol-item-nested"><strong>3.</strong> Confirm the GitHub account that created the token is either the owner of, or a registered collaborator on, that repository.</p>
+<h3 id="19-github-mode-a-pull-request-wasnt-created-and-it-says-there-were-zero-add-whats-missing-items">19. GitHub mode — a Pull Request wasn't created and it says there were zero "add what's missing" items</h3>
+<ul>
+<li><strong>Symptom</strong>: diagnosis succeeds, but zero fixes were auto-applied and no Pull Request was created</li>
+<li><strong>Fix</strong>: this is not an error — it's <strong>expected behavior</strong>. If there's genuinely nothing that can be safely auto-fixed (e.g., no missing sitemap entries), nothing gets created. Check the "requires approval, not applied" or "suggestion only" list in the result for anything you may want to handle manually.</li>
+</ul>
+<h3 id="20-github-mode-it-takes-noticeably-longer-than-local-mode">20. GitHub mode — it takes noticeably longer than local mode</h3>
+<ul>
+<li><strong>Symptom</strong>: GitHub mode runs much slower than local-folder mode</li>
+<li><strong>Fix</strong>: this is expected — GitHub mode clones the entire repository, installs dependencies (<code>npm install</code>), and re-verifies the build, on top of everything local mode does. Depending on repository size and your internet speed, this can take considerably longer than local mode.</li>
+</ul>
+<hr>
+<h2 id="still-not-resolved">Still not resolved?</h2>
+<p>Please file an issue with the exact symptom, the command you ran, and the message shown on screen. A screenshot helps. <strong>Before sharing, please double-check that no GitHub token value appears anywhere in your error message or screenshot.</strong></p>
+
+</body>
+</html>

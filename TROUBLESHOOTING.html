@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SeoMedic — 문제 해결 (한국어)</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #ffffff;
+    font-size: 16px;
+    word-break: keep-all;
+  }
+  h1, h2, h3, h4 { line-height: 1.35; margin-top: 2em; margin-bottom: 0.6em; }
+  h1 { font-size: 1.9em; border-bottom: 3px solid #2563eb; padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+  h3 { font-size: 1.15em; color: #1d4ed8; }
+  h4 { font-size: 1.05em; }
+  p { margin: 0.8em 0; overflow-wrap: break-word; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.9em;
+    word-break: break-word;
+  }
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.88em;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+  blockquote {
+    border-left: 4px solid #2563eb;
+    background: #eff6ff;
+    margin: 1em 0;
+    padding: 0.6em 1em;
+    border-radius: 0 6px 6px 0;
+  }
+  blockquote p { margin: 0.3em 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.92em;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+  th { background: #f8fafc; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafafa; }
+  ul { padding-left: 1.4em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 2em 0; }
+  .ol-item { padding-left: 0.2em; }
+  .ol-item-nested { padding-left: 1.6em; }
+  ::selection { background: #bfdbfe; }
+  @media (max-width: 600px) {
+    body { font-size: 15px; padding: 16px 14px 60px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.25em; }
+    table { font-size: 0.85em; }
+  }
+</style>
+</head>
+<body>
+<h1 id="문제-해결-매트릭스-troubleshooting">문제 해결 매트릭스 (TROUBLESHOOTING)</h1>
+<p>실제로 발생할 수 있는 실패 상황을 상황→증상→해결 순서로 정리했습니다. 여기서 해결이 안 되면 이슈로 알려주세요.</p>
+<p>이 문서와 영문판(<strong><a href="./TROUBLESHOOTING.en.md" target="_blank" rel="noopener noreferrer">TROUBLESHOOTING.en.md</a></strong>)의 내용은 완전히 동일합니다.</p>
+<hr>
+<h3 id="1-nodejs가-설치되어-있지-않거나-버전이-낮음">1. Node.js가 설치되어 있지 않거나 버전이 낮음</h3>
+<ul>
+<li><strong>증상</strong>: 명령 실행 자체가 안 됨, "command not found" 또는 엔진 실행 실패</li>
+<li><strong>해결</strong>: <code>node -v</code>로 확인(22 이상 필요). 없거나 낮으면 https://nodejs.org 에서 LTS 버전 설치 후 터미널을 다시 열어 재확인.</li>
+</ul>
+<h3 id="2-claude-code-또는-마켓플레이스-설정이-안-됨">2. Claude Code 또는 마켓플레이스 설정이 안 됨</h3>
+<ul>
+<li><strong>증상</strong>: <code>/plugin marketplace add</code> 자체가 실패</li>
+<li><strong>해결</strong>: Claude Code가 최신 버전인지 확인(<code>claude --version</code>), 마켓플레이스 주소(저장소 URL 또는 로컬 경로)가 정확한지 재확인.</li>
+</ul>
+<h3 id="3-설치했는데-완전-재시작을-안-함-가장-흔한-문제">3. 설치했는데 완전 재시작을 안 함 (가장 흔한 문제)</h3>
+<ul>
+<li><strong>증상</strong>: <code>/plugin install</code>은 성공했다는데 <code>/seo-audit</code> 명령이 안 뜸</li>
+<li><strong>해결</strong>: <strong>Claude Code 프로그램 자체를 완전히 종료했다가 다시 실행하세요.</strong> 새 대화창을 여는 것만으로는 부족합니다(실측 확인된 사실). 재시작 후 <code>/plugin list</code>로 <code>seomedic</code>이 enabled인지 재확인.</li>
+</ul>
+<h3 id="4-playwright-브라우저chromium가-설치-안-됨">4. Playwright 브라우저(Chromium)가 설치 안 됨</h3>
+<ul>
+<li><strong>증상</strong>: 진단 실행 시 브라우저 관련 오류로 실패</li>
+<li><strong>해결</strong>: 터미널에서 <code>npx playwright install chromium</code> 직접 실행 후 재시도. 사내망/회사 PC라면 다음 항목(방화벽)도 함께 확인.</li>
+</ul>
+<h3 id="5-방화벽프록시백신이-다운로드크롤을-차단">5. 방화벽·프록시·백신이 다운로드/크롤을 차단</h3>
+<ul>
+<li><strong>증상</strong>: 설치 중 다운로드가 멈추거나, 진단 시 모든 페이지가 실패로 나옴</li>
+<li><strong>해결</strong>: 회사 네트워크라면 IT 담당자에게 npm 레지스트리(registry.npmjs.org)와 대상 사이트 접근 허용 요청. 개인 PC라면 백신의 "신규 프로그램 차단" 알림을 확인.</li>
+</ul>
+<h3 id="6-인터넷이-느리거나-끊김">6. 인터넷이 느리거나 끊김</h3>
+<ul>
+<li><strong>증상</strong>: 설치·진단이 멈춘 것처럼 오래 걸림</li>
+<li><strong>해결</strong>: 몇 분 더 기다려보고, 그래도 안 되면 재시도. 최초 설치 시 Chromium(수백MB) 다운로드가 있어 저속 회선에서는 오래 걸릴 수 있습니다.</li>
+</ul>
+<h3 id="7-windows-경로에-한글공백이-포함됨">7. Windows 경로에 한글·공백이 포함됨</h3>
+<ul>
+<li><strong>증상</strong>: 파일 접근 오류, 경로를 못 찾는다는 메시지</li>
+<li><strong>해결</strong>: 프로젝트 폴더 경로를 영문·숫자 위주로 바꾸거나, 경로 전체를 큰따옴표(<code>"..."</code>)로 감싸 사용.</li>
+</ul>
+<h3 id="8-windows-권한-문제">8. Windows 권한 문제</h3>
+<ul>
+<li><strong>증상</strong>: <code>.seomedic/</code> 폴더 생성·파일 쓰기 실패</li>
+<li><strong>해결</strong>: 관리자 권한이 필요한 폴더(예: <code>C:\Program Files</code>)가 아니라 개인 프로젝트 폴더에서 실행하고 있는지 확인.</li>
+</ul>
+<h3 id="9-seo-fix-실행-시-로컬-서버-기동-실패포트-충돌-등">9. <code>/seo-fix</code> 실행 시 로컬 서버 기동 실패(포트 충돌 등)</h3>
+<ul>
+<li><strong>증상</strong>: <code>/seo-fix</code> 실행 중 "렌더 브릿지 오류"가 나며 진행이 안 됨</li>
+<li><strong>해결</strong>: 다른 프로그램이 포트를 과도하게 점유하고 있을 수 있습니다(SeoMedic은 매번 비어있는 포트를 자동으로 찾으므로, 특정 포트를 수동으로 비워줄 필요는 보통 없습니다). 잠시 후 재시도하거나, 대상 프로젝트 폴더에서 직접 <code>npx next build</code>가 정상 동작하는지 먼저 확인해보세요.</li>
+</ul>
+<h3 id="10-seo-fix-대상-프로젝트의-next-build-실패">10. <code>/seo-fix</code> 대상 프로젝트의 <code>next build</code> 실패</h3>
+<ul>
+<li><strong>증상</strong>: 계획(plan) 단계에서 진단 자체가 안 되거나, 적용(apply) 후 자동으로 되돌려짐(rollback)</li>
+<li><strong>해결</strong>: 계획 단계 실패라면 대상 프로젝트 폴더에서 직접 <code>npx next build</code>를 실행해 원래부터 빌드가 되는 프로젝트인지 먼저 확인하세요. 적용 후 롤백됐다면 이는 <strong>정상 동작</strong>입니다(안전장치) — 표시된 build 오류 메시지를 보고 원인을 해결한 뒤 다시 시도하세요.</li>
+</ul>
+<h3 id="11-크롤이-차단됨robotstxt403봇-차단rate-limit">11. 크롤이 차단됨(robots.txt·403·봇 차단·rate limit)</h3>
+<ul>
+<li><strong>증상</strong>: 진단 결과가 비어있거나 "차단됨" 표시</li>
+<li><strong>해결</strong>: 본인 소유·권한이 있는 사이트인지 확인. 대상 사이트의 <code>robots.txt</code>가 크롤을 막고 있다면(의도적 보호 조치일 수 있음) 사이트 관리자에게 확인. SeoMedic은 robots.txt를 항상 준수하며 우회하지 않습니다.</li>
+</ul>
+<h3 id="12-url-오타http-대신-https-필요의도치-않은-리다이렉트">12. URL 오타·http 대신 https 필요·의도치 않은 리다이렉트</h3>
+<ul>
+<li><strong>증상</strong>: 진단 실패 또는 예상과 다른 페이지가 진단됨</li>
+<li><strong>해결</strong>: 주소를 정확히(<code>https://</code> 포함) 입력했는지 확인. 리다이렉트가 여러 번 발생하면 리포트에 "리다이렉트 체인" 경고가 표시됩니다.</li>
+</ul>
+<h3 id="13-권한-없는-사이트를-진단하려고-함">13. 권한 없는 사이트를 진단하려고 함</h3>
+<ul>
+<li><strong>증상</strong>: 진단 실행 전 경고·확인 질문이 뜸</li>
+<li><strong>해결</strong>: 본인이 소유하거나 진단 권한이 있는 사이트만 대상으로 하세요. 확인 질문에 "예"로 답하기 전에 실제 권한이 있는지 다시 한번 확인하세요.</li>
+</ul>
+<h3 id="14-git이-설치-안-됨-또는-작업-폴더가-지저분함dirty-seo-fix-전용">14. git이 설치 안 됨 또는 작업 폴더가 지저분함(dirty) — <code>/seo-fix</code> 전용</h3>
+<ul>
+<li><strong>증상</strong>: <code>/seo-fix</code> 실행 시 "git 상태가 clean이 아니라 진행할 수 없다"는 메시지와 함께 거부됨</li>
+<li><strong>해결</strong>: 대상 프로젝트 폴더가 git 저장소인지(<code>git status</code>로 확인), 커밋되지 않은 변경사항이 없는지 확인하세요. 변경사항이 있다면 먼저 커밋하거나 임시로 저장(stash)한 뒤 다시 시도하세요. 이건 <strong>의도된 안전장치</strong>입니다 — 되돌릴 수 있는 지점이 없으면 자동 수정을 시작하지 않습니다. <code>/seo-audit</code>(진단 전용)은 이 제약과 무관하게 항상 사용할 수 있습니다.</li>
+</ul>
+<h3 id="15-디스크-공간-부족">15. 디스크 공간 부족</h3>
+<ul>
+<li><strong>증상</strong>: 설치 실패, Chromium 다운로드 실패</li>
+<li><strong>해결</strong>: 최소 500MB 이상 여유 공간 확보 후 재시도.</li>
+</ul>
+<h3 id="16-oswindowsmaclinux에-따라-명령-표기가-다름">16. OS(Windows/Mac/Linux)에 따라 명령 표기가 다름</h3>
+<ul>
+<li><strong>증상</strong>: 안내 문서의 명령이 내 환경과 다르게 보임</li>
+<li><strong>해결</strong>: 이 문서의 명령은 OS 공통(Claude Code 대화창 안에서 입력)입니다. 터미널 명령(<code>node -v</code> 등)은 Windows는 PowerShell, Mac/Linux는 터미널 앱에서 동일하게 작동합니다.</li>
+</ul>
+<h3 id="17-github-모드-seomedicgithubtoken이-설정되지-않았다는-오류">17. GitHub 모드 — <code>SEOMEDIC_GITHUB_TOKEN</code>이 설정되지 않았다는 오류</h3>
+<ul>
+<li><strong>증상</strong>: <code>/seo-fix https://github.com/...</code> 실행 시 환경변수가 없다는 메시지와 함께 즉시 거부됨</li>
+<li><strong>해결</strong>: 토큰을 만들었더라도, <strong>컴퓨터에 등록(<code>setx</code>/<code>export</code>) 후 Claude Code를 완전히 재시작하지 않으면 인식되지 않습니다.</strong> 이는 우연한 버그가 아니라 구조적인 이유입니다 — SeoMedic 엔진은 Claude Code가 켜질 때 함께 실행되는 별도 프로그램이라, 이미 켜져 있는 상태에서 새로 등록한 값을 알 방법이 없습니다. <code>GUIDE.md</code> 6단계 3번을 다시 확인하세요.</li>
+</ul>
+<h3 id="18-github-모드-토큰이-있는데도-404-not-found-오류가-남">18. GitHub 모드 — 토큰이 있는데도 "404 Not Found" 오류가 남</h3>
+<ul>
+<li><strong>증상</strong>: 토큰을 등록하고 재시작도 했는데 저장소를 못 찾는다는 오류가 남</li>
+<li><strong>해결</strong>: 이 오류는 대부분 <strong>토큰이 실제로는 그 저장소에 대한 권한을 갖고 있지 않을 때</strong> 발생합니다(GitHub은 접근 권한이 없는 저장소를 "권한 없음"이 아니라 "존재하지 않음"으로 답해 보안을 유지합니다). 아래 순서로 확인하세요:</li>
+</ul>
+<p class="ol-item ol-item-nested"><strong>1.</strong> <code>https://github.com/settings/personal-access-tokens</code>에서 해당 토큰을 열어 <strong>Repository access</strong>에 대상 저장소가 실제로 선택되어 있는지 확인</p>
+<p class="ol-item ol-item-nested"><strong>2.</strong> <strong>Repository permissions</strong>에 <code>Contents</code>와 <code>Pull requests</code>가 각각 "Read and write"로 설정되어 있고, 화면 우측 상단 <strong>Update</strong> 버튼을 눌러 실제로 저장했는지 확인(저장소만 선택하고 권한 저장을 잊는 경우가 흔합니다)</p>
+<p class="ol-item ol-item-nested"><strong>3.</strong> 토큰을 만든 GitHub 계정이 그 저장소의 소유자이거나 협업자(collaborator)로 등록되어 있는지 확인</p>
+<h3 id="19-github-모드-pull-request는-생겼는데-없는-것-추가-항목이-하나도-없다고-나옴">19. GitHub 모드 — Pull Request는 생겼는데 "없는 것 추가" 항목이 하나도 없다고 나옴</h3>
+<ul>
+<li><strong>증상</strong>: 진단은 성공했는데 자동 적용된 수정이 0건이고 Pull Request도 생성되지 않음</li>
+<li><strong>해결</strong>: 이건 오류가 아니라 <strong>정상 동작</strong>입니다 — 자동으로 안전하게 고칠 수 있는 문제(예: sitemap에 빠진 페이지)가 실제로 없으면 아무것도 만들지 않습니다. 결과에 나온 "승인이 필요해 적용 안 함" 또는 "제안만 가능" 목록을 확인해, 수동으로 처리할 항목이 있는지 살펴보세요.</li>
+</ul>
+<h3 id="20-github-모드-실행이-유독-오래-걸림">20. GitHub 모드 — 실행이 유독 오래 걸림</h3>
+<ul>
+<li><strong>증상</strong>: 로컬 폴더 모드보다 GitHub 모드가 훨씬 오래 걸림</li>
+<li><strong>해결</strong>: 정상입니다 — GitHub 모드는 저장소를 통째로 내려받고(clone), 의존성을 설치(<code>npm install</code>)하고, 빌드까지 다시 확인하는 과정을 전부 거칩니다. 저장소 크기와 인터넷 속도에 따라 로컬 모드보다 훨씬 오래 걸릴 수 있습니다.</li>
+</ul>
+<hr>
+<h2 id="그래도-해결이-안-된다면">그래도 해결이 안 된다면</h2>
+<p>증상, 실행한 명령, 화면에 나온 메시지를 그대로 복사해 이슈로 남겨주세요. 스크린샷이 있으면 더 좋습니다. <strong>단, 오류 메시지나 스크린샷에 GitHub 토큰 값이 포함되어 있지 않은지 반드시 먼저 확인한 뒤 공유하세요.</strong></p>
+
+</body>
+</html>

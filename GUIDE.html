@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SeoMedic — 왕초보 가이드</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #ffffff;
+    font-size: 16px;
+    word-break: keep-all;
+  }
+  h1, h2, h3, h4 { line-height: 1.35; margin-top: 2em; margin-bottom: 0.6em; }
+  h1 { font-size: 1.9em; border-bottom: 3px solid #2563eb; padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+  h3 { font-size: 1.15em; color: #1d4ed8; }
+  h4 { font-size: 1.05em; }
+  p { margin: 0.8em 0; overflow-wrap: break-word; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.9em;
+    word-break: break-word;
+  }
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.88em;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+  blockquote {
+    border-left: 4px solid #2563eb;
+    background: #eff6ff;
+    margin: 1em 0;
+    padding: 0.6em 1em;
+    border-radius: 0 6px 6px 0;
+  }
+  blockquote p { margin: 0.3em 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.92em;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+  th { background: #f8fafc; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafafa; }
+  ul { padding-left: 1.4em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 2em 0; }
+  .ol-item { padding-left: 0.2em; }
+  .ol-item-nested { padding-left: 1.6em; }
+  ::selection { background: #bfdbfe; }
+  @media (max-width: 600px) {
+    body { font-size: 15px; padding: 16px 14px 60px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.25em; }
+    table { font-size: 0.85em; }
+  }
+</style>
+</head>
+<body>
+<h1 id="seomedic-왕초보-가이드">SeoMedic 왕초보 가이드</h1>
+<p>컴퓨터·터미널·AI 도구를 처음 다루셔도 괜찮습니다. 아래 순서를 하나씩만 따라오세요.</p>
+<p>이 문서와 영문판(<strong><a href="./GUIDE.en.md" target="_blank" rel="noopener noreferrer">GUIDE.en.md</a></strong>)의 내용은 완전히 동일합니다.</p>
+<hr>
+<h2 id="0단계-이-가이드에서-쓰는-용어-용어집">0단계. 이 가이드에서 쓰는 용어 (용어집)</h2>
+<table>
+<thead><tr><th>용어</th><th>쉬운 설명</th></tr></thead>
+<tbody>
+<tr><td>SEO</td><td>검색엔진 최적화(원문: Search Engine Optimization) — 구글 같은 검색엔진이 내 페이지를 잘 찾도록 만드는 작업</td></tr>
+<tr><td>GEO</td><td>생성형 AI 검색 최적화(원문: Generative Engine Optimization) — ChatGPT·Perplexity 같은 AI 답변에 내 페이지가 인용되도록 만드는 작업</td></tr>
+<tr><td>크롤(crawl)</td><td>프로그램이 웹페이지를 자동으로 방문해 내용을 읽는 것</td></tr>
+<tr><td>렌더링(render)</td><td>브라우저가 코드(HTML/자바스크립트)를 실제 화면 모습으로 그려내는 것</td></tr>
+<tr><td>canonical(캐노니컬)</td><td>"이 페이지의 진짜 대표 주소는 여기입니다"라고 검색엔진에 알려주는 표시</td></tr>
+<tr><td>회귀(regression)</td><td>예전에 고쳤던 문제가 다시 나빠진 것("원복"과 같은 뜻)</td></tr>
+<tr><td>MCP</td><td>Claude Code가 외부 도구(SeoMedic 엔진 등)와 대화하는 표준 방식</td></tr>
+<tr><td>베이스라인(baseline)</td><td>나중에 비교할 "기준 시점"의 진단 결과 스냅샷</td></tr>
+<tr><td>저장소(repository, repo)</td><td>GitHub에 올라간 프로젝트 코드 전체를 담는 폴더 같은 공간</td></tr>
+<tr><td>브랜치(branch)</td><td>원본을 건드리지 않고 따로 작업할 수 있는 "코드의 가지"(사본 같은 개념)</td></tr>
+<tr><td>Pull Request(PR, 풀 리퀘스트)</td><td>"이렇게 고치는 게 어때요?"라고 저장소 관리자에게 보내는 변경 제안서. 관리자가 검토 후 승인해야만 실제 코드에 반영됨</td></tr>
+<tr><td>fork(포크)</td><td>남의 저장소를 내 계정으로 통째로 복사해오는 것(내 소유가 아닌 저장소를 고치려면 먼저 이렇게 복사해야 함)</td></tr>
+<tr><td>Personal Access Token(개인용 접근 토큰)</td><td>GitHub 비밀번호 대신 특정 프로그램에만 빌려주는 제한된 권한의 열쇠</td></tr>
+<tr><td>환경변수(environment variable)</td><td>프로그램이 컴퓨터에서 읽어가는 설정값 하나(비밀번호처럼 화면에 안 보이게 저장할 때 자주 씀)</td></tr>
+</tbody></table>
+<hr>
+<h2 id="1단계-프로그램-설치-확인-예상-소요-5분">1단계. 프로그램 설치 확인 (예상 소요: 5분)</h2>
+<p class="ol-item"><strong>1.</strong> Windows는 <code>PowerShell</code>을, Mac은 <code>터미널</code>을 엽니다.</p>
+<p class="ol-item"><strong>2.</strong> 아래를 한 줄씩 입력하고 Enter를 누릅니다.</p>
+<pre><code>node -v</code></pre>
+<p>   <strong>성공하면 이렇게 보여요</strong>: <code>v22.x.x</code> 같은 버전 번호가 나옵니다. 아무것도 안 나오거나 오류면 <a href="./README.md#2-사전-준비물필요-프로그램" target="_blank" rel="noopener noreferrer">README 2단계</a>를 참고해 Node.js를 설치하세요.</p>
+<p class="ol-item"><strong>3.</strong> Claude Code가 실행되는지 확인합니다.</p>
+<pre><code>claude --version</code></pre>
+<h2 id="2단계-seomedic-설치-예상-소요-35분">2단계. SeoMedic 설치 (예상 소요: 3~5분)</h2>
+<p class="ol-item"><strong>1.</strong> Claude Code 대화창에 아래를 입력합니다(실제 마켓플레이스 주소로 교체):</p>
+<pre><code>/plugin marketplace add &lt;마켓플레이스 주소&gt;
+/plugin install seomedic@&lt;마켓플레이스 이름&gt;</code></pre>
+<p class="ol-item"><strong>2.</strong> <strong>⭐ 가장 중요한 단계</strong>: 설치가 끝나면 Claude Code를 <strong>완전히 종료</strong>했다가 <strong>다시 실행</strong>하세요. 창을 닫는 것 정도가 아니라 프로그램 자체를 껐다 켜야 합니다.</p>
+<p class="ol-item"><strong>3.</strong> 다시 켠 뒤 확인:</p>
+<pre><code>/plugin list</code></pre>
+<p>   <strong>성공하면 이렇게 보여요</strong>: 목록에 <code>seomedic</code> 항목이 "enabled"로 표시됩니다.</p>
+<h2 id="3단계-첫-진단-실행하기-예상-소요-13분">3단계. 첫 진단 실행하기 (예상 소요: 1~3분)</h2>
+<p class="ol-item"><strong>1.</strong> 대화창에 진단하고 싶은 사이트 주소를 넣어 입력합니다:</p>
+<pre><code>/seo-audit https://example.com</code></pre>
+<p class="ol-item"><strong>2.</strong> AI가 "이 사이트가 본인 소유이거나 진단 권한이 있나요?"라고 물어볼 수 있습니다. 맞다면 확인해주세요.</p>
+<p class="ol-item"><strong>3.</strong> 첫 실행이라면 브라우저 엔진 자동 설치로 시간이 조금 더 걸립니다(1~2분).</p>
+<p class="ol-item"><strong>4.</strong> <strong>성공하면 이렇게 보여요</strong>:</p>
+<pre><code>## SEO 진단 리포트 — https://example.com
+
+**종합 상태: 주의** (참고용 라벨입니다 — 절대 점수가 아닙니다)
+
+- 진단 페이지 수: 1
+- 총 위반 건수: 1
+
+## https://example.com/
+HTTP 상태: `200`
+
+### Core Web Vitals (lab 측정)
+| 지표 | 값 |
+|---|---|
+| LCP | 784ms |
+...
+
+### 위반 사항 (임팩트 순)
+| 심각도 | 규칙 ID | 카테고리 | 현재 값 | 권장 조치 |
+|---|---|---|---|---|
+| 🟠 high | R-CANONICAL-MISSING | canonical | - | self-canonical 추가 권장 |</code></pre>
+<h2 id="4단계-나중에-다시-확인하기-회귀-감지">4단계. 나중에 다시 확인하기 (회귀 감지)</h2>
+<p class="ol-item"><strong>1.</strong> 진단 결과가 마음에 들면(또는 확인이 끝났으면), 대화창에 이렇게 요청하세요:</p>
+<pre><code>이 상태를 베이스라인으로 저장해줘</code></pre>
+<p class="ol-item"><strong>2.</strong> 몇 주/몇 달 뒤, 사이트가 바뀐 후 다시 확인하고 싶다면:</p>
+<pre><code>/seo-check https://example.com</code></pre>
+<p class="ol-item"><strong>3.</strong> <strong>성공하면 이렇게 보여요</strong>: 문제가 없으면 "베이스라인 대비 원복된 항목이 없습니다", 문제가 생겼으면 어떤 게 다시 나빠졌는지 표로 보여줍니다.</p>
+<h2 id="5단계-선택-내-nextjs-프로젝트-자동으로-고쳐보기로컬-폴더">5단계. (선택) 내 Next.js 프로젝트 자동으로 고쳐보기(로컬 폴더)</h2>
+<p>이 단계는 <strong>내 Next.js 프로젝트 소스 코드가 있을 때만</strong> 해당됩니다. URL 진단만 쓰신다면 건너뛰어도 됩니다.</p>
+<p class="ol-item"><strong>1.</strong> 대상 프로젝트가 git으로 관리되고 있고, 커밋 안 된 변경사항이 없는지(clean) 먼저 확인하세요.</p>
+<pre><code>git status</code></pre>
+<p>   <code>nothing to commit, working tree clean</code>이 아니면, 먼저 커밋부터 하세요.</p>
+<p class="ol-item"><strong>2.</strong> Claude Code 대화창에 프로젝트 폴더 경로를 넣어 요청합니다:</p>
+<pre><code>/seo-fix ./내-nextjs-프로젝트-폴더</code></pre>
+<p class="ol-item"><strong>3.</strong> AI가 계획(무엇을 어떻게 고칠지)을 보여줍니다.</p>
+<ul>
+<li>"없는 것 추가"는 자동으로 진행됩니다.</li>
+<li>검색 결과 표시에 영향을 주는 항목은 변경 내용(diff)을 보여주며 승인 여부를 물어봅니다 — 내용을 확인하고 "승인" 또는 "거부"로 답하세요.</li>
+</ul>
+<p class="ol-item"><strong>4.</strong> 적용이 끝나면 AI가 <code>next build</code>가 통과했는지 알려줍니다. <strong>만약 빌드가 실패하면 자동으로 원래 상태로 되돌아갑니다</strong> — 아무것도 안 하셔도 됩니다.</p>
+<p class="ol-item"><strong>5.</strong> 결과가 마음에 안 들면 "방금 적용한 수정 되돌려줘"라고 요청하세요.</p>
+<p class="ol-item"><strong>6.</strong> <strong>적용된 수정도 실제 파일 변경입니다</strong> — 평소 코드 리뷰하듯 <code>git diff</code>로 한 번 더 확인한 뒤 커밋하세요.</p>
+<h2 id="6단계-선택-github-저장소를-대상으로-자동-수정-제안-받아보기-실험적-기능">6단계. (선택) GitHub 저장소를 대상으로 자동 수정 제안 받아보기 — ⚠️ 실험적 기능</h2>
+<p>이 단계는 <strong>GitHub에 올려둔 Next.js 프로젝트가 있고, Pull Request(변경 제안)를 받아보고 싶을 때만</strong> 해당됩니다. 처음이시라면 먼저 5단계(로컬 폴더)로 익숙해지신 뒤 시도하시길 권합니다. 이 기능은 아직 "내 소유 저장소" 경로만 실제로 검증됐고(fork 경로는 미검증), 진행 전 반드시 아래 내용을 확인해주세요.</p>
+<p class="ol-item"><strong>1.</strong> <strong>GitHub 개인용 접근 토큰(Personal Access Token) 만들기</strong></p>
+<p class="ol-item ol-item-nested"><strong>1.</strong> 브라우저에서 <code>https://github.com/settings/personal-access-tokens/new</code> 접속 후 로그인</p>
+<p class="ol-item ol-item-nested"><strong>2.</strong> <strong>Repository access(저장소 접근 범위)</strong>: "Only select repositories"(특정 저장소만) 선택 → 대상 저장소를 목록에서 선택</p>
+<p class="ol-item ol-item-nested"><strong>3.</strong> <strong>Repository permissions(저장소 권한)</strong>: 목록에서 두 가지를 각각 찾아 설정</p>
+<ul>
+<li><code>Contents</code> → <strong>Read and write</strong></li>
+<li><code>Pull requests</code> → <strong>Read and write</strong></li>
+<li>⚠️ 저장소만 선택하고 이 권한 두 가지를 안 넣으면 나중에 오류가 납니다. 반드시 둘 다 설정하세요.</li>
+</ul>
+<p class="ol-item ol-item-nested"><strong>4.</strong> <strong>Generate token</strong> 버튼 클릭</p>
+<p class="ol-item ol-item-nested"><strong>5.</strong> 화면에 초록색 글자로 토큰 값이 <strong>딱 한 번</strong> 나타납니다. 지금 바로 복사해두세요(창을 닫으면 다시 볼 수 없습니다).</p>
+<p class="ol-item"><strong>2.</strong> <strong>⚠️ 절대로 이 토큰 값을 Claude Code 대화창에 붙여넣지 마세요.</strong> 대신 내 컴퓨터에만 등록합니다:</p>
+<ul>
+<li><strong>Windows</strong>: PowerShell을 새로 열고 아래를 입력(따옴표 안을 복사한 토큰으로 교체):</li>
+</ul>
+<pre><code>setx SEOMEDIC_GITHUB_TOKEN "여기에_복사한_토큰_붙여넣기"</code></pre>
+<p>     <code>SUCCESS: Specified value was saved.</code>라는 글자가 나오면 성공입니다.</p>
+<ul>
+<li><strong>Mac/Linux</strong>: 터미널에서:</li>
+</ul>
+<pre><code>export SEOMEDIC_GITHUB_TOKEN="여기에_복사한_토큰_붙여넣기"</code></pre>
+<p class="ol-item"><strong>3.</strong> <strong>⭐ 가장 중요한 단계(설치 직후와 같은 이유)</strong>: Claude Code를 <strong>완전히 종료</strong>했다가 <strong>다시 실행</strong>하세요. 이미 켜져 있는 프로그램은 방금 등록한 값을 알지 못합니다.</p>
+<p class="ol-item"><strong>4.</strong> 다시 켠 뒤, Claude Code 대화창에 저장소 주소를 넣어 요청합니다:</p>
+<pre><code>/seo-fix https://github.com/소유자이름/저장소이름</code></pre>
+<p class="ol-item"><strong>5.</strong> AI가 진행 전 "이 기능은 아직 실험적입니다"라고 다시 한번 안내합니다. 저장소 주소가 맞는지 확인 후 진행 의사를 밝혀주세요.</p>
+<p class="ol-item"><strong>6.</strong> <strong>로컬 폴더 모드와 다르게, 이번엔 중간에 승인을 묻는 단계 없이 한 번에 끝까지 진행됩니다</strong>:</p>
+<ul>
+<li>"없는 것 추가"에 해당하는 안전한 수정은 자동으로 적용됩니다.</li>
+<li>검색 결과 표시에 영향을 주는 항목은 자동 적용되지 않고, "승인이 필요해서 적용하지 않았다"는 목록으로만 알려드립니다.</li>
+</ul>
+<p class="ol-item"><strong>7.</strong> <strong>성공하면 이렇게 보여요</strong>: 실제 GitHub Pull Request 링크(<code>https://github.com/.../pull/번호</code>)가 나옵니다. 이 링크를 눌러보면 실제로 어떤 코드가 어떻게 바뀌었는지(diff) 확인할 수 있습니다.</p>
+<p class="ol-item"><strong>8.</strong> <strong>여기서 끝이 아닙니다</strong> — Pull Request는 "제안"일 뿐입니다. 저장소 관리자(본인 또는 팀원)가 GitHub 화면에서 직접 내용을 확인하고 "Merge"(병합) 버튼을 눌러야 실제로 반영됩니다. SeoMedic은 자동으로 병합하지 않습니다.</p>
+<p class="ol-item"><strong>9.</strong> 사용을 마쳤다면, 보안을 위해 만들어둔 토큰을 <code>https://github.com/settings/personal-access-tokens</code>에서 삭제(폐기)하는 것을 권장합니다(특히 짧은 만료기간을 설정하지 않으셨다면).</p>
+<h2 id="7단계-막히면-여기를-보세요">7단계. 막히면 여기를 보세요</h2>
+<ul>
+<li>설치·실행 중 문제 → <a href="./TROUBLESHOOTING.md" target="_blank" rel="noopener noreferrer">TROUBLESHOOTING.md</a></li>
+<li>궁금한 점 → <a href="./FAQ.md" target="_blank" rel="noopener noreferrer">FAQ.md</a></li>
+<li>전체 기능 설명 → <a href="./README.md" target="_blank" rel="noopener noreferrer">README.md</a></li>
+</ul>
+<p>축하합니다 — 여기까지 따라오셨다면 SeoMedic의 핵심 기능을 전부 사용해보신 겁니다.</p>
+
+</body>
+</html>

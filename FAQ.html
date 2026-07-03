@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SeoMedic — 자주 묻는 질문 (한국어)</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #ffffff;
+    font-size: 16px;
+    word-break: keep-all;
+  }
+  h1, h2, h3, h4 { line-height: 1.35; margin-top: 2em; margin-bottom: 0.6em; }
+  h1 { font-size: 1.9em; border-bottom: 3px solid #2563eb; padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+  h3 { font-size: 1.15em; color: #1d4ed8; }
+  h4 { font-size: 1.05em; }
+  p { margin: 0.8em 0; overflow-wrap: break-word; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.9em;
+    word-break: break-word;
+  }
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.88em;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+  blockquote {
+    border-left: 4px solid #2563eb;
+    background: #eff6ff;
+    margin: 1em 0;
+    padding: 0.6em 1em;
+    border-radius: 0 6px 6px 0;
+  }
+  blockquote p { margin: 0.3em 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.92em;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+  th { background: #f8fafc; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafafa; }
+  ul { padding-left: 1.4em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 2em 0; }
+  .ol-item { padding-left: 0.2em; }
+  .ol-item-nested { padding-left: 1.6em; }
+  ::selection { background: #bfdbfe; }
+  @media (max-width: 600px) {
+    body { font-size: 15px; padding: 16px 14px 60px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.25em; }
+    table { font-size: 0.85em; }
+  }
+</style>
+</head>
+<body>
+<h1 id="자주-묻는-질문-faq">자주 묻는 질문 (FAQ)</h1>
+<p>이 문서와 영문판(<strong><a href="./FAQ.en.md" target="_blank" rel="noopener noreferrer">FAQ.en.md</a></strong>)의 내용은 완전히 동일합니다.</p>
+<h3 id="q-seomedic이-검색-순위를-올려주나요">Q. SeoMedic이 검색 순위를 올려주나요?</h3>
+<p>아니요. SeoMedic은 <strong>진단 도구</strong>입니다. 문제를 찾아서 알려줄 뿐, 검색 순위·AI 노출을 보장하지 않습니다. 어떤 도구도 순위를 "보장"할 수는 없습니다.</p>
+<h3 id="q-내가-만들지-않은-남의-사이트도-진단할-수-있나요">Q. 내가 만들지 않은 남의 사이트도 진단할 수 있나요?</h3>
+<p>기술적으로는 가능하지만, <strong>본인 소유이거나 진단 권한이 있는 사이트만</strong> 대상으로 해야 합니다. 무단으로 제3자 사이트를 대량 크롤하는 것은 법적 문제가 될 수 있습니다.</p>
+<h3 id="q-진단하면서-코드를-직접-고쳐주나요">Q. 진단하면서 코드를 직접 고쳐주나요?</h3>
+<p><strong>Next.js 프로젝트라면 가능합니다.</strong> 로컬 폴더(<code>/seo-fix ./내-프로젝트-폴더</code>) 또는 GitHub 저장소 주소(<code>/seo-fix https://github.com/소유자/저장소</code>)를 지정할 수 있습니다. "없는 것 추가"는 자동으로, 검색 결과 표시에 영향을 주는 변경은 승인을 받은 뒤에만 실제 파일에 반영합니다. 다른 프레임워크(React, Vue 등)는 아직 지원하지 않습니다.</p>
+<h3 id="q-github-저장소-대상-자동-수정pr-모드은-안전한가요">Q. GitHub 저장소 대상 자동 수정(PR 모드)은 안전한가요?</h3>
+<p>안전장치는 실제 실행으로 검증됐습니다 — 기본 브랜치 직접 push·강제 push·자동 병합 기능이 코드 구조상 아예 없고, 승인이 필요한 항목은 자동 적용되지 않습니다. 다만 <strong>"내가 소유하지 않은 저장소를 fork해서 제안하는 경로"는 아직 실제 GitHub로 검증되지 않은 실험적 상태</strong>입니다("내 소유 저장소"에 브랜치+PR을 만드는 경로는 실제로 검증됨). 자세한 내용은 <code>CHECKPOINT_1.5.md</code>를 참고하세요.</p>
+<h3 id="q-github-모드를-쓰려면-왜-토큰이-필요한가요-비밀번호를-그냥-쓰면-안-되나요">Q. GitHub 모드를 쓰려면 왜 토큰이 필요한가요? 비밀번호를 그냥 쓰면 안 되나요?</h3>
+<p>진짜 GitHub 비밀번호를 쓰면 프로그램이 계정의 모든 것에 접근할 수 있게 됩니다. Personal Access Token은 "이 저장소 하나만, 이런 작업(코드 읽기/쓰기, PR 생성)만" 하도록 범위를 좁힐 수 있는 훨씬 안전한 대체 수단입니다. 자세한 발급 방법은 <code>GUIDE.md</code> 6단계를 참고하세요.</p>
+<h3 id="q-github-토큰을-대화창에-입력해도-되나요">Q. GitHub 토큰을 대화창에 입력해도 되나요?</h3>
+<p><strong>절대 안 됩니다.</strong> 대화 내용은 로그로 남기 때문에, 한 번이라도 입력되는 순간 그 토큰은 노출된 것으로 취급해야 합니다. 반드시 본인 컴퓨터의 환경변수(<code>SEOMEDIC_GITHUB_TOKEN</code>)로만 등록하세요. 실수로 입력했다면 즉시 GitHub에서 해당 토큰을 폐기(삭제)하고 새로 발급하세요.</p>
+<h3 id="q-overallscore-같은-점수가-왜-숫자로-안-나오나요">Q. <code>overall_score</code> 같은 점수가 왜 숫자로 안 나오나요?</h3>
+<p>의도적인 설계입니다. SEO 점수는 특정 도구의 자체 계산일 뿐 검색엔진의 실제 판단과 다를 수 있어서, "72점" 같은 절대 숫자 대신 "양호/주의/위험" 같은 참고용 라벨로만 보여줍니다.</p>
+<h3 id="q-core-web-vitals속도-지표-수치가-실제-구글-순위-반영-수치와-다른데요">Q. Core Web Vitals(속도 지표) 수치가 실제 구글 순위 반영 수치와 다른데요?</h3>
+<p>정상입니다. SeoMedic이 보여주는 수치는 <strong>lab 데이터</strong>(로컬에서 3회 측정한 값)이고, 구글이 실제 검색 순위에 쓰는 건 <strong>field 데이터</strong>(CrUX, 실제 방문자들의 데이터)입니다. 이 둘은 원래 다를 수 있습니다.</p>
+<h3 id="q-내-개인정보나-크롤한-사이트-내용이-어딘가로-전송되나요">Q. 내 개인정보나 크롤한 사이트 내용이 어딘가로 전송되나요?</h3>
+<p>아니요. 텔레메트리(사용 데이터 외부 전송)가 전혀 없습니다. 모든 데이터는 진단을 실행한 내 컴퓨터의 <code>.seomedic/</code> 폴더(GitHub 모드는 홈 폴더의 <code>.seomedic-github-cache/</code>도 함께) 안에만 저장됩니다.</p>
+<h3 id="q-크롤한-페이지-내용을-통째로-저장하나요">Q. 크롤한 페이지 내용을 통째로 저장하나요?</h3>
+<p>아니요. 페이지 원문 전체는 저장하지 않고, 지문(해시)과 500자 이하 짧은 요약만 저장합니다(저작권 보호 목적).</p>
+<h3 id="q-여러-프로젝트에서-써도-되나요">Q. 여러 프로젝트에서 써도 되나요?</h3>
+<p>네. 한 번 설치하면 어느 프로젝트에서나 사용할 수 있습니다. 다만 진단 결과 데이터베이스는 <strong>진단을 실행한 프로젝트 폴더별로 분리</strong>되어 저장됩니다.</p>
+<h3 id="q-무료인가요">Q. 무료인가요?</h3>
+<p>네, SeoMedic 자체는 무료이고 크레딧·과금 없이 로컬에서 실행됩니다. 다만 이 도구를 실행하는 Claude Code 사용료는 별도입니다.</p>
+<h3 id="q-nextjs가-아닌-다른-프레임워크react-vue-등도-진단할-수-있나요">Q. Next.js가 아닌 다른 프레임워크(React, Vue 등)도 진단할 수 있나요?</h3>
+<p>네, <strong>진단(URL 기반)은 어떤 스택이든 가능</strong>합니다. 다만 자동 수정(<code>/seo-fix</code>, 로컬·GitHub 모두)은 현재 Next.js 프로젝트만 지원하고, 그 외 스택은 "이렇게 고치세요" 제안만 나옵니다.</p>
+<h3 id="q-seo-fix로-수정했는데-마음에-안-들면-되돌릴-수-있나요">Q. <code>/seo-fix</code>로 수정했는데 마음에 안 들면 되돌릴 수 있나요?</h3>
+<p><strong>로컬 폴더 모드</strong>는 네, 되돌릴 수 있습니다 — "방금 적용한 수정 되돌려줘"라고 요청하면 적용 당시 만들어둔 백업으로 복원합니다. 적용 직후 <code>next build</code>가 실패하면 사람이 요청하지 않아도 자동으로 즉시 원상복구됩니다. <strong>GitHub 모드</strong>는 결과가 Pull Request(제안)로만 남기 때문에, 마음에 안 들면 그 PR을 그냥 닫으면 됩니다 — 기본 브랜치는 애초에 건드리지 않습니다.</p>
+<h3 id="q-승인이-필요한gated-수정을-승인하지-않으면-어떻게-되나요">Q. 승인이 필요한(gated) 수정을 승인하지 않으면 어떻게 되나요?</h3>
+<p>아무 일도 일어나지 않습니다 — 승인하거나 거부하기 전까지 해당 항목은 파일에 반영되지 않은 채로 남아있습니다. GitHub 모드는 대화형 승인 단계가 구조적으로 없어서, 이런 항목은 자동 적용되지 않고 "승인이 필요해 적용 안 함" 목록으로만 보고됩니다.</p>
+<h3 id="q-pull-request가-생성되면-자동으로-병합merge되나요">Q. Pull Request가 생성되면 자동으로 병합(merge)되나요?</h3>
+<p>아니요, 절대 자동으로 병합되지 않습니다. Pull Request는 어디까지나 "제안"이고, 저장소 관리자가 직접 내용을 검토한 뒤 병합 여부를 결정해야 합니다.</p>
+<h3 id="q-네이버빙bing도-지원하나요">Q. 네이버·빙(Bing)도 지원하나요?</h3>
+<p>현재는 구글 중심입니다. 네이버·빙 지원은 이후 버전(Phase 3)에서 계획 중입니다.</p>
+<h3 id="q-회귀-감지는-어떻게-작동하나요">Q. 회귀 감지는 어떻게 작동하나요?</h3>
+<p>같은 페이지에서 같은 문제(같은 규칙)를 안정적인 키로 매칭합니다. 베이스라인 저장 시점엔 없던 문제가 이후 진단에서 다시 나타나면 "원복"으로 표시합니다. 의도적으로 만든 변경은 "확인함(acknowledged)"으로 표시해두면 이후 재알림이 없습니다.</p>
+<h3 id="q-이-도구를-상업적으로-써도-되나요회사-프로젝트-고객-납품-등">Q. 이 도구를 상업적으로 써도 되나요(회사 프로젝트, 고객 납품 등)?</h3>
+<p>라이선스가 최종 확정(MIT 채택 예정, 저작권자 확정 대기 중)되면 조건 하에 가능할 예정입니다. 현재는 <code>LICENSE</code> 파일이 아직 초안 상태이니, 상업적 배포 전에는 README 14번 항목과 <code>LICENSE</code> 파일을 먼저 확인하시고, 필요하면 법률 전문가의 검토를 받으시길 권장합니다. 이 FAQ는 법률 자문이 아닙니다.</p>
+
+</body>
+</html>

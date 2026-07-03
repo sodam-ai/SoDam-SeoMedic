@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SeoMedic — FAQ (English)</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #ffffff;
+    font-size: 16px;
+    word-break: keep-all;
+  }
+  h1, h2, h3, h4 { line-height: 1.35; margin-top: 2em; margin-bottom: 0.6em; }
+  h1 { font-size: 1.9em; border-bottom: 3px solid #2563eb; padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+  h3 { font-size: 1.15em; color: #1d4ed8; }
+  h4 { font-size: 1.05em; }
+  p { margin: 0.8em 0; overflow-wrap: break-word; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.9em;
+    word-break: break-word;
+  }
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.88em;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+  blockquote {
+    border-left: 4px solid #2563eb;
+    background: #eff6ff;
+    margin: 1em 0;
+    padding: 0.6em 1em;
+    border-radius: 0 6px 6px 0;
+  }
+  blockquote p { margin: 0.3em 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.92em;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+  th { background: #f8fafc; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafafa; }
+  ul { padding-left: 1.4em; }
+  li { margin: 0.3em 0; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 2em 0; }
+  .ol-item { padding-left: 0.2em; }
+  .ol-item-nested { padding-left: 1.6em; }
+  ::selection { background: #bfdbfe; }
+  @media (max-width: 600px) {
+    body { font-size: 15px; padding: 16px 14px 60px; }
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.25em; }
+    table { font-size: 0.85em; }
+  }
+</style>
+</head>
+<body>
+<h1 id="frequently-asked-questions-faq">Frequently Asked Questions (FAQ)</h1>
+<p>This document and its Korean counterpart (<strong><a href="./FAQ.md" target="_blank" rel="noopener noreferrer">FAQ.md</a></strong>) contain identical information.</p>
+<h3 id="q-does-seomedic-improve-my-search-ranking">Q. Does SeoMedic improve my search ranking?</h3>
+<p>No. SeoMedic is a <strong>diagnostic tool</strong>. It finds and reports problems, but does not guarantee search rankings or AI-search visibility. No tool can honestly "guarantee" rankings.</p>
+<h3 id="q-can-i-diagnose-a-site-i-dont-own">Q. Can I diagnose a site I don't own?</h3>
+<p>Technically yes, but you should <strong>only target sites you own or have explicit permission to test.</strong> Crawling third-party sites without authorization can create legal exposure.</p>
+<h3 id="q-does-it-actually-fix-the-code-while-diagnosing">Q. Does it actually fix the code while diagnosing?</h3>
+<p><strong>Yes, for Next.js projects.</strong> You can target either a local folder (<code>/seo-fix ./your-project-folder</code>) or a GitHub repository URL (<code>/seo-fix https://github.com/owner/repo</code>). Purely additive fixes are applied automatically; changes affecting how the site is indexed/displayed only go into effect after your approval. Other frameworks (React, Vue, etc.) are not yet supported.</p>
+<h3 id="q-is-the-github-repository-auto-fix-pr-mode-safe">Q. Is the GitHub-repository auto-fix (PR mode) safe?</h3>
+<p>The safety mechanisms have been verified through real execution — there is no direct-push-to-default-branch, force-push, or auto-merge capability in the code at all, and anything requiring approval is never auto-applied. However, <strong>the "fork a repository you don't own, then propose via PR" path has not yet been verified against real GitHub</strong> (only the "your own repository" path — creating a branch and PR directly — has been confirmed working against real GitHub). See <code>CHECKPOINT_1.5.md</code> for details.</p>
+<h3 id="q-why-does-github-mode-need-a-token-cant-i-just-use-my-password">Q. Why does GitHub mode need a token? Can't I just use my password?</h3>
+<p>Using your real GitHub password would give the program access to everything in your account. A Personal Access Token is a much safer alternative — it can be scoped to "only this one repository, only these specific actions (read/write code, create PRs)."See Step 6 of <code>GUIDE.en.md</code> for exact instructions on creating one.</p>
+<h3 id="q-can-i-paste-my-github-token-into-the-chat">Q. Can I paste my GitHub token into the chat?</h3>
+<p><strong>Absolutely not.</strong> Chat conversations are logged, so the moment a token is typed even once, it must be treated as compromised. Always register it only as an environment variable (<code>SEOMEDIC_GITHUB_TOKEN</code>) on your own computer. If you accidentally paste it, immediately revoke that token on GitHub and generate a new one.</p>
+<h3 id="q-why-doesnt-overallscore-show-up-as-a-number">Q. Why doesn't <code>overall_score</code> show up as a number?</h3>
+<p>This is intentional. An SEO "score" is just one tool's own calculation and can diverge from a real search engine's actual judgment, so instead of an absolute number like "72," results are shown only as reference labels like "Good / Needs Attention / At Risk."</p>
+<h3 id="q-the-core-web-vitals-numbers-differ-from-what-actually-affects-my-google-ranking-why">Q. The Core Web Vitals numbers differ from what actually affects my Google ranking — why?</h3>
+<p>That's expected. The numbers SeoMedic shows are <strong>lab data</strong> (measured locally, 3 runs), while Google's actual ranking signal uses <strong>field data</strong> (CrUX — real visitor data). These two are naturally expected to differ.</p>
+<h3 id="q-is-my-personal-data-or-crawled-site-content-sent-anywhere">Q. Is my personal data or crawled site content sent anywhere?</h3>
+<p>No. There is zero telemetry. All data stays inside the <code>.seomedic/</code> folder in the project where you ran the diagnosis (and, for GitHub mode, also <code>.seomedic-github-cache/</code> under your home folder).</p>
+<h3 id="q-does-it-store-the-full-text-of-crawled-pages">Q. Does it store the full text of crawled pages?</h3>
+<p>No. It never stores the full raw page text — only a hash (fingerprint) and a ≤500-character excerpt (to respect copyright).</p>
+<h3 id="q-can-i-use-it-across-multiple-projects">Q. Can I use it across multiple projects?</h3>
+<p>Yes. Install it once and use it from any project. The diagnosis result database, however, is <strong>kept separately per project folder</strong>.</p>
+<h3 id="q-is-it-free">Q. Is it free?</h3>
+<p>Yes, SeoMedic itself is free and runs locally with no credits or billing. Your separate Claude Code usage costs still apply, of course.</p>
+<h3 id="q-can-it-diagnose-frameworks-other-than-nextjs-react-vue-etc">Q. Can it diagnose frameworks other than Next.js (React, Vue, etc.)?</h3>
+<p>Yes — <strong>URL-based diagnosis works for any stack.</strong> Auto-fix (<code>/seo-fix</code>, both local and GitHub modes), however, currently only supports Next.js projects; other stacks only receive "here's how you could fix this" suggestions.</p>
+<h3 id="q-if-i-dont-like-a-fix-seo-fix-applied-can-i-undo-it">Q. If I don't like a fix <code>/seo-fix</code> applied, can I undo it?</h3>
+<p><strong>In local-folder mode</strong>, yes — ask to "undo the fix I just applied" and it restores from the backup made at apply time. If <code>next build</code> fails immediately after applying, it's automatically rolled back even without you asking. <strong>In GitHub mode</strong>, the result only ever exists as a Pull Request (a proposal), so if you don't like it, just close that PR — the default branch was never touched in the first place.</p>
+<h3 id="q-what-happens-if-i-never-approve-a-gated-fix">Q. What happens if I never approve a gated fix?</h3>
+<p>Nothing happens — the item simply stays un-applied until you approve or reject it. GitHub mode has no interactive approval step at all (structurally impossible in a one-shot flow), so any such item is never auto-applied; it's only reported as "requires approval, not applied."</p>
+<h3 id="q-does-a-pull-request-get-merged-automatically-once-created">Q. Does a Pull Request get merged automatically once created?</h3>
+<p>No, never automatically. A Pull Request is only ever a proposal — the repository owner must review it themselves and decide whether to merge.</p>
+<h3 id="q-does-it-support-naver-or-bing">Q. Does it support Naver or Bing?</h3>
+<p>Currently it's Google-focused. Naver/Bing support is planned for a future version (Phase 3).</p>
+<h3 id="q-how-does-regression-detection-work">Q. How does regression detection work?</h3>
+<p>The same issue (same rule) on the same page is matched using a stable key. If an issue that wasn't present when the baseline was saved shows up again in a later diagnosis, it's flagged as a "regression." If you mark an intentional change as "acknowledged," it won't be flagged again afterward.</p>
+<h3 id="q-can-i-use-this-commercially-company-projects-client-delivery-etc">Q. Can I use this commercially (company projects, client delivery, etc.)?</h3>
+<p>Once the license is finalized (MIT is intended, pending final copyright holder confirmation), commercial use will be permitted under its terms. Right now, the <code>LICENSE</code> file is still a draft — before any commercial distribution, please review section 14 of the README and the <code>LICENSE</code> file, and consult a legal professional if needed. This FAQ is not legal advice.</p>
+
+</body>
+</html>
