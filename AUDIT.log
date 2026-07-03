@@ -71,3 +71,24 @@
 [2026-07-03T03:52] claude VERIFY 전체 테스트 145/145 재통과, npm audit --audit-level=high exit=0, plugin/marketplace validate --strict 통과, 시크릿 스캔 0건
 [2026-07-03T03:52] claude RISK_ACCEPT 크로스플랫폼은 Windows만 실측 가능(개발환경 제약), Mac/Linux 미검증을 정직하게 한계로 기록
 [2026-07-03T03:52] claude MILESTONE_DONE M9 완료(법무 결정 2건은 사용자 영역으로 분리) — Phase 1 코드+문서+보안+법률(스캔) 전부 완료
+[2026-07-03T~] claude MILESTONE_START Phase 1.5a 로컬 Next.js 자동수정 시작
+[2026-07-03T~] claude VERIFY add_safe/gated 승인게이트, 빌드재검증, 롤백 전부 실제 실행으로 검증, 145 테스트 통과 유지
+[2026-07-03T~] claude MILESTONE_DONE Phase 1.5a 완료
+[2026-07-03T~] claude MILESTONE_START Phase 1.5b GitHub PR 모드 시작(오프라인 기반, 순수로직, api-client.ts 순서로 분리 구현)
+[2026-07-03T~] claude FIX SQLite ALTER TABLE에 IF NOT EXISTS 없어 DB 재오픈시 크래시 가능, PRAGMA table_info 가드로 해결
+[2026-07-03T~] claude FIX Windows npm spawn(shell false)이 ENOENT/EINVAL로 실패, npm-cli.js를 process.execPath로 직접 실행하는 방식으로 해결
+[2026-07-03T~] claude FIX npm install --ignore-scripts도 package-lock.json을 정규화해 git dirty 유발, post-install 자동 revert 추가
+[2026-07-03T~] claude VERIFY 260/260 테스트 통과, npm audit high/critical 0건(octokit 관련 취약점 없음 확인)
+[2026-07-03T~] claude VERIFY 토큰 없이 GitHub 공개 API(octocat/Hello-World)로 읽기 경로 응답 형태 실측 일치 확인
+[2026-07-04T00:30] claude MILESTONE_DONE Phase 1.5b 코드+MCP툴등록 완료(쓰기 경로는 이 시점까지 미검증으로 명시)
+[2026-07-04T01:00] user PROVIDE GitHub 테스트 토큰 2회 제공(1차는 채팅에 직접 노출, 즉시 폐기 안내, 2차는 저장소 전용 재발급)
+[2026-07-04T01:05] claude RISK 채팅에 노출된 토큰은 사용 거부, gh CLI 내부 위임 방식 대안 제시했으나 사용자가 실토큰 사용 재확정, 존중해 진행
+[2026-07-04T01:10] claude FIX 신규 토큰이 저장소권한 저장 안 된 상태(스크린샷으로 확인), 사용자가 Contents+Pull requests 권한 추가 후 재시도
+[2026-07-04T01:15] claude FIX 테스트 저장소에 .gitignore 없어 node_modules dirty 판정, 추가 및 크롤러 링크 미발견 문제도 홈페이지에 링크 추가로 해결
+[2026-07-04T01:20] claude VERIFY 실제 GitHub PR 생성 성공 확인(sodam-ai/seomedic-write-test#1), createPullRequest/getAuthenticatedLogin/커밋/push 전부 실증, fork 경로는 여전히 미검증으로 명시
+[2026-07-04T01:25] user CONFIRM 토큰 폐기 완료, claude가 만든 테스트 저장소는 사용자가 GitHub 웹에서 직접 삭제(gh CLI에 delete_repo scope 없어 대신 수행 불가했음)
+[2026-07-04T01:30] claude VERIFY typecheck/build/test(260/260)/npm audit(high 0건) 전체 재실행 통과, 콘솔로그/시크릿/.env 트래킹 없음 확인
+[2026-07-04T02:00] claude 문서 8종(README/GUIDE/FAQ/TROUBLESHOOTING x 한/영) 갱신, html 미러 8개 신규 생성(md에서 html로 변환하는 스크립트로 내용 동일성 보장)
+[2026-07-04T02:30] claude MILESTONE_DONE Phase 1.5b 쓰기 경로 부분검증 완료(내 저장소=완료, fork=미검증), 남은 항목은 CHECKPOINT_1.5.md 인계 섹션 참고
+[2026-07-04T02:35] claude COMMIT_PUSH 저장소 private 확인 후 커밋 2건(9a7f4ec, 3048d8c)을 신규 브랜치 docs/phase1.5-verification-and-guides에 push, master 미병합 상태로 사용자 확인 대기
+[2026-07-04T02:36] claude About 갱신(GitHub PR 모드 반영), Topics는 기존 유지
