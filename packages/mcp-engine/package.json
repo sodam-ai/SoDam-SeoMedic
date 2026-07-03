@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@octokit/rest": "^22.0.1",
     "better-sqlite3": "^12.11.1",
     "commander": "^15.0.0",
     "fast-xml-parser": "^5.9.3",

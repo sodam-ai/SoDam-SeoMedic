@@ -72,5 +72,32 @@
 ## 누적 테스트: 206/206 통과(Phase 1 145개 + 기존 1.5a 53개 무손상 + 신규 8개[sitemap-finding 5·통합 3])
 
 ## 남은 작업
-- [ ] (1.5a 완결 후) 1.5b: GitHub 저장소 모드
 - [ ] (향후, 필요시) gated 실제 fixer 1개(예: JSON-LD·canonical) 추가 시 approve/reject 실사용 경로 통합검증 — 지금은 add_safe(sitemap)만 있어 DB 상태머신 레벨(1.5a-6)에서만 검증됨
+
+## 1.5a 검증 게이트: fix 툴 5개의 실제 MCP 프로토콜 레벨 동작 확인 — done
+- 지금까지는 `planLocalFix`/`applyLocalFixes` **함수**를 직접 호출해서만 검증했음 — `server.ts`의 zod 스키마·툴 등록이 실제 MCP 클라이언트-서버 stdio 통신으로도 문제없이 동작하는지는 확인된 적 없었음(1.5b가 이 5개 툴의 내부 로직을 그대로 재사용할 예정이라 먼저 닫아야 할 검증 공백).
+- `test/unit/server-integration-fix.test.ts`: 실제 `Client`/`StdioClientTransport`로 plan→apply→rollback 왕복 + git dirty 거부 메시지가 프로세스 크래시 없이 텍스트로 돌아오는지 확인. 2/2 통과.
+
+## 1.5b (착수 — GitHub API를 직접 호출하지 않는 안전한 기반부터)
+
+**계획서(`cheeky-whistling-yao.md`) 재검토 중 코드 대조로 발견한 설계 공백 4가지**(계획 단계엔 몰랐고, 1.5a의 실제 코드를 다시 읽어야만 드러난 것들):
+1. **DB 영속성**: `openSeomedicDb(root)`는 DB를 root 하위에 강제로 만드는데, GitHub 모드가 sandbox 경로를 root로 쓰면 작업 후 sandbox를 지울 때 회귀 감지·중복PR 방지 이력이 통째로 사라진다 → `github/repo-cache-path.ts`(owner/repo로 식별되는 홈 디렉터리 하위 영속 캐시 경로) 신설로 해결. `planLocalFix(db, projectRoot)`가 이미 db 핸들과 파일 경로를 분리된 인자로 받으므로 기존 함수 시그니처 변경 없이 재사용 가능.
+2. **`npm install` 누락 + 제3자 postinstall 스크립트 실행 위험**: sandbox clone 직후엔 node_modules가 없어 계획서에 없던 설치 단계가 필요했고, "남의 repo=fork+PR" 흐름은 신뢰 안 하는 제3자 코드의 postinstall을 그대로 실행하는 셈이라 임의 코드 실행 위험이 있음 → `github/npm-install.ts`가 `--ignore-scripts`를 기본 강제.
+3. **clone 크기 제한 없음**: 계획서에 shallow 여부가 없었음 → `github/sandbox.ts`가 `--depth 1` 기본 + 저장소 크기 사전확인(주입 함수, 상한 초과 시 clone 자체를 시도하지 않음).
+4. **모노레포 구조 한계**: sitemap fixer는 프로젝트 루트의 고정 경로만 찾음 — 지금 억지로 해결하지 않고 문서에 정직하게 남기기로 결정(범위 확장 보류).
+
+**신규 모듈(전부 GitHub 실계정·실토큰 없이 완전 오프라인으로 검증됨)**:
+- `github/types.ts`: `parseRepoUrl` — https/축약형(owner/repo) 파싱, github.com 외 호스트는 명시 거부(fail-closed).
+- `github/repo-cache-path.ts`: 위 공백 1번 해결.
+- `github/npm-install.ts`: 위 공백 2번 해결. **실측으로 발견한 Windows 버그 2건**: `spawn("npm",...,{shell:false})`→ENOENT, `spawn("npm.cmd",...,{shell:false})`→EINVAL(Node가 CVE-2024-27980 대응으로 .cmd/.bat 직접 spawn을 shell 없이 거부) → next와 동일하게 npm의 JS 진입점(`node_modules/npm/bin/npm-cli.js`, Node 설치본에 항상 번들됨)을 `process.execPath`로 직접 실행하는 방식으로 완전히 우회. yarn/pnpm은 Node에 번들되지 않아 위치를 안정적으로 추측할 수 없으므로 **지금은 지원하지 않음**(정직한 제약, shell 경유 우회 안 함).
+- `github/sandbox.ts`: 위 공백 3번 해결 + 3중 정리(finally로 caller가 cleanup 호출 / exit·SIGINT·SIGTERM 핸들러 / `gcOrphanedSandboxes()`로 기동 시 1시간 넘은 잔해 GC).
+- `github/git-exec.ts`: sandbox.ts·git-ops.ts가 공유하는 저수준 git 실행 헬퍼(argv 배열, shell:false).
+- `github/git-ops.ts`: `assertSafeBranchName`(main/master 거부, `seomedic/` 접두사 강제) + `createFixBranch`/`commitAll`/`pushFixBranch`. 강제 push를 만들 수 있는 옵션이 코드에 물리적으로 없음(정적 grep 테스트로 확인).
+- `db/migrations/0003_github_pr.ts`: `github_pr` 테이블 + `fix.github_pr_id` 컬럼. **실제로 겪을 뻔한 버그**: `ALTER TABLE ADD COLUMN`은 SQLite에 `IF NOT EXISTS`가 없는데 connection.ts는 모든 마이그레이션을 매 DB open마다 재실행하는 구조라, 그대로 뒀으면 두 번째 open부터 "duplicate column name"으로 죽었을 것 → `PRAGMA table_info`로 존재 확인 후 조건부 실행하는 `ensureFixGithubPrColumn()`으로 분리해 해결, 재현 테스트로 검증.
+
+**검증**: 실제 로컬 bare git 저장소(`file://`)로 clone·shallow(`--depth 1`)·branch·commit·push 전체 흐름을 GitHub 없이 검증(계획서의 오프라인 테스트 전략과 동일). `--depth`가 순수 로컬 경로 clone에선 조용히 무시된다는 것도 실측으로 확인(`file://` URI로 강제해야 실제로 적용됨). postinstall 미실행도 실제 marker 파일 부재로 증명. 234/234 테스트 통과.
+
+**의도적으로 아직 안 만든 것(다음 단계 — 실제 GitHub 토큰·계정이 있어야 신뢰성 있게 검증 가능)**:
+- `github/token.ts`(GIT_ASKPASS 스크립트 기반 토큰 주입 — 실제 인증으로 검증 전까지는 "구현했으나 미검증"으로 표기 예정)
+- `github/api-client.ts`(@octokit/rest 래퍼), `permission.ts`(내 repo/fork 판별+fork 폴링), `policy.ts`(LICENSE/CONTRIBUTING 확인), `duplicate-guard.ts`(중복 PR 차단), `pr-builder.ts`, `orchestrator.ts`
+- 위 항목들은 실제로 GitHub에 fork·PR을 만드는 되돌리기 어려운 외부 부작용이 있는 코드라, 사용자가 테스트용 GitHub 토큰/저장소를 마련해 실제로 검증하기 전까지는 "완료"로 표시하지 않는다.

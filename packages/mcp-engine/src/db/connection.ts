@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { resolveSeomedicDbPath } from "./path-guard.js";
 import { MIGRATION_0001_INIT } from "./migrations/0001_init.js";
 import { MIGRATION_0002_FIX } from "./migrations/0002_fix.js";
+import { MIGRATION_0003_GITHUB_PR, ensureFixGithubPrColumn } from "./migrations/0003_github_pr.js";
 
 export type SeomedicDb = Database.Database;
 
@@ -17,5 +18,7 @@ export function openSeomedicDb(projectRoot: string): SeomedicDb {
   db.pragma("foreign_keys = ON");
   db.exec(MIGRATION_0001_INIT);
   db.exec(MIGRATION_0002_FIX);
+  db.exec(MIGRATION_0003_GITHUB_PR);
+  ensureFixGithubPrColumn(db);
   return db;
 }
