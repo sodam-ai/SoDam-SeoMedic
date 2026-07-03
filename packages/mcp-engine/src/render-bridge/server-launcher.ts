@@ -142,3 +142,15 @@ export async function launchLocalNextServer(opts: LaunchOptions): Promise<Launch
     stop: () => stopChild(serverChild),
   };
 }
+
+/**
+ * 서버를 띄우지 않고 `next build`만 실행한다(apply 후 재검증 전용).
+ * launchLocalNextServer는 항상 포트 확보+start+헬스체크까지 하므로, "빌드만 다시 통과하는지" 확인하려는
+ * apply 경로에 그대로 재사용하면 불필요한 서버 기동·헬스체크 실패 지점이 추가된다(설계 검토에서 확인).
+ * 성공 시 정상 반환, 실패 시 RenderBridgeError를 던진다(성공/실패는 예외 여부로만 판단 — 값 반환 없음).
+ */
+export async function runNextBuildOnly(projectRoot: string, buildTimeoutMs = DEFAULT_BUILD_TIMEOUT_MS): Promise<void> {
+  const nextBin = resolveNextBin(projectRoot);
+  const buildChild = spawnNext(nextBin, ["build"], projectRoot);
+  await runToCompletion(buildChild, buildTimeoutMs, "next build(재검증)");
+}

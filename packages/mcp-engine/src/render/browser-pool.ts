@@ -12,8 +12,19 @@ const SAFE_RESOURCE_SCHEMES = new Set(["data:", "blob:", "about:", "chrome-error
  * 이를 막기 위해 페이지가 발생시키는 모든 요청(내비게이션 + 하위 리소스)을 route()로 가로채
  * 매 호스트네임마다 DNS 조회 결과를 SSRF 가드로 재검증한다.
  */
-export async function installSsrfGuardedRouting(page: Page): Promise<void> {
+export interface SsrfGuardedRoutingOptions {
+  /**
+   * 이 오리진(scheme://host:port)에서 오는 요청은 SSRF 재검증(resolveAndCheck) 없이 그대로 통과시킨다.
+   * 렌더 브릿지(127.0.0.1 로컬 서버)의 정적 자산(/_next/static/*.js 등)은 사설 IP라 기본 검증이면
+   * 무조건 차단되므로, 이미 assertLocalBridgeUrl로 검증된 오리진 자신의 하위 리소스만 예외를 둔다.
+   * 기본값(undefined)이면 기존 동작과 완전히 동일 — Phase 1 호출부·테스트에 영향 없음.
+   */
+  allowedOrigins?: Set<string>;
+}
+
+export async function installSsrfGuardedRouting(page: Page, options: SsrfGuardedRoutingOptions = {}): Promise<void> {
   const decisionCache = new Map<string, boolean>(); // hostname -> allowed (페이지당 1회만 DNS 조회)
+  const allowedOrigins = options.allowedOrigins;
 
   await page.route("**/*", async (route) => {
     let url: URL;
@@ -30,6 +41,10 @@ export async function installSsrfGuardedRouting(page: Page): Promise<void> {
     }
     if (url.protocol !== "http:" && url.protocol !== "https:") {
       await route.abort();
+      return;
+    }
+    if (allowedOrigins?.has(url.origin)) {
+      await route.continue();
       return;
     }
 

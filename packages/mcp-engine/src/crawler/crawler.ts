@@ -34,7 +34,8 @@ export interface CrawlResult {
   truncated: boolean;
 }
 
-function extractSameOriginLinks(html: string, pageUrl: string): string[] {
+/** render-bridge/crawl-local-bridge.ts가 로컬 브릿지 크롤에도 재사용한다(중복 구현 방지). */
+export function extractSameOriginLinks(html: string, pageUrl: string): string[] {
   let document: Document;
   try {
     ({ document } = parseHTML(html));

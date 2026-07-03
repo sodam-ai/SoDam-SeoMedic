@@ -22,16 +22,33 @@ function toArray<T>(value: T | T[] | undefined): T[] {
   return Array.isArray(value) ? value : [value];
 }
 
+export interface SitemapFetcherResult {
+  status: number;
+  bodyText: string;
+}
+export type SitemapFetcher = (url: string) => Promise<SitemapFetcherResult>;
+
+async function defaultSitemapFetcher(url: string): Promise<SitemapFetcherResult> {
+  return safeFetch(url, { maxBytes: MAX_SITEMAP_BYTES });
+}
+
 /**
  * sitemap.xml(또는 sitemap-index.xml)을 가져와 최종 URL 목록으로 평탄화한다.
  * sitemap-index는 최대 MAX_SITEMAP_INDEX_ENTRIES개까지만 하위 sitemap을 따라가고,
  * 그 이상은 truncated=true로 표시해 상위(큐)가 알 수 있게 한다.
+ *
+ * fetcher는 기본값(safeFetch 기반)이 기존 동작을 그대로 보존한다 — 로컬 렌더 브릿지(127.0.0.1)는
+ * safeFetch가 SSRF 가드로 차단하므로, fix 오케스트레이터만 fetchLocalBridgeHtml 기반 fetcher를 넘긴다.
  */
-export async function fetchSitemapUrls(sitemapUrl: string, maxPages: number): Promise<SitemapResult> {
+export async function fetchSitemapUrls(
+  sitemapUrl: string,
+  maxPages: number,
+  fetcher: SitemapFetcher = defaultSitemapFetcher,
+): Promise<SitemapResult> {
   const urls: string[] = [];
   let truncated = false;
 
-  const res = await safeFetch(sitemapUrl, { maxBytes: MAX_SITEMAP_BYTES });
+  const res = await fetcher(sitemapUrl);
   if (res.status !== 200) {
     return { urls, truncated };
   }
@@ -56,7 +73,7 @@ export async function fetchSitemapUrls(sitemapUrl: string, maxPages: number): Pr
         truncated = true;
         break;
       }
-      const childResult = await fetchSitemapUrls(child, maxPages - urls.length);
+      const childResult = await fetchSitemapUrls(child, maxPages - urls.length, fetcher);
       urls.push(...childResult.urls);
       if (childResult.truncated) truncated = true;
     }

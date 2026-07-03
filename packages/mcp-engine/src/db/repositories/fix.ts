@@ -61,6 +61,27 @@ export function findPendingFixes(db: SeomedicDb): FixRecord[] {
   return db.prepare(`SELECT * FROM fix WHERE approval_status = 'pending'`).all() as FixRecord[];
 }
 
+export interface FixWithFindingRecord extends FixRecord {
+  finding_key: string;
+  page_url: string;
+  rule_id: string;
+}
+
+/**
+ * apply 단계가 "이번 plan에서 지금 적용 가능한 fix"를 한 번에 조회하는 용도(finding을 JOIN해
+ * audit_run_id로 스코프한다). auto/approved이면서 아직 적용 안 된(applied_at IS NULL) 것만 반환 —
+ * apply 재호출 시 이미 적용된 fix를 중복으로 다시 쓰지 않기 위한 멱등성 보장의 일부.
+ */
+export function findApplicableFixesByAuditRun(db: SeomedicDb, auditRunId: number): FixWithFindingRecord[] {
+  return db
+    .prepare(
+      `SELECT fix.*, finding.finding_key, finding.page_url, finding.rule_id
+       FROM fix JOIN finding ON fix.finding_id = finding.id
+       WHERE finding.audit_run_id = ? AND fix.approval_status IN ('auto', 'approved') AND fix.applied_at IS NULL`,
+    )
+    .all(auditRunId) as FixWithFindingRecord[];
+}
+
 /**
  * pending 상태에서만 approved/rejected로 전이 가능(상태머신 보호 — 이미 처리된 fix의 재승인/재거부 차단).
  * changed=false면 이미 pending이 아니었다는 뜻(호출부가 "이미 처리됨"으로 안내해야 함).
@@ -92,4 +113,9 @@ export function markApplied(
     )
     .run(appliedAt, backupPath, id);
   return { changed: result.changes > 0, fix: findFixById(db, id) };
+}
+
+/** rollback 전용 — 적용됐던 fix를 "미적용" 상태로 되돌린다(이력은 dry_run_diff/backup_path에 남는다). */
+export function clearApplied(db: SeomedicDb, id: number): void {
+  db.prepare(`UPDATE fix SET applied_at = NULL WHERE id = ? AND applied_at IS NOT NULL`).run(id);
 }

@@ -11,6 +11,10 @@ import { createBaseline, findLatestBaseline, type BaselineSnapshot } from "./db/
 import { createRegressionRecord } from "./db/repositories/regression.js";
 import { classifyRegressions } from "./regression/classify.js";
 import { openSeomedicDb } from "./db/connection.js";
+import { planLocalFix, FixPlanBlockedError } from "./fix-orchestrator/plan.js";
+import { applyLocalFixes, FixApplyBlockedError } from "./fix-orchestrator/apply.js";
+import { rollbackLocalFix, FixRollbackError } from "./fix-orchestrator/rollback.js";
+import { setApprovalStatus } from "./db/repositories/fix.js";
 
 const server = new McpServer({ name: "seomedic", version: "0.1.0" });
 
@@ -146,6 +150,166 @@ server.registerTool(
         lines.push(`### 의도된 변경으로 표시됨 (${intendedKeys.length}건, 재알림 없음)`);
       }
       return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+    } finally {
+      db.close();
+    }
+  },
+);
+
+// fix 툴은 실제로 파일을 쓸 수 있으므로(analyze 툴과 달리) projectRoot를 생략 허용하지 않는다 —
+// MCP 서버 프로세스의 cwd에 암묵적으로 의존하는 건 읽기 전용 진단에는 괜찮아도 쓰기 작업엔 안전하지 않다.
+const FIX_PROJECT_ROOT_INPUT = { projectRoot: z.string().describe("로컬 Next.js 프로젝트 폴더의 절대 경로") };
+
+server.registerTool(
+  "seomedic_fix_plan",
+  {
+    title: "수정 계획 생성(dry-run)",
+    description:
+      "로컬 Next.js 프로젝트를 대상으로 로컬 서버를 기동해 진단하고, '없는 것 추가'(add_safe)는 자동 계획, 색인·표시에 영향을 주는 변경(gated)은 승인 대기로 계획만 만듭니다(파일 미수정, dry-run). git 상태가 clean이 아니면 거부합니다.",
+    inputSchema: FIX_PROJECT_ROOT_INPUT,
+  },
+  async ({ projectRoot }) => {
+    const db = openSeomedicDb(projectRoot);
+    try {
+      const result = await planLocalFix(db, projectRoot);
+      const lines: string[] = [`## 수정 계획 (audit_run_id=${result.auditRunId})`];
+      if (result.truncated) lines.push("> 참고: max-pages 상한에 도달해 크롤이 잘렸습니다.");
+
+      if (result.plannedFixes.length > 0) {
+        lines.push("", "### 적용 가능한 수정");
+        for (const { fix, finding } of result.plannedFixes) {
+          lines.push(`- fix id=${fix.id} · ${finding.rule_id} · ${fix.risk_level}(${fix.approval_status}) · ${fix.target_path}`);
+          lines.push("```diff", fix.dry_run_diff, "```");
+          if (fix.approval_status === "pending") {
+            lines.push(`  → 승인 필요: \`seomedic_fix_approve\`(fixId=${fix.id}) 또는 \`seomedic_fix_reject\`(fixId=${fix.id})`);
+          }
+        }
+      }
+      if (result.reportOnlyFindings.length > 0) {
+        lines.push("", `### 자동 수정 불가(제안만, ${result.reportOnlyFindings.length}건)`);
+        for (const f of result.reportOnlyFindings) lines.push(`- ${f.rule_id} · ${f.page_url} (${f.severity})`);
+      }
+      if (result.plannedFixes.length === 0 && result.reportOnlyFindings.length === 0) {
+        lines.push("", "발견된 문제가 없습니다.");
+      } else {
+        lines.push(
+          "",
+          `적용하려면 \`seomedic_fix_apply\`(auditRunId=${result.auditRunId})를 호출하세요(auto이거나 승인된 것만 실제로 파일에 반영됩니다). add_safe 수정도 실제 파일 변경이니 커밋·배포 전에 diff를 검토하세요.`,
+        );
+      }
+      return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+    } catch (err) {
+      if (err instanceof FixPlanBlockedError) {
+        return { content: [{ type: "text" as const, text: `수정 계획을 만들 수 없습니다: ${err.message}` }] };
+      }
+      throw err;
+    } finally {
+      db.close();
+    }
+  },
+);
+
+server.registerTool(
+  "seomedic_fix_approve",
+  {
+    title: "gated 수정 승인",
+    description: "seomedic_fix_plan이 만든 gated(승인 대기) fix를 승인합니다. pending 상태가 아니면(이미 처리됨) 변경되지 않습니다.",
+    inputSchema: { ...FIX_PROJECT_ROOT_INPUT, fixId: z.number().int().positive() },
+  },
+  async ({ projectRoot, fixId }) => {
+    const db = openSeomedicDb(projectRoot);
+    try {
+      const result = setApprovalStatus(db, fixId, "approved");
+      if (!result.changed) {
+        return {
+          content: [
+            { type: "text" as const, text: `fix id=${fixId}는 이미 처리되었거나 존재하지 않습니다(현재 상태: ${result.fix?.approval_status ?? "없음"}).` },
+          ],
+        };
+      }
+      return { content: [{ type: "text" as const, text: `fix id=${fixId} 승인 완료. \`seomedic_fix_apply\`로 적용하세요.` }] };
+    } finally {
+      db.close();
+    }
+  },
+);
+
+server.registerTool(
+  "seomedic_fix_reject",
+  {
+    title: "gated 수정 거부",
+    description: "seomedic_fix_plan이 만든 gated(승인 대기) fix를 거부합니다(적용되지 않음). pending 상태가 아니면 변경되지 않습니다.",
+    inputSchema: { ...FIX_PROJECT_ROOT_INPUT, fixId: z.number().int().positive() },
+  },
+  async ({ projectRoot, fixId }) => {
+    const db = openSeomedicDb(projectRoot);
+    try {
+      const result = setApprovalStatus(db, fixId, "rejected");
+      if (!result.changed) {
+        return {
+          content: [
+            { type: "text" as const, text: `fix id=${fixId}는 이미 처리되었거나 존재하지 않습니다(현재 상태: ${result.fix?.approval_status ?? "없음"}).` },
+          ],
+        };
+      }
+      return { content: [{ type: "text" as const, text: `fix id=${fixId} 거부됨(적용되지 않습니다).` }] };
+    } finally {
+      db.close();
+    }
+  },
+);
+
+server.registerTool(
+  "seomedic_fix_apply",
+  {
+    title: "수정 적용",
+    description:
+      "seomedic_fix_plan에서 auto(add_safe) 또는 승인된 fix를 실제 파일에 반영합니다. 적용 후 `next build`로 재검증하고, 실패하면 그 fix만 자동으로 롤백합니다. git 상태가 clean이 아니면 거부합니다.",
+    inputSchema: { ...FIX_PROJECT_ROOT_INPUT, auditRunId: z.number().int().positive().describe("seomedic_fix_plan이 반환한 audit_run_id") },
+  },
+  async ({ projectRoot, auditRunId }) => {
+    const db = openSeomedicDb(projectRoot);
+    try {
+      const outcomes = await applyLocalFixes(db, projectRoot, auditRunId);
+      if (outcomes.length === 0) {
+        return {
+          content: [
+            { type: "text" as const, text: "적용할 fix가 없습니다(전부 이미 적용됐거나 gated 승인 대기 중일 수 있습니다)." },
+          ],
+        };
+      }
+      const lines = ["## 적용 결과"];
+      for (const o of outcomes) lines.push(`- fix id=${o.fixId} (${o.targetPath ?? "-"}): ${o.outcome} — ${o.detail}`);
+      lines.push("", "⚠️ add_safe 수정도 실제 파일 변경입니다 — 커밋·배포 전에 diff를 검토하세요(safe 수정이니 무해하다고 가정하지 마세요).");
+      return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+    } catch (err) {
+      if (err instanceof FixApplyBlockedError) {
+        return { content: [{ type: "text" as const, text: `적용할 수 없습니다: ${err.message}` }] };
+      }
+      throw err;
+    } finally {
+      db.close();
+    }
+  },
+);
+
+server.registerTool(
+  "seomedic_fix_rollback",
+  {
+    title: "적용된 수정 되돌리기",
+    description: "이미 적용된 fix를 apply 시점의 백업 파일로 되돌립니다.",
+    inputSchema: { ...FIX_PROJECT_ROOT_INPUT, fixId: z.number().int().positive() },
+  },
+  async ({ projectRoot, fixId }) => {
+    const db = openSeomedicDb(projectRoot);
+    try {
+      const result = await rollbackLocalFix(db, projectRoot, fixId);
+      return { content: [{ type: "text" as const, text: `fix id=${fixId} (${result.targetPath})을 되돌렸습니다.` }] };
+    } catch (err) {
+      if (err instanceof FixRollbackError) {
+        return { content: [{ type: "text" as const, text: `되돌릴 수 없습니다: ${err.message}` }] };
+      }
+      throw err;
     } finally {
       db.close();
     }
