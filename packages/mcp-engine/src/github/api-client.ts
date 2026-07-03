@@ -3,13 +3,16 @@ import type { GithubApiClient, RepoMeta, CreatedPullRequest } from "./api-client
 import type { RepoRef } from "./types.js";
 
 /**
- * ⚠️ 미검증 — 타입체크(tsc)까지만 통과했고, 실제 GitHub API 호출로 검증된 적은 아직 없다.
- * fork·PR 생성은 되돌리기 어려운 외부 부작용이 있어, 테스트용 토큰/저장소가 준비되기 전까지는
- * 이 파일의 함수를 실제로 호출하지 않는다(오케스트레이터·MCP 툴 등록까지는 배선해두되 실행은 보류).
+ * ⚠️ 부분 검증됨 — 읽기 전용 메서드는 실제 GitHub 공개 저장소(octocat/Hello-World, 토큰 없이)로
+ * 응답 형태를 직접 확인했다: `repos.get`의 archived/disabled/license/size/default_branch/fork,
+ * `repos.getCommunityProfileMetrics`의 files.license/files.contributing, `pulls.list`의
+ * head.ref 전부 이 파일이 가정한 형태와 실제로 일치함을 확인(1회성 프로브 스크립트로 검증 후 삭제).
  *
- * 특히 아래 필드 접근은 실제 응답으로 아직 재확인 못 했다 — 실사용 시 가장 먼저 깨질 가능성이 있는 지점:
- * - repos.createFork()의 반환 형태(포크된 저장소의 owner.login/name 위치)
- * - repos.getCommunityProfileMetrics()의 files.license/files.contributing null 여부 판정
+ * 여전히 미검증(쓰기 작업 — 토큰과 실제 실행 동의 없이는 검증 불가):
+ * - `getAuthenticatedLogin`(인증 필요)
+ * - `createFork`의 반환 형태(포크된 저장소의 owner.login/name 위치) — fork는 실제 저장소를 만드는
+ *   되돌리기 어려운 부작용이라 아직 실행하지 않음
+ * - `createPullRequest` — 실제 PR을 만드는 되돌리기 어려운 부작용이라 아직 실행하지 않음
  */
 export function createOctokitGithubClient(token: string): GithubApiClient {
   const octokit = new Octokit({ auth: token });

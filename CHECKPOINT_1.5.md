@@ -141,7 +141,28 @@ MCP 프로토콜로 `seomedic_fix_github` 툴이 스키마와 함께 실제로 �
 fork·PR 생성은 자동화 테스트에서 실행하기엔 되돌리기 어려운 부작용이 있음). 260/260 테스트 통과,
 빌드·`npm audit`(고위험 0) 확인.
 
-**다음 단계(실제 GitHub 토큰·테스트용 저장소가 있어야만 가능)**:
-- `seomedic_fix_github`를 실제로 1회 호출해 전체 흐름이 진짜로 동작하는지 확인
-- 특히 `api-client.ts`의 응답 필드 접근(위에서 명시한 두 지점)이 실제와 맞는지 확인
-- 위 실증 전까지 GitHub 모드는 "완료"가 아니라 "구현됨·타입검증됨·실행미검증"으로 표시한다.
+## 읽기 전용 부분 실증 — done (토큰 없이, 부작용 없이 가능한 만큼 검증)
+
+**새로 발견한 사실**: "GitHub 실증은 토큰이 있어야만 가능하다"는 이전 전제가 절반은 틀렸다 — GitHub REST API는
+**공개 저장소 읽기 전용 조회는 토큰 없이도 가능**하다(속도 제한만 있음, 부작용 0). `api-client.ts`의
+읽기 메서드와 쓰기 메서드를 나눠서 봤어야 했는데 뭉뚱그려 판단했던 게 판단 착오였다.
+
+**실증 방법**: 1회성 프로브 스크립트(`_probe_octokit_readonly.mjs`, 검증 후 삭제)로 GitHub 공식
+테스트용 공개 저장소(`octocat/Hello-World`, 토큰 없이)를 대상으로 `repos.get`·
+`repos.getCommunityProfileMetrics`·`pulls.list`를 실제로 호출.
+
+**결과**: `api-client.ts`가 가정한 필드 형태가 **전부 실제 응답과 정확히 일치함을 확인**:
+- `repos.get` → `archived`/`disabled`/`license`/`size`/`default_branch`/`fork` 전부 존재·형태 일치
+- `getCommunityProfileMetrics` → `files.license`/`files.contributing`이 null 가능한 필드로 정확히 일치
+- `pulls.list` → `head.ref`가 브랜치명 필드로 정확히 일치
+
+`api-client.ts` 상단 주석을 "미검증"에서 "읽기 경로는 확인됨, 쓰기 경로(`createFork`/`createPullRequest`/
+`getAuthenticatedLogin`)만 남음"으로 갱신. 260/260 테스트 통과(코멘트만 수정, 로직 변경 없음 — 참고로
+이 전체 스위트 재실행 중 1회 일시적 실패가 있었으나 직후 재현 시도 2회 모두 260/260으로 통과해 이 변경과
+무관한 일시적 현상으로 판단, 실제 I/O가 많은 스위트 특성상 발생 가능).
+
+**다음 단계(실제 GitHub 토큰·계정의 명시적 동의가 있어야만 가능 — 더 이상 줄일 수 없는 마지막 관문)**:
+- `getAuthenticatedLogin`(인증 필요), `createFork`(실제 저장소를 만드는 되돌리기 어려운 부작용),
+  `createPullRequest`(실제 PR을 만드는 되돌리기 어려운 부작용) — 이 세 가지만 남았다.
+- `seomedic_fix_github`를 실제로 1회 호출해 전체 흐름이 진짜로 동작하는지 확인.
+- 위 실증 전까지 GitHub 모드는 "완료"가 아니라 "구현됨·읽기경로검증됨·쓰기경로미검증"으로 표시한다.
