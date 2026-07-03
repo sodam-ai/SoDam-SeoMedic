@@ -97,7 +97,30 @@
 
 **검증**: 실제 로컬 bare git 저장소(`file://`)로 clone·shallow(`--depth 1`)·branch·commit·push 전체 흐름을 GitHub 없이 검증(계획서의 오프라인 테스트 전략과 동일). `--depth`가 순수 로컬 경로 clone에선 조용히 무시된다는 것도 실측으로 확인(`file://` URI로 강제해야 실제로 적용됨). postinstall 미실행도 실제 marker 파일 부재로 증명. 234/234 테스트 통과.
 
+## 1.5b 순수 로직 + 오케스트레이션 배선 — done (GitHub 실계정 없이 DI로 완전 검증)
+
+"실제 GitHub API 호출부"와 "판단·배선 로직"을 분리하면 후자는 전부 오프라인 검증 가능하다는 판단 하에
+(sandbox.ts의 `fetchRepoSizeKb` 주입 패턴을 그대로 확장) 아래를 구현·검증했다:
+
+- `db/repositories/github-pr.ts`: `github_pr` 테이블 CRUD + `findOpenGithubPrByBranch`(중복 판정의 DB쪽 조회).
+- `github/pr-builder.ts`: `buildFixBranchName`(rule_id 기반 **결정론적** 브랜치명 — 매번 랜덤이면 중복 방지 자체가 무력화됨을 설계 검토에서 확인) + `buildPrContent`(PR 제목·본문, "add_safe도 무해 보장 안 함"·"자동 머지 안 함" 명시).
+- `github/permission.ts`: `isOwnRepo`(대소문자 무관 비교) + `waitForForkReady`(주입된 확인 함수로 폴링, 상한 있음 — 무한 대기 금지).
+- `github/policy.ts`: `evaluateRepoPolicy` — archived/disabled는 BLOCK, LICENSE/CONTRIBUTING 없으면 WARN만(순수 함수).
+- `github/duplicate-guard.ts`: `checkDuplicatePr` — DB 조회 + 주입된 API 조회(`listOpenPrBranches`) 이중 확인(DB만 믿으면 사용자가 GitHub에서 직접 PR을 닫아도 SeoMedic이 모름).
+- `github/api-client-port.ts`: `GithubApiClient` 인터페이스만 정의(실제 옥토킷 구현은 아직 없음) — `orchestrator.ts`가 이 인터페이스에만 의존해, 가짜(fake) 구현을 주입하면 전체 흐름을 실제 GitHub 없이 검증 가능. `getCloneUrl(ref)`를 인터페이스에 넣은 이유: clone URL을 orchestrator가 직접 하드코딩하면 테스트가 실제 GitHub 없인 아예 불가능해짐(설계 중 발견).
+- `github/orchestrator.ts`: `runGithubFix` — 로그인 확인 → 정책 검사(차단 시 조기 중단) → 내 repo/fork 판별(+fork 폴링) → sandbox clone → npm install → **`planLocalFix`/`applyLocalFixes`(1.5a 로직 그대로 재사용)** → 중복 검사 → 브랜치+커밋+push → PR 생성 → `github_pr` 기록. gated 항목은 대화형 승인이 불가능한 1회성 흐름이라 자동 적용하지 않고 "확인됨" 목록으로만 보고(add_safe fixer만 있는 지금은 문제 없음, gated fixer 추가 시 재검토 필요).
+- `fix-orchestrator/plan.ts`에 작은 추가 변경 2건(1.5a 동작 100% 유지, 기본값 생략 시 이전과 동일):
+  - `projectTargetOverride` 옵션 추가 — **두 번째 층의 영속성 버그**를 발견해 해결: `repo-cache-path.ts`로 DB *파일*은 영속화했지만, `planLocalFix`가 `Project.target`에 sandbox 경로(매번 새로 생김)를 그대로 썼다면 같은 DB 안에서도 매번 새 Project로 취급돼 회귀 이력이 여전히 안 쌓였을 것.
+  - `FixPlanResult.projectId` 노출 — orchestrator가 `github_pr` 기록 시 재조회 없이 바로 쓰도록.
+
+**실제 실행으로 발견·수정한 버그 2건 더**(설계 검토만으론 못 잡음):
+1. `npm install --ignore-scripts`도 `package-lock.json`을 정규화해 sandbox를 dirty로 만듦 → `planLocalFix` 호출 전 git 상태를 재확인해 필요시 자동 원복(로컬 fix 모드의 build-후-dirty 버그와 같은 유형, 다른 트리거).
+2. **테스트 격리 버그**(프로덕션 코드는 정상): `getGithubRepoCacheRoot`가 owner/repo로 영속되도록 설계했는데, 테스트 4개가 전부 같은 REPO_REF를 써서 한 테스트가 실제로 남긴 `github_pr` 기록을 나중 테스트(심지어 다음 세션 재실행까지)가 "이미 PR 있음"으로 오판 — 실행할 때마다 간헐적으로 실패하는 원인이었음. 매 테스트 전 해당 owner/repo의 영속 캐시를 강제로 비우는 것으로 해결, 연속 2회 재실행으로 재현성 확인.
+
+**검증**: 가짜 `GithubApiClient`(로컬 git 저장소를 clone 소스로 제공) + 실제 nextjs-minimal 픽스처로 4가지 시나리오 실제 실행 — (1) 정책 통과→내 repo→clone+**실제 npm install**+plan+apply+PR 생성 전체 흐름, (2) archived 저장소는 clone 전에 즉시 차단, (3) 중복 PR이면 적용·PR 생성 없이 건너뜀, (4) 남의 repo면 fork 존재 확인→생성→폴링. 259/259 테스트 통과, 빌드·`npm audit`(고위험 0) 확인.
+
 **의도적으로 아직 안 만든 것(다음 단계 — 실제 GitHub 토큰·계정이 있어야 신뢰성 있게 검증 가능)**:
-- `github/token.ts`(GIT_ASKPASS 스크립트 기반 토큰 주입 — 실제 인증으로 검증 전까지는 "구현했으나 미검증"으로 표기 예정)
-- `github/api-client.ts`(@octokit/rest 래퍼), `permission.ts`(내 repo/fork 판별+fork 폴링), `policy.ts`(LICENSE/CONTRIBUTING 확인), `duplicate-guard.ts`(중복 PR 차단), `pr-builder.ts`, `orchestrator.ts`
-- 위 항목들은 실제로 GitHub에 fork·PR을 만드는 되돌리기 어려운 외부 부작용이 있는 코드라, 사용자가 테스트용 GitHub 토큰/저장소를 마련해 실제로 검증하기 전까지는 "완료"로 표시하지 않는다.
+- `github/api-client.ts`(@octokit/rest로 `GithubApiClient` 인터페이스를 실제 구현 — fork·PR 생성처럼 되돌리기 어려운 외부 부작용이 있어 실제 토큰/저장소 없이는 검증 불가)
+- `github/token.ts`의 GIT_ASKPASS 스크립트가 **실제 git 인증**으로 동작하는지(env 읽기·스크립트 생성 자체는 구현·검증됨, "이 스크립트로 실제 인증되는지"만 미검증)
+- MCP 툴 등록(`seomedic_fix_github_*` 등) 및 `/seo-fix`의 GitHub 저장소 인자 지원 — api-client.ts가 실제로 검증된 뒤 진행
+- 위 항목들은 사용자가 테스트용 GitHub 토큰/저장소를 마련해 실제로 검증하기 전까지는 "완료"로 표시하지 않는다.
