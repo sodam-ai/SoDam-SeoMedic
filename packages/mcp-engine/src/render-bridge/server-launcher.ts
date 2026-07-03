@@ -1,0 +1,144 @@
+import { spawn, type ChildProcess } from "node:child_process";
+import { createServer } from "node:net";
+import { createRequire } from "node:module";
+import treeKill from "tree-kill";
+import { fetch as undiciFetch } from "undici";
+
+export class RenderBridgeError extends Error {
+  constructor(message: string) {
+    super(`렌더 브릿지 오류: ${message}`);
+    this.name = "RenderBridgeError";
+  }
+}
+
+export interface LaunchedLocalServer {
+  origin: string;
+  port: number;
+  stop(): Promise<void>;
+}
+
+export interface LaunchOptions {
+  projectRoot: string;
+  /** "build-start"(기본) = next build 성공 후 next start. "dev" = next dev(빌드 없이 즉시 기동). */
+  command?: "build-start" | "dev";
+  buildTimeoutMs?: number;
+  startHealthTimeoutMs?: number;
+}
+
+const DEFAULT_BUILD_TIMEOUT_MS = 5 * 60_000;
+const DEFAULT_HEALTH_TIMEOUT_MS = 15_000;
+
+function getFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.listen(0, "127.0.0.1", () => {
+      const port = (srv.address() as { port: number }).port;
+      srv.close(() => resolve(port));
+    });
+    srv.on("error", reject);
+  });
+}
+
+/**
+ * 대상 프로젝트(사용자 소유)의 node_modules에서 next 바이너리를 찾는다.
+ * createRequire(projectRoot 기준)로 우리 엔진이 아니라 **대상 프로젝트의** next를 정확히 해석한다.
+ */
+function resolveNextBin(projectRoot: string): string {
+  const require = createRequire(projectRoot + "/package.json");
+  try {
+    return require.resolve("next/dist/bin/next");
+  } catch {
+    throw new RenderBridgeError(`대상 프로젝트에서 next 패키지를 찾을 수 없습니다: ${projectRoot}`);
+  }
+}
+
+function spawnNext(nextBin: string, args: string[], cwd: string): ChildProcess {
+  // shell:false + argv 배열 — 명령어 주입 방지(M2 원칙). package.json의 "scripts"(사용자 정의,
+  // 신뢰 불가)를 거치지 않고 next 바이너리를 직접 실행한다("npm run build"를 믿지 않는다는 설계 결정).
+  return spawn(process.execPath, [nextBin, ...args], { cwd, shell: false, stdio: ["ignore", "pipe", "pipe"] });
+}
+
+function runToCompletion(child: ChildProcess, timeoutMs: number, label: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let stderr = "";
+    child.stderr?.on("data", (d) => (stderr += d.toString()));
+    const timer = setTimeout(() => {
+      treeKill(child.pid!, "SIGTERM");
+      reject(new RenderBridgeError(`${label} 타임아웃(${timeoutMs}ms)`));
+    }, timeoutMs);
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(new RenderBridgeError(`${label} 실행 실패: ${err.message}`));
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolve();
+      else reject(new RenderBridgeError(`${label} 실패(exit ${code}): ${stderr.slice(-2000)}`));
+    });
+  });
+}
+
+async function waitForHealthy(origin: string, timeoutMs: number): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    try {
+      const res = await undiciFetch(origin, { signal: AbortSignal.timeout(2000) });
+      if (res.status > 0) return; // 응답만 오면 충분(200이든 404든 서버가 떠서 응답한다는 의미)
+    } catch (err) {
+      lastError = err;
+    }
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  throw new RenderBridgeError(`로컬 서버 헬스체크 타임아웃: ${origin} (${String(lastError)})`);
+}
+
+function stopChild(child: ChildProcess): Promise<void> {
+  return new Promise((resolve) => {
+    if (!child.pid) {
+      resolve();
+      return;
+    }
+    // tree-kill: Windows에서는 taskkill /T /F, POSIX에서는 프로세스 그룹 시그널로 자식까지 종료.
+    // 단순 child.kill()은 next가 스폰하는 하위 프로세스를 못 잡아 포트가 계속 점유될 수 있다.
+    treeKill(child.pid, "SIGTERM", () => resolve());
+  });
+}
+
+/**
+ * 폴더 → next build(신뢰불가 스크립트 경유 없이 바이너리 직접) → next start(127.0.0.1 고정 바인딩)
+ * → 헬스체크 → { origin, port, stop() }. 실패 시 프로세스 정리 후 RenderBridgeError.
+ */
+export async function launchLocalNextServer(opts: LaunchOptions): Promise<LaunchedLocalServer> {
+  const nextBin = resolveNextBin(opts.projectRoot);
+  const port = await getFreePort();
+  const origin = `http://127.0.0.1:${port}`;
+  const mode = opts.command ?? "build-start";
+
+  if (mode === "build-start") {
+    const buildChild = spawnNext(nextBin, ["build"], opts.projectRoot);
+    await runToCompletion(buildChild, opts.buildTimeoutMs ?? DEFAULT_BUILD_TIMEOUT_MS, "next build");
+  }
+
+  const serveArgs = mode === "dev" ? ["dev"] : ["start"];
+  // --hostname을 127.0.0.1로 강제해 0.0.0.0(모든 인터페이스) 바인딩을 원천 차단(S5 심층방어).
+  const serverChild = spawnNext(nextBin, [...serveArgs, "-p", String(port), "-H", "127.0.0.1"], opts.projectRoot);
+
+  let earlyExitError: Error | undefined;
+  serverChild.on("exit", (code) => {
+    if (code !== null && code !== 0) earlyExitError = new RenderBridgeError(`서버가 조기 종료됨(exit ${code})`);
+  });
+
+  try {
+    await waitForHealthy(origin, opts.startHealthTimeoutMs ?? DEFAULT_HEALTH_TIMEOUT_MS);
+  } catch (err) {
+    await stopChild(serverChild);
+    throw earlyExitError ?? err;
+  }
+
+  return {
+    origin,
+    port,
+    stop: () => stopChild(serverChild),
+  };
+}
