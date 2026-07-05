@@ -13,6 +13,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.test.json",
+    "pretest": "npm ci --prefix test/fixtures/nextjs-minimal",
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "playwright install chromium || echo 'Playwright 브라우저 자동설치 실패 — 수동으로 `npx playwright install chromium` 실행 필요'"
