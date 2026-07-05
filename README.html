@@ -68,6 +68,17 @@
   hr { border: none; border-top: 1px solid #e5e7eb; margin: 2em 0; }
   .ol-item { padding-left: 0.2em; }
   .ol-item-nested { padding-left: 1.6em; }
+  details {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin: 0.8em 0;
+    padding: 0.7em 1em;
+    background: #f8fafc;
+  }
+  details[open] { background: #ffffff; }
+  details summary { cursor: pointer; font-weight: 600; }
+  details summary::marker { color: #2563eb; }
+  details p:last-child { margin-bottom: 0.2em; }
   ::selection { background: #bfdbfe; }
   @media (max-width: 600px) {
     body { font-size: 15px; padding: 16px 14px 60px; }
@@ -224,14 +235,23 @@
 로컬: 계획 확인→승인/거부→적용→          GitHub: 진단→자동 적용→
 빌드 재검증→(필요시) 되돌리기            Pull Request 생성→관리자 검토</code></pre>
 <h2 id="8-업데이트-내용-요약">8. 업데이트 내용 요약</h2>
-<p>이 프로젝트는 위험이 큰 기능(실제 파일 수정)을 단계적으로 나눠 만들었습니다. 지금까지의 진행 단계:</p>
-<table>
-<thead><tr><th>단계</th><th>내용</th><th>상태</th></tr></thead>
-<tbody>
-<tr><td><strong>Phase 1</strong></td><td>URL 진단(크롤+렌더링+Core Web Vitals) + 회귀(원복) 감지</td><td>완료</td></tr>
-<tr><td><strong>Phase 1.5a</strong></td><td>로컬 Next.js 프로젝트 승인 기반 자동 수정(add_safe/gated)</td><td>완료(실제 실행으로 검증)</td></tr>
-<tr><td><strong>Phase 1.5b</strong></td><td>GitHub 저장소 대상 자동 수정 제안(Pull Request)</td><td><strong>구현 완료, 부분 검증</strong> — "내 저장소" 시나리오는 실제 GitHub Pull Request 생성까지 실증 완료. "내 소유가 아닌 저장소(fork 경유)" 시나리오는 아직 실제 GitHub로 검증되지 않음(안전장치는 코드로 이미 확인됨)</td></tr>
-</tbody></table>
+<p>이 프로젝트는 위험이 큰 기능(실제 파일 수정)을 단계적으로 나눠 만들었습니다. 항목을 눌러 펼치면 자세한 내용을 볼 수 있습니다.</p>
+<details>
+<summary>✅ Phase 1 — URL 진단 + 회귀(원복) 감지 (완료)</summary>
+<p>크롤+렌더링+Core Web Vitals 측정, 그리고 회귀(원복) 감지 기능입니다. 실제 라이브 사이트를 대상으로 처음부터 끝까지(end-to-end) 실제 실행으로 검증했습니다.</p>
+</details>
+<details>
+<summary>✅ Phase 1.5a — 로컬 Next.js 프로젝트 자동 수정 (완료·실제 실행으로 검증)</summary>
+<p>"없는 것만 추가"(add_safe)하는 안전한 수정은 자동으로, 검색 결과 표시에 영향을 주는 변경(gated)은 사용자 승인 후에만 적용됩니다. 적용 후 빌드 재검증과, 빌드 실패 시 자동 롤백까지 실제 실행으로 확인했습니다.</p>
+</details>
+<details>
+<summary>🟡 Phase 1.5b — GitHub 저장소 대상 자동 수정 제안 (구현 완료·부분 검증)</summary>
+<p>"내 저장소"에 새 브랜치 + Pull Request를 만드는 흐름은 실제 GitHub 환경에서 Pull Request 생성까지 실제로 검증했습니다. 다만 <strong>"내 소유가 아닌 저장소를 fork해서 제안하는 흐름"은 아직 실제 GitHub로 검증되지 않았습니다</strong>(안전장치 자체는 가짜 데이터로 만든 테스트로 이미 확인됨). 사용 전 14번 항목과 실행 시 안내를 꼭 확인하세요.</p>
+</details>
+<details>
+<summary>🔧 2026-07-06 — 품질 자동검증(CI) 도입 + 실제 결함 발견·수정</summary>
+<p>Windows·Mac·Linux 3개 운영체제 전부에서 자동으로 빌드와 260개 테스트가 통과하는지 확인하는 절차(CI)를 새로 만들었습니다. 그 과정에서 지금까지 Windows에서만 개발·확인해와서 미처 몰랐던 실제 문제 몇 가지를 찾아 고쳤습니다(예: GitHub 자동 수정 기능이 Mac·Linux 환경에서 내부적으로 필요한 프로그램 경로를 못 찾던 문제). 지금은 3개 운영체제 모두에서 빌드·테스트 통과가 자동으로 확인되지만, <strong>사람이 Mac·Linux에서 직접 명령을 실행해보는 수동 검증까지 마친 것은 아닙니다</strong> — 자동 검증으로 위험을 낮춘 것이지, 완전히 없앤 것은 아닙니다.</p>
+</details>
 <p><strong>앞으로 계획된 것(아직 시작 안 함)</strong>: 구조화 데이터(JSON-LD)·AI 크롤러 정책·Google Search Console/Analytics 연동(Phase 2), 네이버·Bing 지원(Phase 3). 이 문서는 실제로 구현·검증된 것만 다루며, 계획 단계 기능을 이미 되는 것처럼 설명하지 않습니다.</p>
 <h2 id="9-보안데이터-흐름">9. 보안·데이터 흐름</h2>
 <ul>
@@ -290,7 +310,7 @@
 <h3 id="라이선스">라이선스</h3>
 <ul>
 <li>이 프로젝트는 <strong>MIT 라이선스를 채택할 예정</strong>입니다(수정·복제·재배포·상업적 사용을 폭넓게 허용하되, 저작권 고지문을 그대로 유지해야 하는 조건). 정확한 전문은 <code>LICENSE</code> 파일을 확인하세요.</li>
-<li><strong>⚠️ 현재 <code>LICENSE</code> 파일의 저작권자 이름·연도는 아직 확정되지 않은 초안 상태입니다</strong>(<code>[COPYRIGHT HOLDER — 확정 필요]</code>로 표시되어 있음). 최종 확정 전까지는 라이선스 조건이 법적으로 완전히 발효됐다고 보기 어려우니, 상업적 배포·재배포 전에는 반드시 이 파일이 최종 확정됐는지 먼저 확인하세요.</li>
+<li><strong>⚠️ 현재 <code>LICENSE</code> 파일은 저작권자를 임시로 "SoDam AI Studio"(2026년)로 채워둔 초안 상태입니다.</strong> 이는 "이름을 무엇으로 할지"라는 사실관계만 채운 것이며, <strong>MIT 라이선스 채택 자체와 이 저작권자 표기의 최종 확정은 여전히 법무 검토 대기 중</strong>입니다. 최종 확정 전까지는 라이선스 조건이 법적으로 완전히 발효됐다고 보기 어려우니, 상업적 배포·재배포 전에는 반드시 이 파일이 최종 확정됐는지 먼저 확인하세요.</li>
 <li>이 프로젝트가 사용하는 외부 오픈소스 라이브러리 목록과 각각의 라이선스는 <code>THIRD_PARTY_NOTICES.md</code>에 정리되어 있습니다. 확인 결과 <strong>저작권 카피레프트(GPL 등 재배포 시 소스공개 의무가 있는 라이선스) 계열은 발견되지 않았습니다.</strong></li>
 </ul>
 <h3 id="할-수-있는-것">할 수 있는 것</h3>

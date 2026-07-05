@@ -180,13 +180,31 @@ if needed
 
 ## 8. What's New (Update Summary)
 
-This project deliberately built its highest-risk capability (actually modifying real files) in stages. Progress so far:
+This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.
 
-| Stage | Scope | Status |
-|---|---|---|
-| **Phase 1** | URL diagnosis (crawl + render + Core Web Vitals) + regression detection | Complete |
-| **Phase 1.5a** | Approval-gated auto-fix for local Next.js projects (add_safe/gated) | Complete (verified by real execution) |
-| **Phase 1.5b** | GitHub-repository auto-fix proposal (Pull Request) | **Implemented, partially verified** — the "your own repository" scenario has been confirmed end-to-end against real GitHub, including real Pull Request creation. The "fork someone else's repository" scenario has not yet been verified against real GitHub (safety mechanisms have already been confirmed in code, though) |
+<details>
+<summary><strong>✅ Phase 1 — URL diagnosis + regression detection (Complete)</strong></summary>
+
+Crawl + render + Core Web Vitals measurement, plus regression detection. Verified end-to-end against a real live site.
+</details>
+
+<details>
+<summary><strong>✅ Phase 1.5a — Auto-fix for local Next.js projects (Complete, verified by real execution)</strong></summary>
+
+Purely additive fixes ("add what's missing") are applied automatically; changes affecting indexing/display require approval first. Post-apply build re-verification and automatic rollback on build failure have both been confirmed by real execution.
+</details>
+
+<details>
+<summary><strong>🟡 Phase 1.5b — GitHub-repository auto-fix proposal (Implemented, partially verified)</strong></summary>
+
+The "your own repository" flow (new branch + Pull Request) has been confirmed against real GitHub, including real Pull Request creation. **The "fork a repository you don't own, then propose" flow has not yet been verified against real GitHub** (its safety mechanisms have already been confirmed with simulated test data). Please review section 14 and the in-app warning before using this.
+</details>
+
+<details>
+<summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
+
+We added a new automated check that confirms the build and all 260 tests pass on Windows, macOS, and Linux. In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
+</details>
 
 **Planned, not yet started**: structured data (JSON-LD), AI crawler policy, Google Search Console/Analytics integration (Phase 2); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
 
@@ -258,7 +276,7 @@ See **[FAQ.en.md](./FAQ.en.md)** for frequently asked questions.
 
 ### License
 - This project intends to adopt the **MIT License** (broadly permits modification, redistribution, and commercial use, provided the copyright notice is preserved). See the `LICENSE` file for the exact text.
-- **⚠️ The copyright holder name and year in the current `LICENSE` file are still a draft placeholder** (`[COPYRIGHT HOLDER — confirmation needed]`). Until this is finalized, the license terms should not be treated as fully in legal effect — always confirm this file has been finalized before commercial distribution or redistribution.
+- **⚠️ The current `LICENSE` file is a draft with the copyright holder temporarily filled in as "SoDam AI Studio" (2026).** This only settles the factual question of "what name goes here" — **final adoption of the MIT License itself, and this copyright attribution, are still pending formal legal review.** Until this is finalized, the license terms should not be treated as fully in legal effect — always confirm this file has been finalized before commercial distribution or redistribution.
 - Third-party open-source dependencies and their licenses are listed in `THIRD_PARTY_NOTICES.md`. A review found **no copyleft licenses (e.g., GPL, which impose source-disclosure obligations on redistribution).**
 
 ### What you can do
