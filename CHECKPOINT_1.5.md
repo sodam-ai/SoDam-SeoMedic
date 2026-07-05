@@ -295,5 +295,36 @@ Claude에게 존재하는 기능을 "없다"고 잘못 안내하도록 지시하
 **여전히 남은 것(변경 없음, 사람 행동 필요)**:
 - 법무 검토 6건(L1·L2·L4·L5·L12·L13)
 - GitHub "fork(남의 저장소)" 경로 실증(별도 계정 소유 저장소 필요)
-- Mac/Linux **실제 실행**(수동) 검증 — 위 CI는 부분 완화일 뿐, 완전한 대체 아님
+- Mac/Linux **실제 실행**(수동) 검증 — 아래 CI 그린은 부분 완화일 뿐, 완전한 대체 아님
 - Phase 2(구조화데이터·GEO·GSC/GA4/PSI) 착수 — 여전히 "새 세션 인터뷰/스펙부터" 권고
+
+### CI 첫 실행 결과 — 3-OS 전부 그린 확인(2026-07-06)
+
+`.github/workflows/ci.yml` push 직후 실제로 4번의 반복(각 실패 → 원인 특정 → 수정 → 재푸시)을 거쳐
+**windows-latest(23m6s)·ubuntu-latest(6m41s)·macos-latest(3m19s) 전부 통과**했다(run
+[28749891235](https://github.com/sodam-ai/SoDam-SeoMedic/actions/runs/28749891235)). CI가 처음부터
+그냥 통과한 게 아니라 **4개의 실제 결함을 순서대로 잡아냈다**는 점이 중요하다(전부 로컬 Windows
+개발환경에서는 가려져 있던 문제들 — "CI가 필요 없었다"가 아니라 "CI가 없어서 몰랐다"였음을 실증):
+
+1. **`tsconfig.test.json` 스코프 결함** — `test/**/*.ts` 글롭이 독립된 Next.js 프로젝트인
+   `test/fixtures/nextjs-minimal/`(자체 tsconfig·package.json·node_modules 보유)까지 잘못 쓸어담아
+   `next` 모듈을 못 찾고 실패(TS2307). 로컬은 그 픽스처의 node_modules가 이미 있어 우연히 통과.
+   → `exclude`에 픽스처 경로 추가.
+2. **픽스처에 `typescript`/`@types/node` 누락** — 픽스처가 tsconfig.json으로 TypeScript를 쓰면서도
+   두 패키지를 devDependencies에 선언 안 함. 로컬에서는 (이유 불명확하나) 통과했지만 CI 클린
+   설치에서는 Next.js가 빌드 자체를 거부. → 두 패키지 명시 추가 + `pretest` 훅으로 픽스처 설치 자동화
+   (이전엔 픽스처 의존성 설치가 문서화 안 된 수동 1회성 작업이었음).
+3. **`github/npm-install.ts`의 `resolveNpmCliJs` Unix 레이아웃 미대응** — "npm-cli.js는 node
+   실행파일과 같은 폴더"라는 가정이 Windows 배포에서만 참이고, 표준 Unix 배포(`<prefix>/bin/node` +
+   `<prefix>/lib/node_modules/npm`)에서는 거짓이라 ubuntu-latest·macos-latest에서 실제로 실패.
+   → `npm_execpath` 환경변수 우선 확인 + 두 OS 레이아웃 후보 확인으로 수정. **이게 바로 "Mac/Linux
+   미검증" 리스크가 실제로 걸린 사례**(추측이 아니라 실측으로 확인).
+4. **vitest `hookTimeout` 부족** — `fix-orchestrator-integration.test.ts`의 `afterEach`가 픽스처
+   전체 복사본이 든 임시 폴더를 정리하는데, 이 정리가 vitest 기본 hookTimeout(10초)을 초과해
+   windows-latest에서만 "Hook timed out" 오탐 실패(로직 결함 아님, 순수 CI 디스크 I/O 속도차).
+   → `hookTimeout: 60_000`으로 상향.
+
+**결론**: CI 매트릭스가 "Mac/Linux 미검증" 리스크를 완전히 닫진 못하지만(수동 실행 확인은 여전히
+아님), 최소 typecheck+build+260개 유닛테스트 레벨에서는 이제 3-OS 전부 실측 그린이다. 위 4건 중
+3번(npm-cli.js) 은 실제 제품 코드(GitHub PR 모드)의 진짜 크로스플랫폼 버그였다는 점에서, 이번 CI
+신설 자체가 "미검증"으로만 남아있던 리스크를 구체적 결함으로 전환·수정한 실질적 성과다.

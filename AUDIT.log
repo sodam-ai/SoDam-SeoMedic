@@ -100,3 +100,10 @@
 [2026-07-06T~] claude FIX LICENSE 저작권자 placeholder를 "SoDam AI Studio"로 채움(1행 법무검토대기 고지는 유지)
 [2026-07-06T~] claude COMMIT_MERGE docs/phase1.5-verification-and-guides → master fast-forward 병합(e38d2af..b3e52c8, 충돌 0) 완료, SKILL.md+LICENSE 수정 커밋(ba6b708)
 [2026-07-06T~] claude ADD .github/workflows/ci.yml 신설(ubuntu/macos/windows × node22, typecheck+build+test+audit) — Mac/Linux 미검증 한계를 완전히 닫진 못하지만 최소 빌드·유닛테스트 레벨 3-OS 자동검증으로 리스크 완화
+[2026-07-06T~] user PROVIDE push 승인(마스터 11커밋 push는 확인 후 진행), CI 첫 실행 트리거
+[2026-07-06T~] claude FIX CI 1차 실패: tsconfig.test.json이 독립 Next.js 픽스처(test/fixtures/nextjs-minimal)까지 타입체크에 끌어들여 'next' 모듈 못 찾음(TS2307) — exclude에 픽스처 경로 추가
+[2026-07-06T~] claude FIX CI 2차 실패: 픽스처가 TypeScript를 쓰면서도 typescript/@types/node devDependency 누락 — 명시 추가 + pretest 훅(npm ci --prefix)으로 픽스처 설치 자동화(이전엔 수동 1회성 작업)
+[2026-07-06T~] claude FIX CI 3차 실패(ubuntu/macos): github/npm-install.ts의 resolveNpmCliJs가 "npm-cli.js는 node 실행파일과 같은 폴더" Windows 전제만 가정 — 표준 Unix 배포(<prefix>/bin/node ↔ <prefix>/lib/node_modules/npm)에서 실패 확인. npm_execpath 환경변수 우선 확인 + 양쪽 OS 레이아웃 후보로 수정. Mac/Linux 미검증 리스크가 실제 결함으로 확인된 사례
+[2026-07-06T~] claude FIX CI 4차 실패(windows-latest): fix-orchestrator-integration.test.ts의 afterEach가 픽스처 복사 임시폴더 정리 중 vitest 기본 hookTimeout(10s) 초과 — 60s로 상향(로직 결함 아닌 CI I/O 속도차)
+[2026-07-06T~] claude VERIFY CI 최종 실행(run 28749891235) 3-OS 전부 통과 확인 — windows-latest 23m6s·ubuntu-latest 6m41s·macos-latest 3m19s, 로컬 260/260 매 수정마다 재확인
+[2026-07-06T~] claude MILESTONE_DONE 2026-07-06 세션 — 인계 6항목 검증 완료, SKILL.md 결함 신규발견·수정, LICENSE 저작권자 임시확정, master 병합, CI 3-OS 신설 및 4개 실결함 수정으로 그린 달성
