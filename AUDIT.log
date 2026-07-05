@@ -92,3 +92,11 @@
 [2026-07-04T02:30] claude MILESTONE_DONE Phase 1.5b 쓰기 경로 부분검증 완료(내 저장소=완료, fork=미검증), 남은 항목은 CHECKPOINT_1.5.md 인계 섹션 참고
 [2026-07-04T02:35] claude COMMIT_PUSH 저장소 private 확인 후 커밋 2건(9a7f4ec, 3048d8c)을 신규 브랜치 docs/phase1.5-verification-and-guides에 push, master 미병합 상태로 사용자 확인 대기
 [2026-07-04T02:36] claude About 갱신(GitHub PR 모드 반영), Topics는 기존 유지
+[2026-07-06T~] claude VERIFY 새 세션 재개 — .PRD 5개 문서 전체 재독 + CHECKPOINT_1.5.md 인계 6항목을 코드(fixers/registry.ts, plugin/commands, plugin/skills)와 직접 대조, 6항목 전부 실측과 일치 확인
+[2026-07-06T~] claude RISK 인계 문서에 없던 결함 발견 — skills/seomedic/SKILL.md가 "/seo-fix 아직 미지원(Phase 1.5 예정)" 스테일 문구를 그대로 갖고 있어 자동활성 스킬이 실제로 존재하는 기능을 "없다"고 잘못 안내하는 상태였음. commands/seo-fix.md는 완전 구현·실제 PR 검증까지 끝난 상태와 모순
+[2026-07-06T~] claude FIX SKILL.md 문구를 실제 상태(로컬 fix 검증완료, GitHub 내저장소 검증완료, fork경로만 실험적)로 정정
+[2026-07-06T~] claude VERIFY .github/workflows 자체가 존재하지 않아 지금까지 모든 테스트가 로컬 Windows 1회성 수동실행뿐이었음을 확인 — master push 시 자동검증 게이트 부재
+[2026-07-06T~] user DECIDE LICENSE 저작권자 임시로 "SoDam AI Studio"(2026)로 확정(최종 문구는 별도 세션 README/가이드 작업 시 재정리 예정), docs 브랜치 master 즉시 병합 승인
+[2026-07-06T~] claude FIX LICENSE 저작권자 placeholder를 "SoDam AI Studio"로 채움(1행 법무검토대기 고지는 유지)
+[2026-07-06T~] claude COMMIT_MERGE docs/phase1.5-verification-and-guides → master fast-forward 병합(e38d2af..b3e52c8, 충돌 0) 완료, SKILL.md+LICENSE 수정 커밋(ba6b708)
+[2026-07-06T~] claude ADD .github/workflows/ci.yml 신설(ubuntu/macos/windows × node22, typecheck+build+test+audit) — Mac/Linux 미검증 한계를 완전히 닫진 못하지만 최소 빌드·유닛테스트 레벨 3-OS 자동검증으로 리스크 완화

@@ -262,3 +262,38 @@ Phase 1.5b의 add_safe·gated·멱등·PR-only 원칙)은 실제 실행 증거�
 - `.PRD/03_PHASES.md` — Phase 2 시작 시 최우선 참고
 - `CHECKPOINT.md` — Phase 1 상세 이력(M0~M9)
 - `AUDIT.log` — 마일스톤 단위 이벤트 기록(이 세션 작업분 하단에 추가됨)
+
+---
+
+## 2026-07-06 세션 — 인계 검증 + 정리 작업
+
+`.PRD/` 5개 문서 전체와 위 "다음 세션 인계" 6개 항목을 실제 코드(`fixers/registry.ts`,
+`packages/plugin/commands/`, `packages/plugin/skills/`)와 직접 대조 검증했다. **6개 항목은
+전부 실측과 정확히 일치**했다(그대로 신뢰 가능했던 것으로 확인).
+
+**인계 문서에 없던 결함 1건을 새로 발견·수정**: `skills/seomedic/SKILL.md`가 "소스 코드 자동 수정
+요청 → 아직 미지원(Phase 1.5 예정)"이라는 스테일 문구를 그대로 갖고 있었다. 실제로는
+`commands/seo-fix.md`가 완전히 구현되어 실제 GitHub PR(#1)까지 검증된 상태라, 자동 활성 스킬이
+Claude에게 존재하는 기능을 "없다"고 잘못 안내하도록 지시하는 살아있는 버그였다. 문구를 실제
+상태(로컬 fix 검증완료 / GitHub 내 저장소 검증완료 / fork 경로만 실험적)로 정정했다.
+
+**처리 완료**:
+1. **`docs/phase1.5-verification-and-guides` → `master` 병합** — fast-forward로 완료(충돌 0,
+   `e38d2af..b3e52c8`).
+2. **LICENSE 저작권자명** — 임시로 **"SoDam AI Studio"(2026)**로 채움. ⚠️ 이건 사실관계만 채운
+   것이고, **MIT 채택 자체·copyleft 검토(L1·L2)는 여전히 법무 검토 대기**다. 최종 문구는 별도
+   세션에서 README/가이드 정리와 함께 재확인 예정(사용자 지시).
+3. **`.github/workflows/ci.yml` 신설** — ubuntu/macos/windows × Node 22 매트릭스로
+   typecheck+build+test+audit 자동화. **주의**: 지금까지 `.github/workflows` 자체가 없어 260/260
+   테스트는 전부 로컬 Windows 1회성 수동 실행뿐이었다(master push 자동 게이트 부재였음, 이번에
+   신설). 이 CI는 "Mac/Linux 미검증" 한계를 **완전히 닫지 못한다** — 최소 타입체크·빌드·유닛테스트
+   레벨의 3-OS 자동 검증으로 **리스크를 낮추는 것**뿐이며, 실제 `/seo-audit`·`/seo-fix` MCP 툴을
+   사람이 다른 OS에서 써보는 것과는 다르다. **첫 push 후 Actions 탭에서 3-OS 잡이 실제로 통과하는지
+   반드시 확인 필요**(특히 `better-sqlite3` 네이티브 모듈의 3-OS prebuilt binary 동작은 사전 보장
+   불가 — 미검증 지점으로 정직하게 남김).
+
+**여전히 남은 것(변경 없음, 사람 행동 필요)**:
+- 법무 검토 6건(L1·L2·L4·L5·L12·L13)
+- GitHub "fork(남의 저장소)" 경로 실증(별도 계정 소유 저장소 필요)
+- Mac/Linux **실제 실행**(수동) 검증 — 위 CI는 부분 완화일 뿐, 완전한 대체 아님
+- Phase 2(구조화데이터·GEO·GSC/GA4/PSI) 착수 — 여전히 "새 세션 인터뷰/스펙부터" 권고
