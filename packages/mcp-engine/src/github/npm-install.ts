@@ -18,13 +18,31 @@ const DEFAULT_TIMEOUT_MS = 5 * 60_000;
  *   shell 없이는 아예 거부함 — CVE-2024-27980 대응으로 Node 자체에 추가된 안전장치)
  * shell:true로 우회하는 대신, JS 진입점을 직접 resolve해 process.execPath로 실행하는 쪽을
  * 택했다(이 코드베이스의 M2 "셸 문자열 보간 금지" 원칙과 완전히 일치, next와 동일 패턴).
+ *
+ * CI 3-OS 매트릭스 실측(2026-07-06)으로 발견: 위 "Node.js 설치본과 같은 폴더" 가정은 Windows
+ * 배포 레이아웃(node.exe와 node_modules/npm이 같은 폴더)에서만 성립한다. 표준 Unix(Linux/macOS)
+ * Node.js 배포는 `<prefix>/bin/node` + `<prefix>/lib/node_modules/npm`로 bin과 npm이 서로
+ * 다른 폴더에 있어, 같은 코드가 macOS/Linux CI 러너에서 실제로 실패하는 것을 확인함(로컬은
+ * Windows뿐이라 이 차이가 가려져 있었음). 가장 신뢰할 수 있는 `npm_execpath` 환경변수(현재
+ * 프로세스를 실행시킨 실제 npm 진입점 — npm run/npx가 하위 프로세스에 항상 설정)를 우선 확인하고,
+ * 없으면 두 OS 레이아웃을 순서대로 후보 확인한다.
  */
 function resolveNpmCliJs(): string {
-  const candidate = path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
-  if (!fs.existsSync(candidate)) {
-    throw new NpmInstallError(`npm CLI 진입점을 찾을 수 없습니다(예상 경로: ${candidate}) — Node.js 설치를 확인해주세요`);
+  const fromEnv = process.env.npm_execpath;
+  if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
+
+  const nodeBinDir = path.dirname(process.execPath);
+  const candidates = [
+    path.join(nodeBinDir, "node_modules", "npm", "bin", "npm-cli.js"), // Windows: node.exe와 같은 폴더
+    path.join(path.dirname(nodeBinDir), "lib", "node_modules", "npm", "bin", "npm-cli.js"), // Unix: <prefix>/bin/node ↔ <prefix>/lib/node_modules/npm
+  ];
+  const found = candidates.find((c) => fs.existsSync(c));
+  if (!found) {
+    throw new NpmInstallError(
+      `npm CLI 진입점을 찾을 수 없습니다(확인한 경로: ${candidates.join(", ")}) — Node.js 설치를 확인해주세요`,
+    );
   }
-  return candidate;
+  return found;
 }
 
 /**
