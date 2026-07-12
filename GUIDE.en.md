@@ -15,6 +15,8 @@ This document and its Korean counterpart (**[GUIDE.md](./GUIDE.md)**) contain id
 | Crawl | A program automatically visiting web pages and reading their content |
 | Render | A browser drawing code (HTML/JavaScript) into what actually appears on screen |
 | Canonical | A tag telling search engines "this is the true, representative address for this page" |
+| Structured Data (JSON-LD) | A special, hidden markup that helps search engines understand your page content more precisely. It's part of how search results can show extra info like ratings, prices, or reviews |
+| Open Graph | Settings that control the preview (title, description, URL) shown when someone shares your page link on social media like Facebook or KakaoTalk |
 | Regression | An issue that was previously fixed but has since reappeared |
 | MCP | The standard way Claude Code talks to external tools (like the SeoMedic engine) |
 | Baseline | A saved snapshot of diagnosis results, used as the reference point for future comparisons |
@@ -85,6 +87,7 @@ This document and its Korean counterpart (**[GUIDE.md](./GUIDE.md)**) contain id
    |---|---|---|---|---|
    | 🟠 high | R-CANONICAL-MISSING | canonical | - | Add a self-canonical tag |
    ```
+5. You might also see items related to structured data (JSON-LD) or Open Graph in your report, such as "No structured data found" or "Open Graph title missing." These aren't serious problems — they're marked with "low" severity because they're "opportunities" to make your social sharing or search results richer, not things that are currently broken.
 
 ## Step 4. Check again later (regression detection)
 
@@ -120,7 +123,7 @@ This step only applies if **you have the source code for a Next.js project**. If
 
 ## Step 6. (Optional) Get an auto-fix proposal for a GitHub repository — ⚠️ Experimental
 
-This step only applies if **you have a Next.js project on GitHub and want to receive a Pull Request (proposed change)**. If this is your first time, we recommend getting comfortable with Step 5 (local folder) first. Only the "your own repository" path of this feature has actually been verified against real GitHub so far (the fork path has not been) — please read the following carefully before proceeding.
+This step only applies if **you have a Next.js project on GitHub and want to receive a Pull Request (proposed change)**. If this is your first time, we recommend getting comfortable with Step 5 (local folder) first. The "your own repository" path of this feature has been fully verified against real GitHub, including an actual generated Pull Request. The flow for forking a repository you don't own and proposing changes has been verified up through fork creation and cloning in a real GitHub environment (we confirmed the fork repository actually gets created). However, the final step of actually creating the Pull Request hasn't been confirmed yet (the test repository used had no Next.js project files, so the process stopped one step before that). Please read the following carefully before proceeding.
 
 1. **Create a GitHub Personal Access Token**
    1. In your browser, go to `https://github.com/settings/personal-access-tokens/new` and log in.

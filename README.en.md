@@ -134,7 +134,7 @@ Instead of a local folder, give it a **GitHub repository URL**. SeoMedic tempora
 
 **Things this feature never does**: push directly to the default branch (main/master), force-push, or auto-merge. It only ever proposes changes via a new branch + Pull Request (there is no force-push capability in the code at all).
 
-> ⚠️ **Honest current status of this experimental feature**: the "your own repository" flow (create branch, apply fix, open Pull Request) has been run against real GitHub and confirmed working. The "fork someone else's repository, then propose via Pull Request" flow has **not yet** been verified against real GitHub (only verified with simulated test data). You should know this before using it, and this warning is also shown again at the time you run the command.
+> ⚠️ **Honest current status of this experimental feature**: the "your own repository" flow (create branch, apply fix, open Pull Request) has been run against real GitHub and confirmed working. The "fork someone else's repository, then propose via Pull Request" flow has been **partially verified**: creating the fork and cloning it have been confirmed against real GitHub — the forked repository was actually created and confirmed to exist. The final step, actually opening the Pull Request from that fork, has **not yet** been exercised, because the test repository used didn't contain any Next.js project files, so the flow stopped just short of that point (the Pull Request creation logic itself has already been verified in the "your own repository" flow — it just hasn't been run specifically from a forked repository yet). You should know this before using it, and this warning is also shown again at the time you run the command.
 
 ## 6. Command Reference
 
@@ -197,7 +197,7 @@ Purely additive fixes ("add what's missing") are applied automatically; changes 
 <details>
 <summary><strong>🟡 Phase 1.5b — GitHub-repository auto-fix proposal (Implemented, partially verified)</strong></summary>
 
-The "your own repository" flow (new branch + Pull Request) has been confirmed against real GitHub, including real Pull Request creation. **The "fork a repository you don't own, then propose" flow has not yet been verified against real GitHub** (its safety mechanisms have already been confirmed with simulated test data). Please review section 14 and the in-app warning before using this.
+The "your own repository" flow (new branch + Pull Request) has been confirmed against real GitHub, including real Pull Request creation. **The "fork a repository you don't own, then propose" flow has been partially verified**: creating the fork and cloning it have been confirmed against real GitHub, but actually opening the Pull Request from the fork has not yet been exercised (the test repository used didn't contain any Next.js project files, so the flow stopped just short of that step). Please review section 14 and the in-app warning before using this.
 </details>
 
 <details>
@@ -206,11 +206,24 @@ The "your own repository" flow (new branch + Pull Request) has been confirmed ag
 We added a new automated check that confirms the build and all 260 tests pass on Windows, macOS, and Linux. In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
 </details>
 
-**Planned, not yet started**: structured data (JSON-LD), AI crawler policy, Google Search Console/Analytics integration (Phase 2); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
+<details>
+<summary><strong>✅ Phase 2 Stage 1 — Structured Data (JSON-LD) Detection (Done)</strong></summary>
+
+Automatically detects when a page is missing structured data (JSON-LD — a special markup that helps search engines understand your content more precisely) or has malformed JSON-LD, and flags it in the report. **This only detects the issue — it does not auto-generate a fix.** Creating structured-data values from scratch was deliberately left out, since fabricating them carries real risk.
+</details>
+
+<details>
+<summary><strong>✅ Phase 2 Stage 2 — Open Graph (Social Share Preview) Detection + Partial Auto-fix (Done)</strong></summary>
+
+Checks whether the title and URL shown when a link is shared on social media (Open Graph tags) are missing. Of these, **only the title and url** are auto-filled with your approval — this is safe because they're simply copied from values that already exist on the page. (The description is excluded, since writing one requires generating a new sentence.)
+</details>
+
+**Planned, not yet started**: AI crawler policy, Google Search Console/Analytics integration (Phase 2); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
 
 ## 9. Security & Data Flow
 
 - **Everything is stored only in the `.seomedic/` folder.** Running a diagnosis creates a single SQLite database file (`.seomedic/seomedic.db`) inside the project folder, holding diagnosis history, baselines, and regression records. This folder is set up to be excluded from git tracking automatically.
+- **The database file where results are stored is locked down to owner-only access** (on Mac/Linux — Windows does not support this mechanism the same way due to OS differences, so this is not yet verified on Windows).
 - **Raw crawled HTML is never stored in full** — only a hash (fingerprint) and a ≤500-character excerpt are kept (to respect copyright).
 - **Zero telemetry.** Nothing is sent anywhere except requests to the URL (or GitHub repository, in GitHub mode) you specify.
 - **Private/internal network addresses are never diagnosed** (SSRF protection — `127.0.0.1`, `192.168.x.x`, cloud metadata endpoints, and similar are automatically blocked).
@@ -250,7 +263,7 @@ The plugin (a thin shell) and the diagnostic engine (the actual heavy lifting) a
 | This plugin's own source | `packages/plugin/` (the installed part), `packages/mcp-engine/` (the engine) |
 | GitHub-integration source | `packages/mcp-engine/src/github/` |
 | Planning documents (PRD) | `.PRD/` |
-| Progress/verification records | `CHECKPOINT.md` (Phase 1), `CHECKPOINT_1.5.md` (Phase 1.5) |
+| Progress/verification records | `CHECKPOINT.md` (Phase 1), `CHECKPOINT_1.5.md` (Phase 1.5), `CHECKPOINT_2.md` (Phase 2) |
 | Security policy | `packages/plugin/SECURITY.md` |
 | Disclaimer | `packages/plugin/DISCLAIMER.md` |
 | License | `LICENSE`, `THIRD_PARTY_NOTICES.md` |

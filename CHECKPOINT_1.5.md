@@ -4,6 +4,31 @@
 > Phase 1(M0~M9)은 `CHECKPOINT.md`에서 별도 추적, 커밋 `8bcaf8e`로 완료·보존됨.
 > 1.5a(로컬 폴더 fix) 먼저 완결 후 1.5b(GitHub PR 모드) 착수.
 
+## 보안 감사(OWASP ASVS) — 2026-07-13, 발견·수정 2건
+
+JSON-LD/OG 작업(CHECKPOINT_2.md) 이후 전체 코드·데이터흐름·의존성 대상 보안 감사(3개 병렬 심층 조사:
+시크릿 취급, 입력검증/주입방지, 승인게이트 우회가능성) 실시. CRITICAL/HIGH 시크릿 노출·SSRF·명령어주입·
+SQLi·경로조작은 전부 CONFIRMED 안전(직접 재현 테스트 포함). 다음 2건 발견·처리:
+
+1. **[수정 완료] `assertFieldAbsent`(`fixers/add-safe-guard.ts`) 우회 가능** — 계산된 키(`["title"]`)나
+   따옴표 키(`"title"`)로 이미 존재하는 필드를 "없음"으로 오판, og/canonical fixer가 값을 중복 삽입해
+   실질적으로 덮어쓰는 결과. 재현 스크립트로 확인 후 `getStaticPropertyKey` 헬퍼로 semantic key 판별
+   방식으로 수정(판별 불가 시 fail-closed). 공유 프리미티브 1곳만 고쳐 canonical-fixer.ts는 무수정으로
+   함께 안전해짐. 재현 스크립트로 막힘 확인 + 정상 케이스 회귀 없음 확인 + 전체 365 테스트 재통과.
+2. **[수정 완료] DB 파일 권한 미제한** — `.seomedic/seomedic.db`에 OS 파일 권한 제한이 전혀 없었음
+   (PRD M11/S3 Must-Have, 배포 차단 조건인데 미구현·CHECKPOINT 미기록 상태였음 — 로컬의 다른 프로세스가
+   DB를 직접 열어 `approval_status`를 조작하면 승인 게이트를 완전히 우회할 수 있는 경로). `path-guard.ts`
+   (`.seomedic/` 디렉터리 0o700) + `connection.ts`(DB 파일 0o600)에 소유자 전용 권한 적용
+   (`process.platform !== "win32"`로 POSIX만 — Windows는 NTFS ACL이라 스킵, `github/token.ts`의 기존
+   패턴과 동일). **Windows 개발 환경이라 POSIX 권한 적용 자체는 이 머신에서 실측 불가 — Mac/Linux
+   수동검증(HUMAN_ACTION_CHECKLIST.md 3번) 때 반드시 재확인 필요.**
+
+**남은 위험(수정 안 함, 판단 근거 명시)**: `apply.ts`의 `checkGitClean`이 다중 fix 적용 시 루프 시작
+전 1회만 호출됨 — 이론적으로 fix 사이(각 `next build`, 최대 5분)에 git 상태가 바뀔 창이 존재. 단
+개별 파일 단위 멱등성 재검증(TOCTOU recheck)이 이미 있어 실무 위험은 낮다고 판단, 완전 차단하려면
+매 fix마다 전체 git status 재확인이라는 설계 변경이 필요해 이번 감사 범위(요청 범위 밖 대규모 변경
+금지)에서 제외 — 다음 세션 우선순위로 기록.
+
 ## 1.5a-1: git-safety 모듈 — done
 - `git-safety/git-guard.ts`: `checkGitClean`(argv배열 spawn, `-- .`로 대상폴더만 스코프), `backupFiles`(대상파일만, sha256 매니페스트), `revertViaGitCheckout`
 - 검증: 실제 git repo(init+commit)로 clean/dirty/not_a_repo/추적안된새파일 케이스 + **PATH 실제 제거로 git_not_found 재현** + 실제 checkout 롤백. 8/8 테스트.
@@ -337,3 +362,267 @@ Claude에게 존재하는 기능을 "없다"고 잘못 안내하도록 지시하
 아님), 최소 typecheck+build+260개 유닛테스트 레벨에서는 이제 3-OS 전부 실측 그린이다. 위 4건 중
 3번(npm-cli.js) 은 실제 제품 코드(GitHub PR 모드)의 진짜 크로스플랫폼 버그였다는 점에서, 이번 CI
 신설 자체가 "미검증"으로만 남아있던 리스크를 구체적 결함으로 전환·수정한 실질적 성과다.
+
+---
+
+## 1.5a-9: canonical gated fixer 추가 — done (2026-07-12, gated 승인 경로 실제 파일 적용 최초 실증)
+
+**배경**: 위 "남은 작업"에 명시된 gap — "gated 실제 fixer 1개 추가 시 approve/reject 실사용 경로
+통합검증"이 지금까지 add_safe(sitemap) 하나뿐이라 DB 상태머신 레벨(1.5a-6)에서만 검증되고 실제 파일
+적용까지는 한 번도 실증된 적이 없었다. `R-CANONICAL-MISSING`(raw+rendered 둘 다 canonical 없음,
+Phase 1부터 이미 존재하던 규칙) 대상 gated fixer 1개를 추가해 이 gap을 닫았다. Plan Mode에서
+사용자가 명시 승인한 설계(`crispy-coalescing-zebra.md`)를 그대로 구현.
+
+**신규 모듈**
+- `fixers/canonical-fixer.ts`: `planCanonicalFix`/`writeCanonicalFix` — sitemap-fixer.ts의
+  `applicable`/`reason` 반환 패턴을 그대로 미러링. `export const metadata = {...}` 정적 object
+  literal만 처리, `generateMetadata()` 동적 함수·metadata 부재·변수 참조는 report_only 폴백.
+  기존 `alternates.canonical` 값은 무엇이든 절대 덮어쓰지 않는다(`add-safe-guard.ts`의
+  `assertFieldAbsent`를 새로 만들지 않고 그대로 재사용해 nested `alternates` 객체에 적용).
+- `fix-orchestrator/page-file-resolver.ts`: `findPageFilePath(projectRoot, pathname)` — plan.ts의
+  `SITEMAP_FILE_CANDIDATES` 패턴(App/`src/app` 양쪽 + 확장자 후보 + `fs.existsSync`)을 페이지 파일
+  조회로 이식. 동적 세그먼트(`[slug]`)는 크롤된 실제 경로와 리터럴 폴더명이 일치하지 않아 파일탐색이
+  자연히 실패하므로 별도 특수처리 불필요(설계 그대로 확인됨).
+
+**설계 중 채워넣은 세부사항(계획서에 명시 안 됐던 결정, "추측 금지" 원칙에 따라 보수적으로 결정)**
+1. **metadata export 자체가 아예 없는 페이지**(가장 흔한 실제 케이스 — 대부분의 페이지는 metadata를
+   전혀 선언하지 않음)는 "새로 만들기"가 아니라 **not-applicable/report_only**로 처리하기로 결정.
+   sitemap-fixer.ts가 "배열 리터럴이 이미 존재해야만" 손대는 것과 동일한 보수적 원칙 — 없는 구조를
+   새로 만들어내는 것은 "정적 object literal 수정"의 범위를 넘어선다고 판단. 이 결정 덕분에
+   기존 `test/fixtures/nextjs-minimal/`(metadata 자체가 없는 "빈 컴포넌트" 형태)가 그대로 보존되고,
+   기존 sitemap 통합테스트가 무변경으로 남았다(아래 회귀 확인 참고).
+2. **`alternates`(또는 top-level `metadata`) object literal에 스프레드(`...base`)가 섞인 경우**를
+   not-applicable로 명시적으로 차단하는 로직을 추가했다 — 계획서엔 "스프레드"가 예시로만 언급되고
+   AST 판정 방법은 없었음. `assertFieldAbsent`는 나열된 프로퍼티만 검사하므로, 스프레드로 주입되는
+   값(예: `alternates: { ...legacyAlternates }`에서 `legacyAlternates`가 이미 canonical을 담고
+   있는 경우)은 정적으로 확인 불가능해 "덮어쓰기 절대 금지" 불변식이 깨질 수 있었다 — 이 구멍을
+   막기 위해 `hasSpreadElement` 검사를 top-level metadata·nested alternates 양쪽에 추가.
+
+**`fix-orchestrator/apply.ts` 리팩터(계획서에 명시된 대로 무수정 아님)**: `applyOneFix`를
+rule_id 디스패처로 전환 — 기존 sitemap 로직을 `applySitemapFix`로 그대로 이동(순수 move, 동작
+무변경을 `fix-orchestrator-integration.test.ts`·`server-integration-fix.test.ts` 재실행으로 증명)
+후 `applyCanonicalFix`를 동일 스켈레톤(TOCTOU 재검증→백업→쓰기→`next build`재검증→실패 시
+`revertViaGitCheckout`)으로 추가.
+
+**`fixers/registry.ts`**: `R-CANONICAL-MISSING`을 `riskLevel: "gated"`로 등록(add_safe 아님 —
+`.PRD/04_PROJECT_SPEC.md:77` "색인·표시에 영향을 주는 모든 변경=gated, add_safe=순수 추가만(예외
+없음)"과 `02_DATA_MODEL.md:96` "canonical/noindex/robots/sitemap/JSON-LD는 전부 gated" 결정을
+그대로 따름 — 순수 "필드 추가"처럼 보여도 예외를 두지 않았다). `test/unit/fixer-registry.test.ts`
+신설로 이 risk_level을 회귀가드했다.
+
+**검증(이번 작업의 핵심 증거 — `fix-orchestrator-canonical-integration.test.ts`, 실제
+`next build` 3회 수행, 목업 아님)**:
+1. **승인 게이트 실증(최초)**: `planLocalFix`가 만든 pending gated fix에 대해 승인 없이
+   `applyLocalFixes`를 호출하면 `findApplicableFixesByAuditRun`이 애초에 조회 대상에서 제외해
+   `outcomes.length === 0` — 파일이 바이트 단위로 완전히 무변경임을 실제로 확인.
+2. **승인→적용→롤백 전체 흐름**: `setApprovalStatus(..., "approved")` → `applyLocalFixes` →
+   실제 `next build` 통과 → 파일에 `alternates: { canonical: "/" }`(루트 페이지, 상대경로만 —
+   절대 URL·로컬 브릿지 origin·placeholder origin 어느 것도 아님을 문자열 매칭으로 직접 확인) →
+   `rollbackLocalFix`로 원본과 완전히 동일하게 복원.
+3. **거부(reject) 경로**: `setApprovalStatus(..., "rejected")` → apply가 조회조차 하지 않음 →
+   `rejected`/`applied_at: null` 유지, 파일 무변경.
+
+**canonical 값 설계 결정 재확인(계획서 그대로 구현)**: 상대경로만 사용(예: `"/about"`, 루트는
+`"/"`) — 파이프라인 어디에도 실제 배포 도메인이 없고(로컬 브릿지 origin·`local.seomedic.internal`
+placeholder origin 둘 다 실제 네트워크 전용 아님이 이미 명시돼 있음), Next.js가 metadataBase 기준
+상대경로 해석을 공식 지원하기 때문. 한계는 코드 주석에 정직하게 남김: `metadataBase` 미설정 시
+Next.js가 `localhost:3000`으로 폴백하나 빌드는 통과함 — 최종 배포 URL 정확성은 이 fixer의 범위 밖.
+
+**실행 중 발견한 것**: 이번 구현은 이미 검증된 3개 인프라(sitemap-fixer의 정적 구조 판별 패턴,
+add-safe-guard의 필드 존재 검사, server-launcher/git-guard의 백업·빌드·롤백 스켈레톤)를 그대로
+재사용해서, 이전 마일스톤들과 달리 **인프라 레벨의 새 결함은 발견되지 않았다**(정직하게 명시 —
+sitemap의 Turbopack symlink 문제·npm-cli.js Unix 레이아웃 같은 실행 전용 결함이 이번엔 없었음).
+발견·수정한 것은 위 "스프레드 채워넣기" 1건뿐이며, 이는 실행 중 드러난 버그가 아니라 계획서의
+모호함을 "추측 금지" 원칙에 따라 보수적으로 메운 설계 결정이다.
+
+**회귀 확인**: registry 등록 직후 전체 스위트 1회 실행으로 282/282(260+신규 유닛 22개) 무영향 확인 →
+`apply.ts` 리팩터 직후 sitemap 통합테스트 3개 + MCP 프로토콜 테스트 2개 + canonical 시나리오 3개를
+함께 재실행해 8/8 통과(리팩터가 순수 move였음을 증명) → 최종
+`npm run typecheck && npm run build && npm run test` 전부 0 에러, **285/285 테스트 통과**
+(기존 260 + 신규 25: canonical-fixer 11 · page-file-resolver 8 · fixer-registry 3 ·
+fix-orchestrator-canonical-integration 3).
+
+**남은 작업 갱신**: 위 "남은 작업" 항목("gated 실제 fixer 1개 추가 시 approve/reject 실사용 경로
+통합검증")은 이번 작업으로 **닫혔다**. `R-CANONICAL-JS-ONLY`(별도 조건 — rendered엔 있고 raw엔
+없음), JSON-LD, title/meta 등 다른 gated 후보는 여전히 향후 과제로 남는다(이번 작업 범위 밖,
+의도적으로 확장하지 않음). 커밋/푸시는 하지 않음(git-workflow 규칙 — 사용자 명시 요청 시에만).
+
+---
+
+## 1.5a-10: R-CANONICAL-JS-ONLY gated fixer 추가 — done (2026-07-12, JS 계산값 보존 설계 실증)
+
+**배경**: 위 "남은 작업 갱신"에 명시된 후속 과제 — `R-CANONICAL-JS-ONLY`(raw HTML엔 canonical이
+없고 렌더링된 DOM에만 존재, **critical** severity — R-CANONICAL-MISSING의 high보다 더 심각. Google이
+raw HTML을 canonical 판단의 1차 근거로 우선하므로 이 gap 자체가 위험 신호) 대상 gated fixer를
+추가했다. 기존 R-CANONICAL-MISSING 인프라(`canonical-fixer.ts`·`page-file-resolver.ts`·
+`apply.ts`의 `applyCanonicalFix` 스켈레톤)를 ~95% 그대로 재사용하는, 작지만 안전에 중요한 확장.
+
+**핵심 설계 결정(구현 전 이미 확정, 코드로 그대로 반영) — 값 보존 vs 자기참조 가정**: R-CANONICAL-MISSING은
+canonical 값을 페이지 자기 경로(pathname)로 스스로 계산한다(보존할 기존 신호가 없으므로 이게 맞음).
+하지만 R-CANONICAL-JS-ONLY는 JS가 **이미** canonical 값을 계산해 렌더링한 상태에서만 발생하는
+규칙이다 — 이 기존 값을 절대 자기참조 값으로 대체하지 않고 그대로 raw HTML/소스로 이전해야 한다.
+이유: JS가 계산한 canonical이 의도적으로 페이지 자신이 아닌 다른 경로를 가리킬 수 있다(예:
+페이지네이션 2페이지가 1페이지를 canonical로 지정하는 흔한 패턴) — 자기참조를 가정하면 이런 의도적
+비자기참조 canonical을 조용히 깨뜨릴 위험이 있었다.
+
+**변경 파일(전부 추가적·최소침습, 기존 인프라 3개는 무수정 확인)**:
+- `fix-orchestrator/scan.ts`: `ScannedPage`에 `renderedCanonical: string | null` 필드 추가 + 페이지
+  루프에서 이미 계산돼 있던 `renderedSignals.canonical`을 그대로 실어 내보내기만 함(신규 계산·크롤·
+  렌더 없음).
+- `fix-orchestrator/plan.ts`: `planJsOnlyCanonicalFixForFinding` 신설(직접 단위테스트 가능하도록
+  export) — `ScannedPage[]`에서 finding에 대응하는 페이지를 찾아 `renderedCanonical`을 그대로
+  `planCanonicalFix`(canonical-fixer.ts, **무수정 재사용** — 이미 값 무관 범용 함수)에 전달. 대응
+  페이지 없음/`renderedCanonical` null/정적 페이지 파일 못 찾음 3가지 모두 값을 추측하지 않고
+  fail-closed(`null` 반환 → report_only). `idempotency_marker`엔 보존된 실제 값(자기 경로 아님)을 저장.
+- `fixers/registry.ts`: `R-CANONICAL-JS-ONLY` 엔트리 추가(`riskLevel: "gated"` — critical severity라도
+  예외 없음, 04_PROJECT_SPEC "canonical은 예외 없이 gated" 원칙 그대로).
+- `fix-orchestrator/apply.ts`: 디스패치 조건 **1줄만** 확장
+  (`fix.rule_id === "R-CANONICAL-MISSING" || fix.rule_id === "R-CANONICAL-JS-ONLY"` → 둘 다
+  `applyCanonicalFix` 호출). **재확인 결과**: `applyCanonicalFix`는 이미 완전히 rule_id-무관 제네릭
+  함수(idempotency_marker를 그대로 canonical 값으로 쓸 뿐, 자기참조 여부를 전혀 가정하지 않음) — 새
+  함수 작성이 불필요함을 코드 재검토로 직접 확인·증명함(추측이 아니라 실제로 함수 본문을 다시 읽고
+  결정).
+- `canonical-fixer.ts`·`page-file-resolver.ts`·`rules/definitions/canonical.ts`: **무수정**(계획대로
+  100% 재사용).
+
+**검증**:
+- `test/unit/scan.test.ts`(신규, 목업 기반 순수 배선 유닛테스트 3개): `crawlLocalBridge`·
+  `launchGuardedBrowser`·`renderLocalBridgeAndExtractSignals`·`toLogicalPageUrl`·`fetchSitemapUrls`를
+  전부 목업해 실제 브라우저·Next 서버 없이 `renderedCanonical` 배선만 검증 — (1) 렌더 성공 시
+  rendered DOM 값(자기 경로와 다른 값도) 그대로 반영, (2) 렌더 실패 시 raw 신호로 폴백, (3) raw에
+  이미 있는 정상 케이스도 일관되게 반영.
+- `test/unit/fix-orchestrator-js-only-canonical-integration.test.ts`(신규, 5개) — **핵심 증거**:
+  1. `planJsOnlyCanonicalFixForFinding`을 직접 호출(실제 DB+실제 페이지 파일, `ScannedPage` fixture로
+     렌더 파이프라인 자체는 우회 — 그 배선은 위 유닛테스트가 이미 담당)해 자기 경로("/")가 아닌 JS
+     계산값("/archive")이 `idempotency_marker`에 정확히 보존됨을 직접 단언(가장 중요한 단언 —
+     자기참조로 대체됐다면 이 테스트가 실패했을 것).
+  2. 방어적 fail-closed 3종(대응 페이지 없음·renderedCanonical null·정적 페이지 파일 못 찾음) 모두
+     `null` 반환 확인.
+  3. **실제 승인→적용→`next build` 통과→롤백 전체 흐름**(목업 아님): 보존된 값("/archive")이
+     파일에 정확히 반영되고 자기참조("/")로 대체되지 않았음을 문자열 매칭으로 직접 확인, 백업 파일
+     존재 확인, rollback으로 원본과 바이트 단위 동일 복원 확인.
+- `test/unit/fixer-registry.test.ts`에 회귀가드 1건 추가(R-CANONICAL-JS-ONLY가 gated로 유지되는지).
+- 기존 `fix-orchestrator-canonical-integration.test.ts`(R-CANONICAL-MISSING 3개 시나리오) 재실행으로
+  무회귀 확인.
+
+**최종**: `npm run typecheck`(tsc -p tsconfig.test.json) + `npm run build`(tsc -p tsconfig.json) 둘 다
+0 에러. 전체 스위트 **294/294 테스트 통과**(기존 285 + 신규 9: scan.ts 3 ·
+fix-orchestrator-js-only-canonical-integration 5 · fixer-registry 1). 커밋/푸시는 하지 않음
+(git-workflow 규칙 — 사용자 명시 요청 시에만).
+
+---
+
+## Phase 1.5 완료 선언 (2026-07-12)
+
+PRD의 Phase 1.5 성공기준(`01_PRD.md:119-123`, `03_PHASES.md:77-81`)을 항목별로 실제 증거와 대조한다.
+
+| 기준 | 상태 | 근거 |
+|---|---|---|
+| add_safe 수정이 실제 파일 반영 + build 통과 | ✅ | sitemap fixer, 실측 검증 |
+| gated 항목은 승인 없이 절대 미변경 | ✅ | canonical-missing(단순 추가) + canonical-js-only(값 보존, 자기참조 함정 회피)로 **서로 다른 위험 프로필 2가지**로 이중 실증 |
+| fix 2회 실행해도 멱등, git dirty면 자동 백업/중단 | ✅ | sitemap·canonical 양쪽 모두 실측 |
+| GitHub: PR만 생성, main 직접 push 0, 자동 머지 0 | 🟡 부분 | 본인 소유 저장소=실제 PR(#1)로 검증 완료. **fork(남의 저장소) 경로만 fake client로 검증**(제3자 저장소 필요 — 사람 행동 게이트, 별도 추적) |
+
+**결론**: 코드로 닫을 수 있는 모든 기준은 충족됐다. 유일하게 남은 항목(GitHub fork 실증)은 처음부터
+"사람/외부자원 게이트"로 분리 추적돼 왔으므로, 이 선언이 그 항목을 무시하거나 축소하는 것이 아니라
+**"코드 작업"과 "사람 행동"을 명확히 분리해 전자를 완료 선언**하는 것이다. 남은 사람 게이트: 법무
+검토 6건(L1·L2·L4·L5·L12·L13), Mac/Linux 수동 실행 검증, GitHub fork 경로 실증 — 전부 변경 없음.
+
+**의도적으로 만들지 않은 것(범위 확장 거부)**: `R-NOINDEX-DETECTED`/`R-ROBOTS-*` gated fixer는
+canonical과 근본적으로 다른 위험군(제거/무효화 시맨틱 — 의도적으로 숨긴 콘텐츠를 실수로 노출시킬
+위험)이라 별도 설계 검토를 거쳤다(계획 문서에 4중 fail-closed 게이트 설계 기록).
+
+**최종 결정(2026-07-12, 설계 검토 완료 후 확정): 이 fixer는 만들지 않는다 — report-only로 영구
+확정.** 결정적 근거: `rules/definitions/indexing.ts`의 `R-NOINDEX-DETECTED`가 이미
+`recommendedValue: "의도된 설정이 아니면 noindex 제거"`를 포함하고, `report/` 모듈은 규칙별
+특수처리 없이 이 필드를 그대로 통과시킨다(직접 확인 — `report/`에서 관련 문자열 0건, 범용 렌더링
+경로만 존재) → **fixer 없이도 "의도된 설정일 수도 있다"는 경고가 이미 사용자에게 전달되고 있었다.**
+4중 게이트를 전부 통과해도 "이 페이지만 유일하게 의도적으로 숨긴 경우"는 구조적으로 뚫리고,
+canonical과 달리 색인 노출은 git revert로 되돌릴 수 없는 비대칭적 비가역성이 있어, 리포트의 낮은
+한계효용 대비 위험이 구조적으로 제거 불가능하다고 판단했다. **Phase 1.5의 gated fixer 범위는 이것으로
+최종 확정**: canonical(2종)만 구현, noindex/robots는 검토 후 의도적 미구현.
+
+## Phase 2 준비 — 착수 아님, 인계 상태만 확인 (2026-07-12)
+
+Phase 2 진입 조건(`03_PHASES.md:88` "Phase 1 + 1.5 안정")은 위 선언으로 충족됐다. 단, 이 프로젝트의
+기존 결정(`03_PHASES.md` 인계 메모, 이전 세션들에서 반복 확인됨)에 따라 **Phase 2는 이 세션의 연장이
+아니라 새 세션의 인터뷰/스펙 작성부터 시작**하도록 권고한다 — 이유: (1) GSC·GA4·PSI 3개 외부
+인증을 한 번에 새로 설계해야 함, (2) PRD 자체가 "GEO는 결과가 아닌 프로세스 지표"라 명시(`03_PHASES.md:98`)해
+성공기준부터 좁혀야 함, (3) 이번 세션은 이미 컨텍스트·비용이 매우 커진 상태라 새 주제를 여기서
+이어가는 것 자체가 위험(집중력 저하·과거 결정 누락 가능성).
+
+**다음 세션 시작 시 참고할 파일**: `.PRD/03_PHASES.md`(85~106행, Phase 2 정의) · 본 파일 전체 ·
+`CHECKPOINT.md`(Phase 1) — 이 세 파일만 읽으면 Phase 2 인터뷰를 시작할 준비가 된다.
+
+---
+
+## GitHub fork 경로 실증 — 1차 시도 결과: own-repo 경로였음, 재시도 진행 중 (2026-07-12)
+
+`HUMAN_ACTION_CHECKLIST.md`의 "GitHub fork(남의 저장소) 경로 실증" 사람 게이트를 사용자가 직접
+착수했다. 별도 GitHub 계정(`sodam-test`)을 새로 만들고, 그 계정으로 테스트 저장소
+(`sodam-test/seomedic-fork-test`, public, README+`.gitignore` Node)를 생성 후, **같은 sodam-test
+계정에서** fine-grained PAT를 발급해 `scratch-fork-test.mjs`로 `runGithubFix()`를 직접 호출했다.
+
+**실행 결과**: `FixPlanBlockedError` — `Next.js 프로젝트가 아닙니다: package.json이 없습니다`
+(예상된 fail-closed 동작 자체는 정상).
+
+**코드 대조로 확인한 사실**: `permission.ts:4-6`의 `isOwnRepo(login, repoOwner)`는 인증 계정과
+저장소 소유 계정의 단순 대소문자 무시 비교다. 이번 시나리오는 **토큰 발급 계정과 저장소 소유
+계정이 둘 다 sodam-test로 동일** → `isOwnRepo === true` → `orchestrator.ts:59-69`의
+`if (!own) { ...createFork/waitForForkReady... }` 블록이 통째로 건너뛰어짐. 즉 이번 실행은
+**fork 경로가 아니라 이미 검증된 own-repo 경로(PR #1과 동일 코드 경로)를 재확인한 것**이었다 —
+정직하게 "fork 실증"으로 카운트하지 않는다.
+
+**그럼에도 새로 검증된 것(부수적 성과)**:
+- `getAuthenticatedLogin()` — 실제 인증 API 호출 최초 성공(이전엔 "인증 필요라 미검증"으로만 표시돼
+  있던 항목).
+- 발급받은 fine-grained PAT로 askpass 기반 실제 git clone 인증 성공.
+- `package.json` 없는(=Next.js 아닌) 저장소에 대한 fail-closed 차단이 실제 제3자 계정·실제 저장소
+  환경에서도 정확히 작동함을 재확인.
+
+**여전히 미검증**: `createFork`(실제 응답 형태의 owner/name 위치), `waitForForkReady`(폴링),
+fork 저장소에서 원본으로 PR을 여는 흐름 — 정확히 이 실증이 원래 닫으려던 항목.
+
+**근본 원인**: fine-grained PAT는 토큰 발급 계정이 **소유하거나 협업자로 등록된** 저장소만
+"Only select repositories" 목록에 노출된다. 따라서 진짜 fork 경로를 타려면 "토큰 발급 계정 ≠
+저장소 소유 계정"이 물리적으로 성립해야 하고, 이는 (a) 저장소 소유 계정이 다른 계정을 협업자로
+초대하고, (b) 그 협업자 계정이 자기 이름으로 새 토큰을 발급하는 방식으로만 가능하다.
+
+**사용자 결정(2026-07-12)**: 부분 검증으로 마무리하지 않고 완전 검증까지 진행하기로 확정. 다음
+단계로 (1) `sodam-test/seomedic-fork-test`에 사용자의 주 계정을 협업자로 초대, (2) 주 계정에서
+초대 수락 후 같은 저장소로 범위 제한된 새 fine-grained PAT 발급, (3) 같은 스크립트를 새 토큰으로
+재실행 — 이번엔 계정이 서로 달라 `isOwnRepo=false`가 성립해 실제 `createFork`가 실행될 것으로
+예상됨.
+
+**중간 실패(2026-07-13) — 근본 원인 규명**: (2)를 fine-grained PAT로 시도했으나 "Only select
+repositories" 목록에 `seomedic-fork-test`가 끝내 나타나지 않아 여러 차례 재시도에도 실패. 사용자
+스크린샷(fine-grained 토큰 생성 화면)을 직접 확인하고 GitHub 공식 문서를 대조한 결과, **fine-grained
+PAT는 처음부터 "토큰 소유자가 직접 소유한 저장소"만 선택 가능하고, 협업자로만 참여한 저장소는
+구조적으로 선택 목록에 나타나지 않는다는 GitHub 자체의 제약**임을 확인(추측이 아니라 문서 인용으로
+확인: "you cannot select repositories where you are an outside collaborator"). 즉 지금까지의
+반복 실패는 설정 실수가 아니라 fine-grained 토큰 방식 자체의 한계였다.
+
+**해결 및 최종 성공(2026-07-13)**: 주 계정(`sodam-ai`, 개인 계정)에서 **Classic PAT**(`repo` scope
+하나만 체크, fine-grained 아님)로 전환해 재발급, 같은 스크립트를 재실행. 콘솔 로그에
+`GET /repos/sodam-ai/seomedic-fork-test - 404`(fork가 아직 없음을 확인하는 `forkExists()`의 정상적인
+사전 체크, `api-client.ts`의 catch에서 fail-closed로 처리됨) 출력 후 별도 에러 없이 곧바로 마지막
+Next.js 감지 단계(`FixPlanBlockedError`, 이전과 동일하게 예상된 결과)까지 도달 — 즉 그 사이의
+**`createFork` → `waitForForkReady` → sandbox clone이 전부 에러 없이 통과**했다는 뜻이다.
+
+**최종 육안 확인**: 사용자가 `github.com/sodam-ai/seomedic-fork-test`를 직접 방문한 스크린샷에서
+저장소 이름 바로 아래 **"forked from sodam-test/seomedic-fork-test"** 표시를 확정 확인함
+(스크린샷 직접 검토, 추측 아님). **`createFork`의 실제 GitHub 응답 형태(owner.login/name 위치)가
+`api-client.ts`의 가정과 정확히 일치함이 실증됐다** — 응답 형태가 틀렸다면 그 뒤의 `getCloneUrl`
+기반 sandbox clone이 애초에 실패했을 것이기 때문.
+
+**남은 것**: fork에서 원본으로 PR을 여는 마지막 구간(`createPullRequest`, `head: headOwner:headBranch`
+형식)은 이번 저장소에 `package.json`이 없어 `autoFixes.length` 조건까지 도달하지 못해 여전히
+미실행 상태다. 다만 `createPullRequest` 자체는 own-repo 시나리오(PR #1, `CHECKPOINT_1.5.md` 170행)에서
+이미 실제로 검증된 동일 함수이고, fork 경로에서 유일하게 다른 부분(`headOwner` 파라미터로 fork
+소유자를 지정하는 부분)은 코드 검토로 이미 확인된 단순 문자열 조합이라, 잔여 리스크는 극히 낮다고
+판단한다 — 그러나 정직하게 "완전히 끝까지 실행됨"이 아니라 "PR 생성 직전까지 실제 실행 검증됨"으로
+기록한다.
+
+**GitHub 쓰기 경로 실증 — 최종 상태**: own-repo(PR #1) + fork 생성·clone(이번) 둘 다 실제 GitHub에서
+검증 완료. `04_PROJECT_SPEC.md`/PRD가 요구한 "fork(남의 저장소) 경로" 사람 게이트가 사실상 닫혔다.
+`HUMAN_ACTION_CHECKLIST.md`의 해당 항목도 동일하게 갱신 필요.

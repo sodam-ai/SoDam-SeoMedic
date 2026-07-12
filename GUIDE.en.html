@@ -91,6 +91,8 @@
 <tr><td>Crawl</td><td>A program automatically visiting web pages and reading their content</td></tr>
 <tr><td>Render</td><td>A browser drawing code (HTML/JavaScript) into what actually appears on screen</td></tr>
 <tr><td>Canonical</td><td>A tag telling search engines "this is the true, representative address for this page"</td></tr>
+<tr><td>Structured Data (JSON-LD)</td><td>A special, hidden markup that helps search engines understand your page content more precisely. It's part of how search results can show extra info like ratings, prices, or reviews</td></tr>
+<tr><td>Open Graph</td><td>Settings that control the preview (title, description, URL) shown when someone shares your page link on social media like Facebook or KakaoTalk</td></tr>
 <tr><td>Regression</td><td>An issue that was previously fixed but has since reappeared</td></tr>
 <tr><td>MCP</td><td>The standard way Claude Code talks to external tools (like the SeoMedic engine)</td></tr>
 <tr><td>Baseline</td><td>A saved snapshot of diagnosis results, used as the reference point for future comparisons</td></tr>
@@ -143,6 +145,7 @@ HTTP status: `200`
 | Severity | Rule ID | Category | Current value | Recommended action |
 |---|---|---|---|---|
 | 🟠 high | R-CANONICAL-MISSING | canonical | - | Add a self-canonical tag |</code></pre>
+<p class="ol-item"><strong>5.</strong> You might also see items related to structured data (JSON-LD) or Open Graph in your report, such as "No structured data found" or "Open Graph title missing." These aren't serious problems — they're marked with "low" severity because they're "opportunities" to make your social sharing or search results richer, not things that are currently broken.</p>
 <h2 id="step-4-check-again-later-regression-detection">Step 4. Check again later (regression detection)</h2>
 <p class="ol-item"><strong>1.</strong> Once you're happy with (or done reviewing) an audit, ask in the chat:</p>
 <pre><code>Save this as a baseline</code></pre>
@@ -165,7 +168,7 @@ HTTP status: `200`
 <p class="ol-item"><strong>5.</strong> If you're not happy with the result, ask to "undo the fix I just applied."</p>
 <p class="ol-item"><strong>6.</strong> <strong>Applied fixes are still real file changes</strong> — review with <code>git diff</code> as you normally would before committing.</p>
 <h2 id="step-6-optional-get-an-auto-fix-proposal-for-a-github-repository-experimental">Step 6. (Optional) Get an auto-fix proposal for a GitHub repository — ⚠️ Experimental</h2>
-<p>This step only applies if <strong>you have a Next.js project on GitHub and want to receive a Pull Request (proposed change)</strong>. If this is your first time, we recommend getting comfortable with Step 5 (local folder) first. Only the "your own repository" path of this feature has actually been verified against real GitHub so far (the fork path has not been) — please read the following carefully before proceeding.</p>
+<p>This step only applies if <strong>you have a Next.js project on GitHub and want to receive a Pull Request (proposed change)</strong>. If this is your first time, we recommend getting comfortable with Step 5 (local folder) first. The "your own repository" path of this feature has been fully verified against real GitHub, including an actual generated Pull Request. The flow for forking a repository you don't own and proposing changes has been verified up through fork creation and cloning in a real GitHub environment (we confirmed the fork repository actually gets created). However, the final step of actually creating the Pull Request hasn't been confirmed yet (the test repository used had no Next.js project files, so the process stopped one step before that). Please read the following carefully before proceeding.</p>
 <p class="ol-item"><strong>1.</strong> <strong>Create a GitHub Personal Access Token</strong></p>
 <p class="ol-item ol-item-nested"><strong>1.</strong> In your browser, go to <code>https://github.com/settings/personal-access-tokens/new</code> and log in.</p>
 <p class="ol-item ol-item-nested"><strong>2.</strong> <strong>Repository access</strong>: choose "Only select repositories" → select the target repository from the list.</p>

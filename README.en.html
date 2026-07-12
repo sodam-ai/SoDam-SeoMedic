@@ -194,7 +194,7 @@
 <p class="ol-item"><strong>5.</strong> If a Pull Request link is returned, <strong>the repository owner must review it and decide whether to merge</strong> — it is never merged automatically.</p>
 <p><strong>Things this feature never does</strong>: push directly to the default branch (main/master), force-push, or auto-merge. It only ever proposes changes via a new branch + Pull Request (there is no force-push capability in the code at all).</p>
 <blockquote>
-<p>⚠️ <strong>Honest current status of this experimental feature</strong>: the "your own repository" flow (create branch, apply fix, open Pull Request) has been run against real GitHub and confirmed working. The "fork someone else's repository, then propose via Pull Request" flow has <strong>not yet</strong> been verified against real GitHub (only verified with simulated test data). You should know this before using it, and this warning is also shown again at the time you run the command.</p>
+<p>⚠️ <strong>Honest current status of this experimental feature</strong>: the "your own repository" flow (create branch, apply fix, open Pull Request) has been run against real GitHub and confirmed working. The "fork someone else's repository, then propose via Pull Request" flow has been <strong>partially verified</strong>: creating the fork and cloning it have been confirmed against real GitHub — the forked repository was actually created and confirmed to exist. The final step, actually opening the Pull Request from that fork, has <strong>not yet</strong> been exercised, because the test repository used didn't contain any Next.js project files, so the flow stopped just short of that point (the Pull Request creation logic itself has already been verified in the "your own repository" flow — it just hasn't been run specifically from a forked repository yet). You should know this before using it, and this warning is also shown again at the time you run the command.</p>
 </blockquote>
 <h2 id="6-command-reference">6. Command Reference</h2>
 <table>
@@ -247,16 +247,25 @@ if needed</code></pre>
 </details>
 <details>
 <summary>🟡 Phase 1.5b — GitHub-repository auto-fix proposal (Implemented, partially verified)</summary>
-<p>The "your own repository" flow (new branch + Pull Request) has been confirmed against real GitHub, including real Pull Request creation. <strong>The "fork a repository you don't own, then propose" flow has not yet been verified against real GitHub</strong> (its safety mechanisms have already been confirmed with simulated test data). Please review section 14 and the in-app warning before using this.</p>
+<p>The "your own repository" flow (new branch + Pull Request) has been confirmed against real GitHub, including real Pull Request creation. <strong>The "fork a repository you don't own, then propose" flow has been partially verified</strong>: creating the fork and cloning it have been confirmed against real GitHub, but actually opening the Pull Request from the fork has not yet been exercised (the test repository used didn't contain any Next.js project files, so the flow stopped just short of that step). Please review section 14 and the in-app warning before using this.</p>
 </details>
 <details>
 <summary>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</summary>
 <p>We added a new automated check that confirms the build and all 260 tests pass on Windows, macOS, and Linux. In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
 </details>
-<p><strong>Planned, not yet started</strong>: structured data (JSON-LD), AI crawler policy, Google Search Console/Analytics integration (Phase 2); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
+<details>
+<summary>✅ Phase 2 Stage 1 — Structured Data (JSON-LD) Detection (Done)</summary>
+<p>Automatically detects when a page is missing structured data (JSON-LD — a special markup that helps search engines understand your content more precisely) or has malformed JSON-LD, and flags it in the report. <strong>This only detects the issue — it does not auto-generate a fix.</strong> Creating structured-data values from scratch was deliberately left out, since fabricating them carries real risk.</p>
+</details>
+<details>
+<summary>✅ Phase 2 Stage 2 — Open Graph (Social Share Preview) Detection + Partial Auto-fix (Done)</summary>
+<p>Checks whether the title and URL shown when a link is shared on social media (Open Graph tags) are missing. Of these, <strong>only the title and url</strong> are auto-filled with your approval — this is safe because they're simply copied from values that already exist on the page. (The description is excluded, since writing one requires generating a new sentence.)</p>
+</details>
+<p><strong>Planned, not yet started</strong>: AI crawler policy, Google Search Console/Analytics integration (Phase 2); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
 <h2 id="9-security-data-flow">9. Security &amp; Data Flow</h2>
 <ul>
 <li><strong>Everything is stored only in the <code>.seomedic/</code> folder.</strong> Running a diagnosis creates a single SQLite database file (<code>.seomedic/seomedic.db</code>) inside the project folder, holding diagnosis history, baselines, and regression records. This folder is set up to be excluded from git tracking automatically.</li>
+<li><strong>The database file where results are stored is locked down to owner-only access</strong> (on Mac/Linux — Windows does not support this mechanism the same way due to OS differences, so this is not yet verified on Windows).</li>
 <li><strong>Raw crawled HTML is never stored in full</strong> — only a hash (fingerprint) and a ≤500-character excerpt are kept (to respect copyright).</li>
 <li><strong>Zero telemetry.</strong> Nothing is sent anywhere except requests to the URL (or GitHub repository, in GitHub mode) you specify.</li>
 <li><strong>Private/internal network addresses are never diagnosed</strong> (SSRF protection — <code>127.0.0.1</code>, <code>192.168.x.x</code>, cloud metadata endpoints, and similar are automatically blocked).</li>
@@ -291,7 +300,7 @@ if needed</code></pre>
 <tr><td>This plugin's own source</td><td><code>packages/plugin/</code> (the installed part), <code>packages/mcp-engine/</code> (the engine)</td></tr>
 <tr><td>GitHub-integration source</td><td><code>packages/mcp-engine/src/github/</code></td></tr>
 <tr><td>Planning documents (PRD)</td><td><code>.PRD/</code></td></tr>
-<tr><td>Progress/verification records</td><td><code>CHECKPOINT.md</code> (Phase 1), <code>CHECKPOINT_1.5.md</code> (Phase 1.5)</td></tr>
+<tr><td>Progress/verification records</td><td><code>CHECKPOINT.md</code> (Phase 1), <code>CHECKPOINT_1.5.md</code> (Phase 1.5), <code>CHECKPOINT_2.md</code> (Phase 2)</td></tr>
 <tr><td>Security policy</td><td><code>packages/plugin/SECURITY.md</code></td></tr>
 <tr><td>Disclaimer</td><td><code>packages/plugin/DISCLAIMER.md</code></td></tr>
 <tr><td>License</td><td><code>LICENSE</code>, <code>THIRD_PARTY_NOTICES.md</code></td></tr>

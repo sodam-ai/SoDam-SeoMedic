@@ -194,7 +194,7 @@
 <p class="ol-item"><strong>5.</strong> 결과에 Pull Request 링크가 나오면, <strong>저장소 관리자가 직접 내용을 검토한 뒤 병합 여부를 결정</strong>해야 합니다 — 자동으로 병합되지 않습니다.</p>
 <p><strong>절대로 하지 않는 것</strong>: 기본 브랜치(main/master)에 직접 반영, 강제 push(force-push), 자동 병합(merge). 항상 새 브랜치 + Pull Request로만 제안합니다(코드 구조상 강제 push 기능 자체가 없습니다).</p>
 <blockquote>
-<p>⚠️ <strong>실험적 기능 정확한 현재 상태</strong>: "내가 소유한 저장소"에 브랜치+Pull Request를 만드는 흐름은 실제 GitHub 환경에서 실행해 정상 작동을 확인했습니다. 다만 "내 소유가 아닌 저장소를 복제(fork)해서 제안하는 흐름"은 아직 실제 GitHub로 검증되지 않았습니다(가짜 데이터로 만든 테스트로만 확인됨). 사용 전 이 사실을 알고 계셔야 하며, 실행 시에도 이 안내가 다시 표시됩니다.</p>
+<p>⚠️ <strong>실험적 기능 정확한 현재 상태</strong>: "내가 소유한 저장소"에 브랜치+Pull Request를 만드는 흐름은 실제 GitHub 환경에서 실행해 정상 작동을 확인했습니다. "내 소유가 아닌 저장소를 복제(fork)해서 제안하는 흐름"은 fork 생성과 복제까지는 실제 GitHub 환경에서 검증했습니다(실제로 fork 저장소가 만들어지는 것까지 확인함). 다만 그 뒤 Pull Request를 실제로 만드는 마지막 단계까지는 아직 확인하지 못했습니다(검증에 사용한 테스트 저장소에 Next.js 프로젝트 파일이 없어 그 앞 단계에서 멈췄습니다). 사용 전 이 사실을 알고 계셔야 하며, 실행 시에도 이 안내가 다시 표시됩니다.</p>
 </blockquote>
 <h2 id="6-명령어-레퍼런스">6. 명령어 레퍼런스</h2>
 <table>
@@ -246,16 +246,25 @@
 </details>
 <details>
 <summary>🟡 Phase 1.5b — GitHub 저장소 대상 자동 수정 제안 (구현 완료·부분 검증)</summary>
-<p>"내 저장소"에 새 브랜치 + Pull Request를 만드는 흐름은 실제 GitHub 환경에서 Pull Request 생성까지 실제로 검증했습니다. 다만 <strong>"내 소유가 아닌 저장소를 fork해서 제안하는 흐름"은 아직 실제 GitHub로 검증되지 않았습니다</strong>(안전장치 자체는 가짜 데이터로 만든 테스트로 이미 확인됨). 사용 전 14번 항목과 실행 시 안내를 꼭 확인하세요.</p>
+<p>"내 저장소"에 새 브랜치 + Pull Request를 만드는 흐름은 실제 GitHub 환경에서 Pull Request 생성까지 실제로 검증했습니다. <strong>"내 소유가 아닌 저장소를 fork해서 제안하는 흐름"은 fork 생성과 복제까지는 실제 GitHub 환경에서 검증했습니다</strong>(실제로 fork 저장소가 만들어지는 것까지 확인함). 다만 그 뒤 Pull Request를 실제로 만드는 마지막 단계까지는 아직 확인하지 못했습니다(검증에 사용한 테스트 저장소에 Next.js 프로젝트 파일이 없어 그 앞 단계에서 멈췄습니다). 사용 전 14번 항목과 실행 시 안내를 꼭 확인하세요.</p>
+</details>
+<details>
+<summary>✅ Phase 2 Stage 1 — 구조화 데이터(JSON-LD) 탐지 (완료)</summary>
+<p>페이지에 구조화 데이터(JSON-LD, 검색엔진이 콘텐츠를 더 정확히 이해하도록 돕는 특수 표시)가 없거나 형식이 깨져 있는지 자동으로 찾아 리포트에 알려줍니다. <strong>탐지만 하고 자동으로 고쳐주지는 않습니다</strong>(값을 새로 만들어 넣는 건 위험할 수 있어 의도적으로 제외했습니다).</p>
+</details>
+<details>
+<summary>✅ Phase 2 Stage 2 — Open Graph(소셜 공유 미리보기) 탐지 + 일부 자동 수정 (완료)</summary>
+<p>소셜 미디어(카카오톡·페이스북 등)에 링크를 공유했을 때 보이는 제목·주소(Open Graph 태그)가 없는지 확인합니다. 그중 <strong>제목과 주소는 이미 페이지에 있는 실제 값을 그대로 복사하는 것</strong>이라 안전해서, 승인을 거쳐 자동으로 채워드릴 수 있습니다(설명 문구는 새로운 문장을 만들어야 해서 자동 수정 대상에서 제외했습니다).</p>
 </details>
 <details>
 <summary>🔧 2026-07-06 — 품질 자동검증(CI) 도입 + 실제 결함 발견·수정</summary>
 <p>Windows·Mac·Linux 3개 운영체제 전부에서 자동으로 빌드와 260개 테스트가 통과하는지 확인하는 절차(CI)를 새로 만들었습니다. 그 과정에서 지금까지 Windows에서만 개발·확인해와서 미처 몰랐던 실제 문제 몇 가지를 찾아 고쳤습니다(예: GitHub 자동 수정 기능이 Mac·Linux 환경에서 내부적으로 필요한 프로그램 경로를 못 찾던 문제). 지금은 3개 운영체제 모두에서 빌드·테스트 통과가 자동으로 확인되지만, <strong>사람이 Mac·Linux에서 직접 명령을 실행해보는 수동 검증까지 마친 것은 아닙니다</strong> — 자동 검증으로 위험을 낮춘 것이지, 완전히 없앤 것은 아닙니다.</p>
 </details>
-<p><strong>앞으로 계획된 것(아직 시작 안 함)</strong>: 구조화 데이터(JSON-LD)·AI 크롤러 정책·Google Search Console/Analytics 연동(Phase 2), 네이버·Bing 지원(Phase 3). 이 문서는 실제로 구현·검증된 것만 다루며, 계획 단계 기능을 이미 되는 것처럼 설명하지 않습니다.</p>
+<p><strong>앞으로 계획된 것(아직 시작 안 함)</strong>: AI 크롤러 정책·Google Search Console/Analytics 연동(Phase 2), 네이버·Bing 지원(Phase 3). 이 문서는 실제로 구현·검증된 것만 다루며, 계획 단계 기능을 이미 되는 것처럼 설명하지 않습니다.</p>
 <h2 id="9-보안데이터-흐름">9. 보안·데이터 흐름</h2>
 <ul>
 <li><strong><code>.seomedic/</code> 폴더에만 저장됩니다.</strong> 진단을 실행한 프로젝트 폴더 안에 SQLite 데이터베이스 파일(<code>.seomedic/seomedic.db</code>) 하나가 생기고, 여기에 진단 이력·베이스라인·회귀 기록이 저장됩니다. 이 폴더는 자동으로 git 추적에서 제외되도록 안내됩니다.</li>
+<li><strong>결과가 저장되는 파일은 소유자만 열어볼 수 있도록 잠급니다</strong>(Mac/Linux 환경 — Windows는 운영체제 구조상 이 방식이 적용되지 않아, Windows에서는 아직 별도 확인이 필요한 상태입니다).</li>
 <li><strong>크롤한 페이지 원문은 저장하지 않습니다.</strong> 해시값(지문)과 500자 이하 짧은 요약만 남깁니다(저작권 보호 목적).</li>
 <li><strong>텔레메트리(사용 데이터 외부 전송)가 전혀 없습니다.</strong> 사용자가 지정한 진단 대상 URL(그리고 GitHub 모드에서는 지정한 저장소) 외에는 어디로도 데이터를 보내지 않습니다.</li>
 <li><strong>사설 IP·내부망 주소는 진단 대상으로 삼지 않습니다</strong>(SSRF 방지 — <code>127.0.0.1</code>, <code>192.168.x.x</code>, 클라우드 내부 메타데이터 주소 등은 자동 차단됩니다).</li>
@@ -290,7 +299,7 @@
 <tr><td>이 플러그인 자체 소스</td><td><code>packages/plugin/</code>(설치되는 부분), <code>packages/mcp-engine/</code>(엔진)</td></tr>
 <tr><td>GitHub 연동 관련 소스</td><td><code>packages/mcp-engine/src/github/</code></td></tr>
 <tr><td>기획 문서(PRD)</td><td><code>.PRD/</code></td></tr>
-<tr><td>진행 상태·검증 기록</td><td><code>CHECKPOINT.md</code>(Phase 1), <code>CHECKPOINT_1.5.md</code>(Phase 1.5)</td></tr>
+<tr><td>진행 상태·검증 기록</td><td><code>CHECKPOINT.md</code>(Phase 1), <code>CHECKPOINT_1.5.md</code>(Phase 1.5), <code>CHECKPOINT_2.md</code>(Phase 2)</td></tr>
 <tr><td>보안 정책</td><td><code>packages/plugin/SECURITY.md</code></td></tr>
 <tr><td>면책·이용조건</td><td><code>packages/plugin/DISCLAIMER.md</code></td></tr>
 <tr><td>라이선스</td><td><code>LICENSE</code>, <code>THIRD_PARTY_NOTICES.md</code></td></tr>
