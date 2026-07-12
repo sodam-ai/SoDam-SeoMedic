@@ -15,6 +15,8 @@ export function diffSignals(raw: PageSignals, rendered: PageSignals): SignalDiff
   const fields = Object.keys(rendered) as (keyof PageSignals)[];
 
   for (const field of fields) {
+    // 배열 필드(jsonLdBlocks)는 raw/rendered가 별개 인스턴스라 참조비교가 항상 true — 스칼라만 비교 대상
+    if (Array.isArray(raw[field]) || Array.isArray(rendered[field])) continue;
     if (raw[field] !== rendered[field]) {
       diffs.push({ field, rawValue: raw[field], renderedValue: rendered[field] });
     }

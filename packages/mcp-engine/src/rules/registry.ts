@@ -1,6 +1,8 @@
 import type { Rule, RuleContext, RuleViolation } from "./types.js";
 import { canonicalMissingRule, canonicalJsOnlyRule } from "./definitions/canonical.js";
 import { noindexDetectedRule } from "./definitions/indexing.js";
+import { jsonLdMissingRule, jsonLdInvalidRule } from "./definitions/jsonld.js";
+import { ogBasicMissingRule, ogDescriptionMissingRule, metaDescriptionMissingRule } from "./definitions/og.js";
 import { statusClientErrorRule, statusServerErrorRule, redirectChainLongRule } from "./definitions/status-redirect.js";
 import { rawRenderedGapRule } from "./definitions/raw-rendered-gap.js";
 import { cwvLcpPoorRule, cwvClsPoorRule } from "./definitions/cwv-threshold.js";
@@ -9,6 +11,11 @@ export const ALL_RULES: Rule[] = [
   canonicalMissingRule,
   canonicalJsOnlyRule,
   noindexDetectedRule,
+  jsonLdMissingRule,
+  jsonLdInvalidRule,
+  ogBasicMissingRule,
+  ogDescriptionMissingRule,
+  metaDescriptionMissingRule,
   statusClientErrorRule,
   statusServerErrorRule,
   redirectChainLongRule,

@@ -15,6 +15,12 @@ export interface ScannedPage {
   statusCode: number;
   rawHtml: string;
   violations: RuleViolation[];
+  /** 렌더링된 DOM의 canonical 값(R-CANONICAL-JS-ONLY fixer가 raw HTML로 이전할 때 그대로 보존해야
+   * 하는 값 — 렌더 실패 시 rawSignals로 폴백되므로 그 경우 raw canonical과 동일해진다). */
+  renderedCanonical: string | null;
+  /** 렌더링된 DOM의 title 값(R-OG-BASIC-MISSING fixer가 openGraph.title로 복사할 소스 — 동일하게
+   * 렌더 실패 시 rawSignals로 폴백된다). */
+  renderedTitle: string | null;
 }
 
 export interface LocalFixScanResult {
@@ -73,7 +79,15 @@ export async function scanLocalFix(
       };
       const violations = evaluateAllRules(ctx);
       allViolations.push(...violations);
-      pages.push({ logicalUrl, realUrl: page.url, statusCode: page.statusCode, rawHtml: page.html, violations });
+      pages.push({
+        logicalUrl,
+        realUrl: page.url,
+        statusCode: page.statusCode,
+        rawHtml: page.html,
+        violations,
+        renderedCanonical: renderedSignals.canonical,
+        renderedTitle: renderedSignals.title,
+      });
     }
   } finally {
     await browser.close();

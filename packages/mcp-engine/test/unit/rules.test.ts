@@ -3,7 +3,19 @@ import { evaluateAllRules, ALL_RULES } from "../../src/rules/registry.js";
 import type { RuleContext } from "../../src/rules/types.js";
 import type { PageSignals } from "../../src/render/dom-signals.js";
 
-const emptySignals: PageSignals = { title: null, canonical: null, h1Count: 0, h1Text: null, metaRobots: null, hasJsonLd: false };
+const emptySignals: PageSignals = {
+  title: null,
+  canonical: null,
+  h1Count: 0,
+  h1Text: null,
+  metaRobots: null,
+  jsonLdBlocks: [],
+  ogTitle: null,
+  ogUrl: null,
+  ogDescription: null,
+  metaDescription: null,
+};
+const validJsonLd = '{"@context":"https://schema.org","@type":"WebPage"}';
 
 function baseCtx(overrides: Partial<RuleContext> = {}): RuleContext {
   return {
@@ -145,16 +157,32 @@ describe("R-CWV-LCP-POOR / R-CWV-CLS-POOR", () => {
 
 describe("종합: known-good/known-bad 픽스처 세트 (성공기준 검증)", () => {
   it("known-good 픽스처 8종은 오탐 0", () => {
+    const ogComplete = { ogTitle: "t", ogUrl: "x", ogDescription: "d", metaDescription: "d" };
     const goodFixtures: RuleContext[] = [
-      baseCtx({ rawSignals: { ...emptySignals, canonical: "https://example.com/" }, renderedSignals: { ...emptySignals, canonical: "https://example.com/" } }),
-      baseCtx({ statusCode: 200, rawSignals: { ...emptySignals, canonical: "x" }, renderedSignals: { ...emptySignals, canonical: "x" } }),
-      baseCtx({ statusCode: 301, rawSignals: { ...emptySignals, canonical: "x" }, renderedSignals: { ...emptySignals, canonical: "x" } }),
-      baseCtx({ redirectChain: ["https://example.com/old"], rawSignals: { ...emptySignals, canonical: "x" }, renderedSignals: { ...emptySignals, canonical: "x" } }),
       baseCtx({
-        rawSignals: { ...emptySignals, canonical: "x", title: "t", metaRobots: "index" },
-        renderedSignals: { ...emptySignals, canonical: "x", title: "t", metaRobots: "index" },
+        rawSignals: { ...emptySignals, canonical: "https://example.com/", jsonLdBlocks: [validJsonLd], ...ogComplete },
+        renderedSignals: { ...emptySignals, canonical: "https://example.com/", jsonLdBlocks: [validJsonLd], ...ogComplete },
       }),
-      baseCtx({ cwv: { lcpMs: 1200, clsUnitless: 0.01, inpProxyTbtMs: 10, isLabData: true, runsCompleted: 3 }, rawSignals: { ...emptySignals, canonical: "x" }, renderedSignals: { ...emptySignals, canonical: "x" } }),
+      baseCtx({
+        statusCode: 200,
+        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
+      }),
+      baseCtx({ statusCode: 301, rawSignals: { ...emptySignals, canonical: "x" }, renderedSignals: { ...emptySignals, canonical: "x" } }),
+      baseCtx({
+        redirectChain: ["https://example.com/old"],
+        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
+      }),
+      baseCtx({
+        rawSignals: { ...emptySignals, canonical: "x", title: "t", metaRobots: "index", jsonLdBlocks: [validJsonLd], ...ogComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", title: "t", metaRobots: "index", jsonLdBlocks: [validJsonLd], ...ogComplete },
+      }),
+      baseCtx({
+        cwv: { lcpMs: 1200, clsUnitless: 0.01, inpProxyTbtMs: 10, isLabData: true, runsCompleted: 3 },
+        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
+      }),
     ];
     for (const ctx of goodFixtures) {
       // R-CANONICAL-MISSING을 제외한 카테고리만 본다(위 픽스처들은 canonical 값을 명시적으로 세팅함) — 순수 오탐 검사

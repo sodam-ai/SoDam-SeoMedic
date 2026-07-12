@@ -7,7 +7,16 @@ export interface PageSignals {
   h1Count: number;
   h1Text: string | null;
   metaRobots: string | null;
-  hasJsonLd: boolean;
+  /** <script type="application/ld+json"> 각 블록의 원문 텍스트(trim, 빈 문자열 제외). 존재 여부는 length>0으로 판단 */
+  jsonLdBlocks: string[];
+  /** <meta property="og:title" content>. og:*는 name이 아니라 property 속성으로 매칭한다 */
+  ogTitle: string | null;
+  /** <meta property="og:url" content> */
+  ogUrl: string | null;
+  /** <meta property="og:description" content> */
+  ogDescription: string | null;
+  /** <meta name="description" content> */
+  metaDescription: string | null;
 }
 
 /**
@@ -33,7 +42,18 @@ export function extractSignalsFromHtml(html: string): PageSignals {
   try {
     ({ document } = parseHTML(html));
   } catch {
-    return { title: null, canonical: null, h1Count: 0, h1Text: null, metaRobots: null, hasJsonLd: false };
+    return {
+      title: null,
+      canonical: null,
+      h1Count: 0,
+      h1Text: null,
+      metaRobots: null,
+      jsonLdBlocks: [],
+      ogTitle: null,
+      ogUrl: null,
+      ogDescription: null,
+      metaDescription: null,
+    };
   }
 
   const title = document.querySelector("title")?.textContent?.trim() ?? null;
@@ -45,14 +65,26 @@ export function extractSignalsFromHtml(html: string): PageSignals {
 
   const h1Elements = Array.from(document.querySelectorAll("h1"));
 
-  const metaRobotsEl = Array.from(document.querySelectorAll("meta")).find(
-    (el) => getAttrCI(el, "name")?.toLowerCase() === "robots",
-  );
-  const metaRobots = metaRobotsEl ? getAttrCI(metaRobotsEl, "content") : null;
+  const metaEls = Array.from(document.querySelectorAll("meta"));
+  const metaByName = (name: string): string | null => {
+    const el = metaEls.find((e) => getAttrCI(e, "name")?.toLowerCase() === name);
+    return el ? getAttrCI(el, "content") : null;
+  };
+  const metaByProperty = (prop: string): string | null => {
+    const el = metaEls.find((e) => getAttrCI(e, "property")?.toLowerCase() === prop);
+    return el ? getAttrCI(el, "content") : null;
+  };
 
-  const hasJsonLd = Array.from(document.querySelectorAll("script")).some(
-    (el) => getAttrCI(el, "type")?.toLowerCase() === "application/ld+json",
-  );
+  const metaRobots = metaByName("robots");
+  const metaDescription = metaByName("description");
+  const ogTitle = metaByProperty("og:title");
+  const ogUrl = metaByProperty("og:url");
+  const ogDescription = metaByProperty("og:description");
+
+  const jsonLdBlocks = Array.from(document.querySelectorAll("script"))
+    .filter((el) => getAttrCI(el, "type")?.toLowerCase() === "application/ld+json")
+    .map((el) => el.textContent?.trim() ?? "")
+    .filter((text) => text.length > 0);
 
   return {
     title,
@@ -60,7 +92,11 @@ export function extractSignalsFromHtml(html: string): PageSignals {
     h1Count: h1Elements.length,
     h1Text: h1Elements[0]?.textContent?.trim() ?? null,
     metaRobots,
-    hasJsonLd,
+    jsonLdBlocks,
+    ogTitle,
+    ogUrl,
+    ogDescription,
+    metaDescription,
   };
 }
 
@@ -74,7 +110,13 @@ export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
     const canonicalEl = document.querySelector('link[rel="canonical"]');
     const h1Elements = Array.from(document.querySelectorAll("h1"));
     const metaRobotsEl = document.querySelector('meta[name="robots" i]');
-    const hasJsonLd = document.querySelectorAll('script[type="application/ld+json" i]').length > 0;
+    const metaDescriptionEl = document.querySelector('meta[name="description" i]');
+    const ogTitleEl = document.querySelector('meta[property="og:title" i]');
+    const ogUrlEl = document.querySelector('meta[property="og:url" i]');
+    const ogDescriptionEl = document.querySelector('meta[property="og:description" i]');
+    const jsonLdBlocks = Array.from(document.querySelectorAll('script[type="application/ld+json" i]'))
+      .map((el) => (el.textContent ?? "").trim())
+      .filter((text) => text.length > 0);
 
     return {
       title: titleEl?.textContent?.trim() ?? null,
@@ -82,7 +124,11 @@ export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
       h1Count: h1Elements.length,
       h1Text: h1Elements[0]?.textContent?.trim() ?? null,
       metaRobots: metaRobotsEl?.getAttribute("content") ?? null,
-      hasJsonLd,
+      jsonLdBlocks,
+      ogTitle: ogTitleEl?.getAttribute("content") ?? null,
+      ogUrl: ogUrlEl?.getAttribute("content") ?? null,
+      ogDescription: ogDescriptionEl?.getAttribute("content") ?? null,
+      metaDescription: metaDescriptionEl?.getAttribute("content") ?? null,
     };
   });
 }

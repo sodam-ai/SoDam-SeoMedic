@@ -2,7 +2,18 @@ import { describe, it, expect } from "vitest";
 import { diffSignals, hasRawRenderedIndexingGap } from "../../src/render/dom-diff.js";
 import type { PageSignals } from "../../src/render/dom-signals.js";
 
-const empty: PageSignals = { title: null, canonical: null, h1Count: 0, h1Text: null, metaRobots: null, hasJsonLd: false };
+const empty: PageSignals = {
+  title: null,
+  canonical: null,
+  h1Count: 0,
+  h1Text: null,
+  metaRobots: null,
+  jsonLdBlocks: [],
+  ogTitle: null,
+  ogUrl: null,
+  ogDescription: null,
+  metaDescription: null,
+};
 
 describe("diffSignals", () => {
   it("동일 신호는 diff 없음", () => {

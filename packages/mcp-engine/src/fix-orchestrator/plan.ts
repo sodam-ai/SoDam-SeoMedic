@@ -10,14 +10,21 @@ import { insertFindings, findFindingsByAuditRun, type FindingRecord } from "../d
 import { insertFix, type FixRecord } from "../db/repositories/fix.js";
 import { findFixerDescriptor } from "../fixers/registry.js";
 import { planSitemapFix } from "../fixers/sitemap-fixer.js";
+import { planCanonicalFix } from "../fixers/canonical-fixer.js";
+import { planOgFix } from "../fixers/og-fixer.js";
+import { findPageFilePath } from "./page-file-resolver.js";
 import { scanLocalFix } from "./scan.js";
 import type { SeomedicDb } from "../db/connection.js";
 import type { RuleViolation } from "../rules/types.js";
+import type { ScannedPage } from "./scan.js";
 
 const LOGICAL_ORIGIN = "http://local.seomedic.internal";
 const SITEMAP_RULE_ID = "R-SITEMAP-MISSING-URL";
 const SITEMAP_RULE_VERSION = 1;
 const SITEMAP_FILE_CANDIDATES = ["app/sitemap.ts", "app/sitemap.js", "src/app/sitemap.ts", "src/app/sitemap.js"];
+const CANONICAL_RULE_ID = "R-CANONICAL-MISSING";
+const CANONICAL_JS_ONLY_RULE_ID = "R-CANONICAL-JS-ONLY";
+const OG_RULE_ID = "R-OG-BASIC-MISSING";
 
 export class FixPlanBlockedError extends Error {
   constructor(
@@ -164,7 +171,27 @@ export async function planLocalFix(
       continue;
     }
 
-    // 지금은 sitemap fixer 하나뿐이라 이 분기는 도달하지 않지만, 향후 fixer 추가 시
+    if (finding.rule_id === CANONICAL_RULE_ID) {
+      const fix = planCanonicalFixForFinding(db, projectRoot, finding);
+      if (fix) plannedFixes.push({ fix, finding });
+      else reportOnlyFindings.push(finding);
+      continue;
+    }
+
+    if (finding.rule_id === CANONICAL_JS_ONLY_RULE_ID) {
+      const fix = planJsOnlyCanonicalFixForFinding(db, projectRoot, finding, scanResult.pages);
+      if (fix) plannedFixes.push({ fix, finding });
+      else reportOnlyFindings.push(finding);
+      continue;
+    }
+
+    if (finding.rule_id === OG_RULE_ID) {
+      const fix = planOgFixForFinding(db, projectRoot, finding, scanResult.pages);
+      if (fix) plannedFixes.push({ fix, finding });
+      else reportOnlyFindings.push(finding);
+      continue;
+    }
+
     // registry에는 있는데 여기 분기가 없는 실수를 조용히 넘기지 않기 위해 report_only로 명시 폴백.
     reportOnlyFindings.push(finding);
   }
@@ -204,5 +231,114 @@ function planSitemapFixForFinding(
     targetPath: sitemapRelPath,
     validation: `크롤 시 200 응답 확인된 페이지 ${plan.urlsToAdd!.length}건`,
     idempotencyMarker: JSON.stringify(plan.urlsToAdd),
+  });
+}
+
+/**
+ * canonical은 04_PROJECT_SPEC "예외 없음" 결정에 따라 순수 "추가"여도 항상 gated·pending으로 넣는다
+ * (sitemap의 add_safe·auto와 다른 지점 — 여기서만 예외적으로 승인 후 apply가 실제로 반영한다).
+ * canonical 값은 finding.page_url(placeholder origin 기반)의 pathname만 쓴다 — 실제 배포 도메인이
+ * 파이프라인 어디에도 없고, Next.js가 metadataBase 기준 상대경로 해석을 공식 지원하기 때문
+ * (Plan Mode 확정 결정).
+ */
+function planCanonicalFixForFinding(db: SeomedicDb, projectRoot: string, finding: FindingRecord): FixRecord | null {
+  const pathname = new URL(finding.page_url).pathname;
+
+  const pageRelPath = findPageFilePath(projectRoot, pathname);
+  if (!pageRelPath) return null; // 정적 페이지 파일을 못 찾음(동적 라우트 등) — report_only로 남김
+
+  const absPath = path.join(projectRoot, pageRelPath);
+  const plan = planCanonicalFix(absPath, pathname);
+  if (!plan.applicable || plan.updatedText === plan.originalText) return null;
+
+  return insertFix(db, {
+    findingId: finding.id,
+    fixType: "file_edit",
+    riskLevel: "gated",
+    approvalStatus: "pending",
+    dryRunDiff: `파일: ${pageRelPath}\n+ alternates.canonical: ${JSON.stringify(pathname)}`,
+    targetPath: pageRelPath,
+    validation: "승인 후 next build 재검증을 통과해야 적용됩니다(alternates.canonical 상대경로 추가)",
+    idempotencyMarker: pathname,
+  });
+}
+
+/**
+ * R-CANONICAL-MISSING과 달리 이 rule은 JS가 **이미 계산해 렌더링한** canonical 값이 있을 때만 발생한다
+ * (raw HTML엔 없고 rendered DOM엔 있음 — canonical.ts의 canonicalJsOnlyRule 조건). 그 값은 반드시
+ * 그대로 보존해 raw HTML/소스로 이전해야 하며, planCanonicalFixForFinding처럼 페이지 자기 경로로
+ * 자기참조 값을 새로 계산해서는 안 된다 — JS가 계산한 canonical이 의도적으로 다른 경로를 가리킬 수
+ * 있기 때문(예: 페이지네이션 2페이지가 1페이지를 canonical로 지정하는 경우). 자기참조를 가정하면 이런
+ * 의도적인 비자기참조 canonical을 조용히 깨뜨릴 위험이 있다(Plan Mode 확정 결정).
+ */
+export function planJsOnlyCanonicalFixForFinding(
+  db: SeomedicDb,
+  projectRoot: string,
+  finding: FindingRecord,
+  pages: ScannedPage[],
+): FixRecord | null {
+  const page = pages.find((p) => p.logicalUrl === finding.page_url);
+  if (!page) return null; // 이 스캔에서 나온 finding이 아님 — 방어적 fail-closed(있어선 안 되는 상황)
+
+  if (!page.renderedCanonical) return null; // 규칙이 발생했다면 있어야 하나, 절대 값을 추측하지 않는다(fail-closed)
+
+  const pathname = new URL(finding.page_url).pathname;
+
+  const pageRelPath = findPageFilePath(projectRoot, pathname);
+  if (!pageRelPath) return null; // 정적 페이지 파일을 못 찾음(동적 라우트 등) — report_only로 남김
+
+  const absPath = path.join(projectRoot, pageRelPath);
+  const plan = planCanonicalFix(absPath, page.renderedCanonical);
+  if (!plan.applicable || plan.updatedText === plan.originalText) return null;
+
+  return insertFix(db, {
+    findingId: finding.id,
+    fixType: "file_edit",
+    riskLevel: "gated",
+    approvalStatus: "pending",
+    dryRunDiff: `파일: ${pageRelPath}\n+ alternates.canonical: ${JSON.stringify(page.renderedCanonical)}(JS 계산값 보존)`,
+    targetPath: pageRelPath,
+    validation: "승인 후 next build 재검증을 통과해야 적용됩니다(JS가 이미 계산한 canonical 값을 raw HTML/소스로 이전)",
+    idempotencyMarker: page.renderedCanonical,
+  });
+}
+
+/**
+ * og:title/og:url 소스 값은 finding.page_url만으로 못 구한다(canonical fixer와 달리 페이지 자기
+ * 경로에서 재구성할 수 없는 실제 콘텐츠 값이라) — planJsOnlyCanonicalFixForFinding과 동일 이유로
+ * scanResult.pages에서 렌더된 실제 값을 가져와야 한다. 둘 다 이미 검증된 같은 페이지 값의 복사이며
+ * 새로 계산·창작하지 않는다.
+ */
+function planOgFixForFinding(
+  db: SeomedicDb,
+  projectRoot: string,
+  finding: FindingRecord,
+  pages: ScannedPage[],
+): FixRecord | null {
+  const page = pages.find((p) => p.logicalUrl === finding.page_url);
+  if (!page) return null; // 방어적 fail-closed(있어선 안 되는 상황)
+
+  const ogTitle = page.renderedTitle;
+  const ogUrl = page.renderedCanonical;
+  if (!ogTitle && !ogUrl) return null; // 복사할 값이 전혀 없음 — report_only로 남김
+
+  const pathname = new URL(finding.page_url).pathname;
+  const pageRelPath = findPageFilePath(projectRoot, pathname);
+  if (!pageRelPath) return null; // 정적 페이지 파일을 못 찾음(동적 라우트 등) — report_only로 남김
+
+  const absPath = path.join(projectRoot, pageRelPath);
+  const plan = planOgFix(absPath, ogTitle, ogUrl);
+  if (!plan.applicable || plan.updatedText === plan.originalText) return null;
+
+  const diffLines = plan.added!.map((a) => `+ openGraph.${a.field}: ${JSON.stringify(a.value)}`).join("\n");
+  return insertFix(db, {
+    findingId: finding.id,
+    fixType: "file_edit",
+    riskLevel: "gated",
+    approvalStatus: "pending",
+    dryRunDiff: `파일: ${pageRelPath}\n${diffLines}`,
+    targetPath: pageRelPath,
+    validation: "승인 후 next build 재검증을 통과해야 적용됩니다(openGraph.title·url 추가)",
+    idempotencyMarker: JSON.stringify({ title: ogTitle, url: ogUrl }),
   });
 }
