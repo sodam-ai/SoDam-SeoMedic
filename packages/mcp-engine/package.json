@@ -1,7 +1,7 @@
 {
   "name": "@seomedic/mcp",
   "version": "0.1.0",
-  "description": "SeoMedic 진단 엔진 — 크롤+렌더+CWV+회귀감지 (Phase 1, 분석 전용)",
+  "description": "SeoMedic 진단 엔진 — 크롤+렌더+CWV+구조화데이터·AI크롤러정책(GEO) 탐지+회귀감지, Next.js 소스 실제 수정(승인 게이트) + GitHub 저장소 PR 제안",
   "type": "module",
   "bin": {
     "seomedic": "dist/cli.js"
