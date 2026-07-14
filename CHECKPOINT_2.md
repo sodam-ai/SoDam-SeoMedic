@@ -178,3 +178,105 @@ GSC/GA4/PSI는 `Fix`/`gated`와 완전히 무관한 읽기전용 리포트 결�
 - `CHECKPOINT_1.5.md` — Phase 1.5 상세 이력 + Phase 2 착수 권고(267행)
 - `src/github/api-client-port.ts`/`token.ts`/`orchestrator.ts` — 이번 작업이 그대로 미러링한 구조적
   템플릿
+
+---
+
+## Stage 3: AI 크롤러 정책 탐지(GEO) — 완료 (2026-07-14)
+
+PRD 우선순위(기술SEO→콘텐츠·엔티티→구조화→**GEO/AEO(4순위)**→측정(5순위)) 재검토 결과, 위 "우선순위
+자기감사"(2026-07-12)가 스스로 지목한 다음 작업 — GSC/GA4/PSI(5순위)보다 먼저 다뤄야 할 4순위 항목 —
+이 구현 시점까지 코드 0인 유일한 티어였다. 제품명 자체가 "Seo**Medic**"이고 PRD 한 줄 요약이
+"SEO/**GEO** 진단"(`01_PRD.md:26`)인데 GEO 관련 코드가 전혀 없다는 공백을 확인해 착수했다.
+
+**범위를 의도적으로 좁힘**: `03_PHASES.md:99`가 제안한 "검색봇 허용·학습봇 차단" 정책 채택 여부는
+이 세션에서 사용자 확인을 받지 않았으므로, **정책 권고 없이 현재 robots.txt 상태를 중립적으로만
+리포트**한다(noindex fixer를 만들지 않기로 한 것과 같은 이유 — "코드가 정책을 혼자 결정하면 안 되는
+영역"). 대신 단순 allow/block 나열이 아니라, AI 크롤러를 **용도별 3분류**(학습용 수집 / AI 답변엔진
+검색노출 / 사용자 1회성 접근)로 나눠 보고한다 — 이 구분 자체가 이 기능의 핵심 가치다: "학습봇 차단"과
+"검색봇 차단"은 사이트 운영자에게 정반대의 함의를 가진다(전자는 대개 원하는 보호, 후자는 GEO 노출
+자체를 스스로 끊는 자충수) — 이 구분이 없으면 정보가 오히려 오해를 부를 수 있었다.
+
+**1차 문서로 봇 목록 실측 확인(추측 배제)**: OpenAI(`developers.openai.com/api/docs/bots`)·
+Anthropic(`support.claude.com/en/articles/8896518`)·Perplexity(`docs.perplexity.ai/docs/resources/perplexity-crawlers`)
+공식 문서를 직접 WebFetch로 확인해 정확한 User-Agent 토큰과 용도를 확정(GPTBot/ChatGPT-User/
+OAI-SearchBot, ClaudeBot/Claude-User/Claude-SearchBot, PerplexityBot/Perplexity-User). Google-Extended·
+CCBot·Bytespider는 1차 문서가 없어 보조자료 교차확인으로 채택, 목록 기준일(2026-07-14)을 코드 상수와
+리포트 문구 양쪽에 명시해 "이 시점 스냅샷"임을 숨기지 않았다.
+
+**신규 모듈**:
+- `src/crawler/ai-crawler-policy.ts` — 봇 카탈로그(출처 URL 주석) + `evaluateAiCrawlerAccess` 순수
+  판정 함수.
+- `src/crawler/ai-crawler-finding.ts` — `R-AI-CRAWLER-POLICY`(category: geo, severity: low 고정)
+  `RuleViolation` 빌더. `fixers/sitemap-finding.ts`와 동일 패턴(사이트 전역 판정은 `rules/registry.ts`의
+  페이지 단위 `RuleContext`로 표현 불가능해 `evaluateAllRules`를 거치지 않고 직접 조립).
+- `src/crawler/robots.ts`: 기존 `loadRobotsPolicy`의 fetch 로직을 `fetchRobotsTxtRaw` 공유 헬퍼로 순수
+  추출(SSRF 가드 fetch 경로를 하나로 유지 — 신규 기능 때문에 fetch를 복제하지 않음, 기존 동작은
+  100% 무변경으로 4개 기존 테스트 무손상 확인) + 신규 `loadAiCrawlerAccess` export.
+
+**설계 중 발견한 함정 2건(둘 다 재현 테스트로 잡음, 실행 전엔 몰랐던 것)**:
+1. **robots-parser의 상대경로 무력화 버그**: `robot.isAllowed("/", token)`처럼 상대경로를 넘기면
+   라이브러리가 내부적으로 무관한 fallback origin(`robots-relative.samclarke.com`)으로 해석해
+   robots.txt의 실제 origin과 불일치 판정 → `isAllowed`가 조용히 `undefined`(판단불가)를 반환 →
+   관대한 처리(`!== false`) 때문에 **모든 봇이 항상 "허용"으로 무력화**됐다. 순수 fake-mock 테스트는
+   이 문제를 못 잡았고(가짜 mock이 URL을 검사 안 해서), 실제 `robots-parser` 라이브러리를 쓰는
+   `robots.test.ts` 통합테스트가 실행 결과로 정확히 잡아냄 — `evaluateAiCrawlerAccess`에 `rootUrl`
+   (robots.txt와 같은 origin의 절대 URL) 파라미터를 추가해 수정.
+2. **리포트 파이프라인이 원래 페이지 전용이었던 것**: `report/types.ts`의 `AuditReportInput`은
+   `pages: PageReportInput[]`만 가진 순수 페이지 단위 구조라, 사이트 전역 Finding을 표현할 방법이
+   원래 없었다(기존 sitemap 선례도 fix-orchestrator 전용 경로라 이 리포트를 거친 적이 없었음 — 처음
+   겪는 공백). `report/types.ts`/`markdown.ts`/`json.ts` 3개 파일을 고치는 대신, robots.txt를
+   **실제로 HTTP 요청해 받은 진짜 상태 코드(200/404)를 가진 "가상 페이지"**로 표현해 기존의 잘
+   검증된 렌더링 파이프라인을 무수정으로 재사용(최소 침습 원칙, 사실 왜곡 없음 — robots.txt는
+   실제로 요청한 URL이 맞다).
+
+**검증**:
+- 신규 유닛테스트 14개(`ai-crawler-policy.test.ts` 5·`ai-crawler-finding.test.ts` 4·
+  `robots.test.ts` 확장 5) + 기존 `audit-orchestrator.test.ts` 1건 수정(신규 가상 페이지 반영,
+  로직 변경 아님).
+- `npm run typecheck && npm run build && npm run test` 전부 그린, **379/379**(기존 365 + 신규 14).
+- **실제 example.com 대상 `runAudit()` + `buildMarkdownReport()` 실행 결과 직접 확인**(목업 아님):
+  실제 example.com은 robots.txt가 없어(404) `## https://example.com/robots.txt` 섹션에 `HTTP 상태:
+  404`와 함께 "robots.txt 없음 — 모든 AI 크롤러 포함 전체 허용" + 3개 용도별 그룹이 정확히 렌더링됨,
+  중립적 권장 문구("정책 채택은 사이트 운영자 결정 사항")도 실제 출력에서 확인. 기존 규칙(canonical/
+  jsonld/og/meta)도 무회귀로 함께 렌더링됨.
+
+**명시 제외(다음 라운드 후보, 이번엔 안 함)**:
+- 실제 robots.txt 수정 fixer(예: "학습봇 disallow 추가") — `03_PHASES.md:99` 정책 채택 여부를 사용자가
+  확정하기 전까지 착수하지 않음(이번 작업은 탐지·리포트까지만, JSON-LD Stage 1과 동일한 신중함).
+- Meta·LinkedIn·Amazon·Apple 등 소셜 미리보기/색인용 크롤러 — PRD `03_PHASES.md:95`가 명시적으로
+  예시로 든 OpenAI·Anthropic 범위에 Perplexity·Google-Extended·CCBot 정도만 보수적으로 확장, 스코프
+  과잉 방지.
+- 페이지별 세분화된 robots 규칙 반영 — 이번 리포트는 루트 경로 기준 사이트 단위 근사치만(코드 주석에
+  한계 명시).
+
+### Stage 3 후속 — 실사용 결함 수정 + 회귀 감지 실측 검증 (2026-07-15)
+
+Stage 3 완료 직후 재검토하며 이전 턴에서 제기했던 리스크 가설 하나를 코드로 직접 검증한 결과 **기각**했다:
+"가상 페이지(robots.txt) finding이 `regression/classify.ts`에서 특별 취급되어 위험할 수 있다"는 우려는
+실제 코드 확인 결과 근거가 없었다 — `classifyRegressions`는 `finding_key` 문자열만 비교하는 완전
+범용 함수라 `page_url`의 출처(실제 크롤 페이지 vs 파생 URL)를 전혀 구분하지 않는다. 데이터 없이 사실처럼
+단정했던 것을 정정한다.
+
+대신 코드를 다시 보다가 **실제 결함 1건을 새로 발견**했다: Stage 3 완료 직후 직접 확인했던 실제 markdown
+리포트 출력에 이미 있었지만 당시 놓쳤던 것 — `buildAiCrawlerPolicyViolation`의 그룹 구분자로 `" | "`를
+썼는데, markdown 표는 파이프(`|`)를 셀 구분자로 쓰기 때문에 `report/markdown.ts`의 `escapeTableCell`이
+이를 `\|`로 이스케이프해 **사용자가 보는 실제 리포트에 백슬래시가 그대로 노출**되고 있었다.
+
+**수정**: `src/crawler/ai-crawler-finding.ts`의 구분자를 `" | "` → `" · "`(가운뎃점, 프로젝트 문서
+전반의 기존 나열 표기 관례와 일치)로 교체. 재빌드 후 실제 example.com 대상 리포트를 재확인해 `\|` 노출이
+완전히 사라지고 `·`로 정상 렌더링됨을 육안 확인.
+
+**회귀 감지 실측 검증**: `audit-orchestrator.test.ts`의 기존 "baseline 저장 후 재감사" 테스트가 이미
+실제 example.com으로 2회 audit을 돌리고 있었으나, Phase 2 신규 규칙 3종이 실제로 관여했는지는 암묵적
+(`revertedKeys.toEqual([])`만 확인)이었다. 1회성 스크립트로 먼저 실측한 결과:
+- 1차/2차 findings 모두 정확히 동일한 **6개 rule_id**(`R-AI-CRAWLER-POLICY`, `R-CANONICAL-MISSING`,
+  `R-JSONLD-MISSING`, `R-META-DESCRIPTION-MISSING`, `R-OG-BASIC-MISSING`, `R-OG-DESCRIPTION-MISSING`)로
+  재현되고, `revertedKeys: []`로 회귀 0건 정확 판정됨을 확인.
+- 이 사실을 테스트에 **명시적 assertion으로 고정**: Phase 2 신규 규칙 3종(`R-JSONLD-MISSING`·
+  `R-OG-BASIC-MISSING`·`R-AI-CRAWLER-POLICY`)이 1차 findings에 실제로 포함되는지 확인 + 1차/2차
+  rule_id 집합이 완전히 동일한지 별도 대조(`revertedKeys=[]`만으로는 "한쪽에서만 조용히 누락된 finding"을
+  못 잡는다 — `classifyRegressions`는 새로 나타난 것만 보고 사라진 것은 관심사가 아니므로).
+
+**최종**: `npm run typecheck && npm run build && npm run test` 전부 그린, **379/379**(테스트 개수
+무변화 — 기존 테스트에 assertion만 추가, 신규 테스트 파일 없음). 커밋/푸시는 하지 않음(git-workflow
+규칙 — 사용자 명시 요청 시에만).

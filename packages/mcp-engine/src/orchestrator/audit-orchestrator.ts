@@ -1,4 +1,6 @@
 import { crawl, type CrawlOptions } from "../crawler/crawler.js";
+import { loadAiCrawlerAccess } from "../crawler/robots.js";
+import { buildAiCrawlerPolicyViolation } from "../crawler/ai-crawler-finding.js";
 import { launchGuardedBrowser, renderAndExtractSignals } from "../render/browser-pool.js";
 import { extractSignalsFromHtml } from "../render/dom-signals.js";
 import { evaluateAllRules } from "../rules/registry.js";
@@ -58,6 +60,22 @@ export async function runAudit(options: RunAuditOptions): Promise<RunAuditResult
   const browser = await launchGuardedBrowser();
   const pageReportInputs: PageReportInput[] = [];
   const allViolations: RuleViolation[] = [];
+
+  // AI 크롤러(GPTBot 등) 정책은 사이트 전역 판정이라 페이지 단위 RuleContext로 표현할 수 없다
+  // (fix-orchestrator/plan.ts의 sitemap 완전성 검사와 동일한 이유). robots.txt를 "가상의 페이지"로
+  // 취급해 리포트에 노출한다 — 실제로 HTTP 요청해 받은 진짜 상태 코드(200/404)를 그대로 쓴다.
+  // 조회 자체가 실패(5xx·네트워크오류)하면 정책을 알 수 없으므로 아무것도 만들지 않는다(추측 금지).
+  const origin = new URL(options.url).origin;
+  const aiCrawlerAccess = await loadAiCrawlerAccess(origin);
+  if (aiCrawlerAccess) {
+    const violation = buildAiCrawlerPolicyViolation(origin, aiCrawlerAccess);
+    allViolations.push(violation);
+    pageReportInputs.push({
+      url: violation.pageUrl,
+      statusCode: aiCrawlerAccess.robotsTxtFound ? 200 : 404,
+      violations: [violation],
+    });
+  }
 
   try {
     for (const page of crawlResult.pages) {

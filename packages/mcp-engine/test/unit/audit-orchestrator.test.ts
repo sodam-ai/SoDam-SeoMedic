@@ -24,12 +24,17 @@ describe("runAudit — 실제 크롤+렌더+CWV+DB 저장 전체 파이프라인
     try {
       expect(result.project.target).toBe("https://example.com/");
       expect(result.auditRun.finished_at).not.toBeNull();
-      expect(result.reportInput.pages).toHaveLength(1);
-      expect(result.reportInput.pages[0].statusCode).toBe(200);
+      // 실제 크롤된 페이지 1개 + robots.txt 기준 AI 크롤러 정책 가상 페이지 1개(R-AI-CRAWLER-POLICY, 사이트 단위 리포트)
+      expect(result.reportInput.pages).toHaveLength(2);
+      const robotsTxtEntry = result.reportInput.pages.find((p) => p.url.endsWith("/robots.txt"));
+      const crawledPage = result.reportInput.pages.find((p) => p.url === "https://example.com/");
+      expect(robotsTxtEntry).toBeDefined();
+      expect(crawledPage).toBeDefined();
+      expect(crawledPage!.statusCode).toBe(200);
 
       // 단일 URL(depth=0)이라 CWV가 실제로 측정되어야 함
-      expect(result.reportInput.pages[0].cwv).toBeDefined();
-      expect(result.reportInput.pages[0].cwv?.lcpMs).toBeGreaterThan(0);
+      expect(crawledPage!.cwv).toBeDefined();
+      expect(crawledPage!.cwv?.lcpMs).toBeGreaterThan(0);
 
       // canonical 없음 → 실제 규칙엔진이 R-CANONICAL-MISSING을 잡아야 함
       expect(result.findings.some((f) => f.rule_id === "R-CANONICAL-MISSING")).toBe(true);
@@ -62,10 +67,24 @@ describe("runAudit — 실제 크롤+렌더+CWV+DB 저장 전체 파이프라인
 
     const result2 = await runAudit({ url: "https://example.com/", projectRoot, siteMode: false });
     try {
+      // Phase 2에서 추가된 신규 규칙(JSON-LD·OG·AI크롤러 정책)이 실제로 finding_key 안정성까지
+      // 갖췄는지는 코드 리뷰만으론 확인 불가(정적 분석 ≠ 실측) — 여기서 명시적으로 고정한다.
+      // 이 3종은 실제로 example.com에서 항상 발화하므로(canonical 없음·JSON-LD 없음·OG/meta
+      // description 없음·robots.txt 없음) 매 실행마다 반드시 나타나야 하는 회귀가드다.
+      const ruleIds1 = result1.findings.map((f) => f.rule_id).sort();
+      for (const ruleId of ["R-JSONLD-MISSING", "R-OG-BASIC-MISSING", "R-AI-CRAWLER-POLICY"]) {
+        expect(ruleIds1).toContain(ruleId);
+      }
+
       const snapshot = JSON.parse(baseline.snapshot);
       const { revertedKeys } = classifyRegressions(result2.findings, snapshot);
       // 같은 페이지를 재감사했으니 findings가 baseline과 동일해야 하고, 회귀도 없어야 함
       expect(revertedKeys).toEqual([]);
+      // rule_id 집합 자체가 1차/2차 사이 완전히 동일한지도 확인(어느 한쪽에서만 조용히
+      // 누락되는 경우 revertedKeys=[]만으로는 못 잡는다 — "사라진 finding"은 classifyRegressions의
+      // 관심사가 아니므로 별도로 개수·집합을 대조해야 한다).
+      const ruleIds2 = result2.findings.map((f) => f.rule_id).sort();
+      expect(ruleIds2).toEqual(ruleIds1);
       expect(findLatestBaseline(result2.db, result2.project.id)?.id).toBe(baseline.id);
     } finally {
       result2.db.close();
