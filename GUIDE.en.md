@@ -14,6 +14,7 @@ This document and its Korean counterpart (**[GUIDE.md](./GUIDE.md)**) contain id
 | GEO | Generative Engine Optimization — making your page likely to be cited in AI answers (ChatGPT, Perplexity, etc.) |
 | Crawl | A program automatically visiting web pages and reading their content |
 | Render | A browser drawing code (HTML/JavaScript) into what actually appears on screen |
+| Core Web Vitals, LCP | A set of metrics Google uses to measure "how fast and smooth a page feels." LCP (Largest Contentful Paint) is one of them — the time it takes for the largest visible element on the page to finish rendering. Smaller (faster) numbers are better |
 | Canonical | A tag telling search engines "this is the true, representative address for this page" |
 | Structured Data (JSON-LD) | A special, hidden markup that helps search engines understand your page content more precisely. It's part of how search results can show extra info like ratings, prices, or reviews |
 | Open Graph | Settings that control the preview (title, description, URL) shown when someone shares your page link on social media like Facebook or KakaoTalk |
@@ -41,13 +42,14 @@ This document and its Korean counterpart (**[GUIDE.md](./GUIDE.md)**) contain id
    ```
    claude --version
    ```
+   **What success looks like**: a version number. If you see an error like `'claude' is not recognized as an internal or external command` (Windows) or `command not found: claude`, Claude Code isn't installed yet — install it via the link in [README section 2](./README.en.md#2-prerequisites--required-software), then **open a new terminal window** and try again.
 
 ## Step 2. Install SeoMedic (~3-5 minutes)
 
-1. In the Claude Code chat, type (replace with the real marketplace address):
+1. In the Claude Code chat, type this exactly (these are this project's real repository address and marketplace name — no need to replace anything, just copy and paste):
    ```
-   /plugin marketplace add <marketplace-source>
-   /plugin install seomedic@<marketplace-name>
+   /plugin marketplace add sodam-ai/SoDam-SeoMedic
+   /plugin install seomedic@sodam-seomedic-marketplace
    ```
 2. **⭐ The single most important step**: once installation finishes, **fully quit** and **relaunch** Claude Code. Closing the window isn't enough — you must actually quit and restart the application.
 3. After relaunching, verify:
@@ -88,6 +90,7 @@ This document and its Korean counterpart (**[GUIDE.md](./GUIDE.md)**) contain id
    | 🟠 high | R-CANONICAL-MISSING | canonical | - | Add a self-canonical tag |
    ```
 5. You might also see items related to structured data (JSON-LD) or Open Graph in your report, such as "No structured data found" or "Open Graph title missing." These aren't serious problems — they're marked with "low" severity because they're "opportunities" to make your social sharing or search results richer, not things that are currently broken.
+6. You might also see an **AI crawler policy** item — for example, "GPTBot is blocked in robots.txt." Whether to allow or block AI services like ChatGPT or Claude from crawling and training on this site is **a decision for the site owner to make**; SeoMedic only reports the current state and doesn't recommend which way to go.
 
 ## Step 4. Check again later (regression detection)
 
@@ -116,7 +119,7 @@ This step only applies if **you have the source code for a Next.js project**. If
    ```
 3. The AI shows a plan (what it would fix and how).
    - Purely additive fixes ("add what's missing") proceed automatically.
-   - Anything affecting how the site is indexed/displayed shows a diff and asks for your approval — review it and answer "approve" or "reject."
+   - Anything affecting how the site is indexed/displayed shows **a diff** (an exact before/after comparison of the text that would change) and asks for your approval — review it and answer "approve" or "reject."
 4. Once applied, the AI reports whether `next build` still passes. **If the build fails, it's automatically rolled back** — you don't need to do anything.
 5. If you're not happy with the result, ask to "undo the fix I just applied."
 6. **Applied fixes are still real file changes** — review with `git diff` as you normally would before committing.
@@ -124,6 +127,8 @@ This step only applies if **you have the source code for a Next.js project**. If
 ## Step 6. (Optional) Get an auto-fix proposal for a GitHub repository — ⚠️ Experimental
 
 This step only applies if **you have a Next.js project on GitHub and want to receive a Pull Request (proposed change)**. If this is your first time, we recommend getting comfortable with Step 5 (local folder) first. The "your own repository" path of this feature has been fully verified against real GitHub, including an actual generated Pull Request. The flow for forking a repository you don't own and proposing changes has been verified up through fork creation and cloning in a real GitHub environment (we confirmed the fork repository actually gets created). However, the final step of actually creating the Pull Request hasn't been confirmed yet (the test repository used had no Next.js project files, so the process stopped one step before that). Please read the following carefully before proceeding.
+
+> **Copyright & license notice**: this feature creates real branches and Pull Requests on a GitHub repository — first make sure you have permission to do so on the target repository, and review SeoMedic's own license and commercial-use terms in [README section 14, "Legal, Copyright, License, and Commercial Use"](./README.en.md#14-legal-copyright-license-and-commercial-use).
 
 1. **Create a GitHub Personal Access Token**
    1. In your browser, go to `https://github.com/settings/personal-access-tokens/new` and log in.
