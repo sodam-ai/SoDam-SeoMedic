@@ -156,6 +156,28 @@ describe("R-CWV-LCP-POOR / R-CWV-CLS-POOR", () => {
   });
 });
 
+describe("R-CWV-TBT-POOR", () => {
+  it("known-good: TBT 50ms(데스크톱 임계값 150ms 이하)", () => {
+    const ctx = baseCtx({ cwv: { lcpMs: 1000, clsUnitless: 0.02, inpProxyTbtMs: 50, isLabData: true, runsCompleted: 3 } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-CWV-TBT-POOR")).toBe(false);
+  });
+
+  it("known-bad: TBT 400ms(데스크톱 임계값 150ms 초과)", () => {
+    const ctx = baseCtx({ cwv: { lcpMs: 1000, clsUnitless: 0.02, inpProxyTbtMs: 400, isLabData: true, runsCompleted: 3 } });
+    const violations = evaluateAllRules(ctx);
+    const found = violations.find((v) => v.ruleId === "R-CWV-TBT-POOR");
+    expect(found).toBeDefined();
+    expect(found!.severity).toBe("high");
+    expect(found!.currentValue).toContain("400ms");
+  });
+
+  it("CWV 미측정(cwv undefined)이면 조용히 skip", () => {
+    const violations = evaluateAllRules(baseCtx());
+    expect(violations.some((v) => v.ruleId === "R-CWV-TBT-POOR")).toBe(false);
+  });
+});
+
 describe("종합: known-good/known-bad 픽스처 세트 (성공기준 검증)", () => {
   it("known-good 픽스처 8종은 오탐 0", () => {
     const ogComplete = { ogTitle: "t", ogUrl: "x", ogDescription: "d", metaDescription: "d" };

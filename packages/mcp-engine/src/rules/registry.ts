@@ -5,7 +5,7 @@ import { jsonLdMissingRule, jsonLdInvalidRule } from "./definitions/jsonld.js";
 import { ogBasicMissingRule, ogDescriptionMissingRule, metaDescriptionMissingRule } from "./definitions/og.js";
 import { statusClientErrorRule, statusServerErrorRule, redirectChainLongRule } from "./definitions/status-redirect.js";
 import { rawRenderedGapRule } from "./definitions/raw-rendered-gap.js";
-import { cwvLcpPoorRule, cwvClsPoorRule } from "./definitions/cwv-threshold.js";
+import { cwvLcpPoorRule, cwvClsPoorRule, cwvTbtPoorRule } from "./definitions/cwv-threshold.js";
 import {
   titleMissingRule,
   h1MissingRule,
@@ -28,6 +28,7 @@ export const ALL_RULES: Rule[] = [
   rawRenderedGapRule,
   cwvLcpPoorRule,
   cwvClsPoorRule,
+  cwvTbtPoorRule,
   titleMissingRule,
   h1MissingRule,
   h1MultipleRule,
