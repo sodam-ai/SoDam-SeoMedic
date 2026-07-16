@@ -14,6 +14,7 @@ const emptySignals: PageSignals = {
   ogUrl: null,
   ogDescription: null,
   metaDescription: null,
+  imagesWithoutAltCount: 0,
 };
 const validJsonLd = '{"@context":"https://schema.org","@type":"WebPage"}';
 

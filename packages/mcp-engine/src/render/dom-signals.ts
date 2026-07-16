@@ -17,6 +17,8 @@ export interface PageSignals {
   ogDescription: string | null;
   /** <meta name="description" content> */
   metaDescription: string | null;
+  /** alt 속성 자체가 없는 <img> 개수. alt="" (장식용 이미지의 의도된 빈 값)는 위반이 아니므로 카운트 제외 */
+  imagesWithoutAltCount: number;
 }
 
 /**
@@ -53,6 +55,7 @@ export function extractSignalsFromHtml(html: string): PageSignals {
       ogUrl: null,
       ogDescription: null,
       metaDescription: null,
+      imagesWithoutAltCount: 0,
     };
   }
 
@@ -86,6 +89,10 @@ export function extractSignalsFromHtml(html: string): PageSignals {
     .map((el) => el.textContent?.trim() ?? "")
     .filter((text) => text.length > 0);
 
+  const imagesWithoutAltCount = Array.from(document.querySelectorAll("img")).filter(
+    (el) => getAttrCI(el, "alt") === null,
+  ).length;
+
   return {
     title,
     canonical,
@@ -97,6 +104,7 @@ export function extractSignalsFromHtml(html: string): PageSignals {
     ogUrl,
     ogDescription,
     metaDescription,
+    imagesWithoutAltCount,
   };
 }
 
@@ -118,6 +126,10 @@ export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
       .map((el) => (el.textContent ?? "").trim())
       .filter((text) => text.length > 0);
 
+    const imagesWithoutAltCount = Array.from(document.querySelectorAll("img")).filter(
+      (el) => !el.hasAttribute("alt"),
+    ).length;
+
     return {
       title: titleEl?.textContent?.trim() ?? null,
       canonical: canonicalEl?.getAttribute("href") ?? null,
@@ -129,6 +141,7 @@ export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
       ogUrl: ogUrlEl?.getAttribute("content") ?? null,
       ogDescription: ogDescriptionEl?.getAttribute("content") ?? null,
       metaDescription: metaDescriptionEl?.getAttribute("content") ?? null,
+      imagesWithoutAltCount,
     };
   });
 }

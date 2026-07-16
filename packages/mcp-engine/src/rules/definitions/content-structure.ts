@@ -3,6 +3,7 @@ import type { Rule, RuleViolation } from "../types.js";
 const RULE_ID_TITLE_MISSING = "R-TITLE-MISSING";
 const RULE_ID_H1_MISSING = "R-H1-MISSING";
 const RULE_ID_H1_MULTIPLE = "R-H1-MULTIPLE";
+const RULE_ID_IMG_ALT_MISSING = "R-IMG-ALT-MISSING";
 const VERSION = 1;
 
 /**
@@ -74,6 +75,32 @@ export const h1MultipleRule: Rule = {
       pageUrl: ctx.pageUrl,
       currentValue: `h1 태그 ${ctx.renderedSignals.h1Count}개 발견`,
       recommendedValue: "페이지당 h1 하나만 권장(레이아웃상 의도된 경우 무시 가능)",
+    };
+  },
+};
+
+/**
+ * alt 속성이 아예 없는 <img>만 센다 — alt=""(장식용 이미지의 의도된 빈 값, 스크린리더가 건너뛰도록
+ * 하는 정당한 패턴)는 위반이 아니다. PRD가 alt "자동 생성"은 환각 위험으로 명시적 위험군(gated)
+ * 분류했지만, 이건 title/h1과 동일하게 탐지만 하고 자동수정은 만들지 않는다(report_only).
+ * 아이콘·장식용 이미지가 많은 사이트에서 과탐지될 수 있어 low로 보정(og/jsonld-missing과 동일 원칙).
+ */
+export const imgAltMissingRule: Rule = {
+  id: RULE_ID_IMG_ALT_MISSING,
+  version: VERSION,
+  category: "meta",
+  evaluate(ctx): RuleViolation | null {
+    if (ctx.statusCode !== 200) return null;
+    const count = ctx.renderedSignals.imagesWithoutAltCount;
+    if (count <= 0) return null;
+    return {
+      ruleId: RULE_ID_IMG_ALT_MISSING,
+      ruleVersion: VERSION,
+      category: "meta",
+      severity: "low",
+      pageUrl: ctx.pageUrl,
+      currentValue: `alt 속성 없는 이미지 ${count}개`,
+      recommendedValue: '각 이미지에 내용을 설명하는 alt 텍스트 추가 권장(장식용 이미지는 alt="" 유지)',
     };
   },
 };

@@ -14,6 +14,7 @@ const emptySignals: PageSignals = {
   ogUrl: null,
   ogDescription: null,
   metaDescription: null,
+  imagesWithoutAltCount: 0,
 };
 
 function baseCtx(overrides: Partial<RuleContext> = {}): RuleContext {
@@ -116,5 +117,27 @@ describe("R-H1-MULTIPLE", () => {
       baseCtx({ statusCode: 404, renderedSignals: { ...emptySignals, h1Count: 2 } }),
     );
     expect(violations.some((v) => v.ruleId === "R-H1-MULTIPLE")).toBe(false);
+  });
+});
+
+describe("R-IMG-ALT-MISSING", () => {
+  it("known-bad: alt 없는 이미지가 있으면 발화(low)", () => {
+    const violations = evaluateAllRules(withRendered({ imagesWithoutAltCount: 2 }));
+    const found = violations.find((v) => v.ruleId === "R-IMG-ALT-MISSING");
+    expect(found).toBeDefined();
+    expect(found!.severity).toBe("low");
+    expect(found!.currentValue).toContain("2개");
+  });
+
+  it("known-good: imagesWithoutAltCount=0이면 미발화(이미지가 없거나 전부 alt가 있는 경우)", () => {
+    const violations = evaluateAllRules(baseCtx());
+    expect(violations.some((v) => v.ruleId === "R-IMG-ALT-MISSING")).toBe(false);
+  });
+
+  it("엣지: 404 페이지는 미발화", () => {
+    const violations = evaluateAllRules(
+      baseCtx({ statusCode: 404, renderedSignals: { ...emptySignals, imagesWithoutAltCount: 3 } }),
+    );
+    expect(violations.some((v) => v.ruleId === "R-IMG-ALT-MISSING")).toBe(false);
   });
 });

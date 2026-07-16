@@ -6,7 +6,12 @@ import { ogBasicMissingRule, ogDescriptionMissingRule, metaDescriptionMissingRul
 import { statusClientErrorRule, statusServerErrorRule, redirectChainLongRule } from "./definitions/status-redirect.js";
 import { rawRenderedGapRule } from "./definitions/raw-rendered-gap.js";
 import { cwvLcpPoorRule, cwvClsPoorRule } from "./definitions/cwv-threshold.js";
-import { titleMissingRule, h1MissingRule, h1MultipleRule } from "./definitions/content-structure.js";
+import {
+  titleMissingRule,
+  h1MissingRule,
+  h1MultipleRule,
+  imgAltMissingRule,
+} from "./definitions/content-structure.js";
 
 export const ALL_RULES: Rule[] = [
   canonicalMissingRule,
@@ -26,6 +31,7 @@ export const ALL_RULES: Rule[] = [
   titleMissingRule,
   h1MissingRule,
   h1MultipleRule,
+  imgAltMissingRule,
 ];
 
 /** rule_id는 registry 전체에서 유일해야 finding_key(page_url+rule_id+rule_version) 매칭이 안정적이다. */
