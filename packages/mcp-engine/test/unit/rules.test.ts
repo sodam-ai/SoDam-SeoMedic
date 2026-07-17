@@ -176,6 +176,18 @@ describe("R-CWV-TBT-POOR", () => {
     const violations = evaluateAllRules(baseCtx());
     expect(violations.some((v) => v.ruleId === "R-CWV-TBT-POOR")).toBe(false);
   });
+
+  it("경계값: TBT 정확히 150ms(임계값과 동일)면 미발화(<=이므로 good)", () => {
+    const ctx = baseCtx({ cwv: { lcpMs: 1000, clsUnitless: 0.02, inpProxyTbtMs: 150, isLabData: true, runsCompleted: 3 } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-CWV-TBT-POOR")).toBe(false);
+  });
+
+  it("경계값: TBT 151ms(임계값 1ms 초과)면 발화", () => {
+    const ctx = baseCtx({ cwv: { lcpMs: 1000, clsUnitless: 0.02, inpProxyTbtMs: 151, isLabData: true, runsCompleted: 3 } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-CWV-TBT-POOR")).toBe(true);
+  });
 });
 
 describe("종합: known-good/known-bad 픽스처 세트 (성공기준 검증)", () => {
