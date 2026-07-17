@@ -11,7 +11,9 @@
     "node": ">=22"
   },
   "scripts": {
+    "prebuild": "node scripts/clean-dist.mjs",
     "build": "tsc -p tsconfig.json",
+    "package:plugin": "npm run build && node scripts/package-for-plugin.mjs",
     "typecheck": "tsc -p tsconfig.test.json",
     "pretest": "npm ci --prefix test/fixtures/nextjs-minimal",
     "test": "vitest run",

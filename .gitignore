@@ -1,5 +1,10 @@
 node_modules/
 dist/
+# 예외: 마켓플레이스로 설치된 플러그인은 packages/mcp-engine(형제 폴더)를 못 읽으므로
+# packages/plugin/mcp-server/dist/는 빌드 산출물이지만 실행에 필요해 예외적으로 커밋한다
+# (npm run package:plugin으로 생성, packages/mcp-engine/scripts/package-for-plugin.mjs 참고)
+!packages/plugin/mcp-server/dist/
+!packages/plugin/mcp-server/dist/**
 .next/
 *.log
 !AUDIT.log
