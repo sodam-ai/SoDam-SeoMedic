@@ -17,6 +17,7 @@ const emptySignals: PageSignals = {
   imagesWithoutAltCount: 0,
 };
 const validJsonLd = '{"@context":"https://schema.org","@type":"WebPage"}';
+const validQaJsonLd = '{"@context":"https://schema.org","@type":"FAQPage"}';
 
 function baseCtx(overrides: Partial<RuleContext> = {}): RuleContext {
   return {
@@ -190,6 +191,77 @@ describe("R-CWV-TBT-POOR", () => {
   });
 });
 
+describe("R-QA-STRUCTURE-MISSING", () => {
+  it("known-bad: JSON-LD 자체가 없으면 발화", () => {
+    const violations = evaluateAllRules(baseCtx());
+    expect(violations.some((v) => v.ruleId === "R-QA-STRUCTURE-MISSING")).toBe(true);
+  });
+
+  it("known-bad: JSON-LD는 있지만 FAQPage/QAPage가 아니면 발화", () => {
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [validJsonLd] } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-QA-STRUCTURE-MISSING")).toBe(true);
+  });
+
+  it("known-good: FAQPage 타입 JSON-LD가 있으면 미발화", () => {
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [validQaJsonLd] } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-QA-STRUCTURE-MISSING")).toBe(false);
+  });
+
+  it("known-good: QAPage 타입도 인정된다", () => {
+    const qaPageJsonLd = '{"@context":"https://schema.org","@type":"QAPage"}';
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [qaPageJsonLd] } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-QA-STRUCTURE-MISSING")).toBe(false);
+  });
+
+  it("known-good: @graph 안에 FAQPage가 있어도 인정된다", () => {
+    const graphJsonLd = '{"@context":"https://schema.org","@graph":[{"@type":"WebPage"},{"@type":"FAQPage"}]}';
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [graphJsonLd] } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-QA-STRUCTURE-MISSING")).toBe(false);
+  });
+});
+
+describe("R-JSONLD-PRODUCT-INCOMPLETE", () => {
+  it("known-good: Product 타입이 아니면(예: WebPage) 미발화", () => {
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [validJsonLd] } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-INCOMPLETE")).toBe(false);
+  });
+
+  it("known-good: Product 타입에 name+offers가 모두 있으면 미발화", () => {
+    const completeProduct = '{"@context":"https://schema.org","@type":"Product","name":"신발","offers":{"@type":"Offer","price":"10000"}}';
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [completeProduct] } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-INCOMPLETE")).toBe(false);
+  });
+
+  it("known-bad: Product 타입인데 name이 없으면 발화", () => {
+    const noNameProduct = '{"@context":"https://schema.org","@type":"Product","offers":{"@type":"Offer","price":"10000"}}';
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [noNameProduct] } });
+    const violations = evaluateAllRules(ctx);
+    const found = violations.find((v) => v.ruleId === "R-JSONLD-PRODUCT-INCOMPLETE");
+    expect(found).toBeDefined();
+    expect(found!.severity).toBe("medium");
+  });
+
+  it("known-bad: Product 타입인데 review/aggregateRating/offers가 전부 없으면 발화", () => {
+    const noOffersProduct = '{"@context":"https://schema.org","@type":"Product","name":"신발"}';
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [noOffersProduct] } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-INCOMPLETE")).toBe(true);
+  });
+
+  it("known-good: offers 대신 aggregateRating만 있어도 인정된다", () => {
+    const ratedProduct = '{"@context":"https://schema.org","@type":"Product","name":"신발","aggregateRating":{"@type":"AggregateRating","ratingValue":"4.5","reviewCount":"10"}}';
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [ratedProduct] } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-INCOMPLETE")).toBe(false);
+  });
+});
+
 describe("종합: known-good/known-bad 픽스처 세트 (성공기준 검증)", () => {
   it("known-good 픽스처 8종은 오탐 0", () => {
     const ogComplete = { ogTitle: "t", ogUrl: "x", ogDescription: "d", metaDescription: "d" };
@@ -198,28 +270,28 @@ describe("종합: known-good/known-bad 픽스처 세트 (성공기준 검증)", 
     const contentComplete = { title: "예시 페이지 제목", h1Count: 1, h1Text: "예시 페이지 제목" };
     const goodFixtures: RuleContext[] = [
       baseCtx({
-        rawSignals: { ...emptySignals, canonical: "https://example.com/", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
-        renderedSignals: { ...emptySignals, canonical: "https://example.com/", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
+        rawSignals: { ...emptySignals, canonical: "https://example.com/", jsonLdBlocks: [validJsonLd, validQaJsonLd], ...ogComplete, ...contentComplete },
+        renderedSignals: { ...emptySignals, canonical: "https://example.com/", jsonLdBlocks: [validJsonLd, validQaJsonLd], ...ogComplete, ...contentComplete },
       }),
       baseCtx({
         statusCode: 200,
-        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
-        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
+        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd, validQaJsonLd], ...ogComplete, ...contentComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd, validQaJsonLd], ...ogComplete, ...contentComplete },
       }),
       baseCtx({ statusCode: 301, rawSignals: { ...emptySignals, canonical: "x" }, renderedSignals: { ...emptySignals, canonical: "x" } }),
       baseCtx({
         redirectChain: ["https://example.com/old"],
-        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
-        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
+        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd, validQaJsonLd], ...ogComplete, ...contentComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd, validQaJsonLd], ...ogComplete, ...contentComplete },
       }),
       baseCtx({
-        rawSignals: { ...emptySignals, canonical: "x", metaRobots: "index", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
-        renderedSignals: { ...emptySignals, canonical: "x", metaRobots: "index", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
+        rawSignals: { ...emptySignals, canonical: "x", metaRobots: "index", jsonLdBlocks: [validJsonLd, validQaJsonLd], ...ogComplete, ...contentComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", metaRobots: "index", jsonLdBlocks: [validJsonLd, validQaJsonLd], ...ogComplete, ...contentComplete },
       }),
       baseCtx({
         cwv: { lcpMs: 1200, clsUnitless: 0.01, inpProxyTbtMs: 10, isLabData: true, runsCompleted: 3 },
-        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
-        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
+        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd, validQaJsonLd], ...ogComplete, ...contentComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd, validQaJsonLd], ...ogComplete, ...contentComplete },
       }),
     ];
     for (const ctx of goodFixtures) {
