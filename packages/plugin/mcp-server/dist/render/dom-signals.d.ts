@@ -17,6 +17,10 @@ export interface PageSignals {
     metaDescription: string | null;
     /** alt 속성 자체가 없는 <img> 개수. alt="" (장식용 이미지의 의도된 빈 값)는 위반이 아니므로 카운트 제외 */
     imagesWithoutAltCount: number;
+    /** <body> 전체 텍스트(공백 정규화: 연속 공백/줄바꿈을 스페이스 하나로 축약 + trim). JSON-LD 값이
+     * 실제 페이지에 존재하는지 대조(환각 0)하는 용도로만 쓴다 — 원문 그대로가 아니라 정규화된 형태라
+     * 표시용이 아닌 포함 여부(substring) 검사 전용 필드다. */
+    bodyText: string;
 }
 /**
  * linkedom은 태그명은 소문자로 정규화하지만(HTML5 스펙과 동일) **속성명은 원문 대소문자를 그대로 보존한다**

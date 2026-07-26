@@ -13,6 +13,10 @@ export function getAttrCI(el, attrName) {
     }
     return null;
 }
+/** 연속 공백/줄바꿈을 스페이스 하나로 축약 + trim. raw/rendered 양쪽에서 동일하게 적용해야 대칭이 깨지지 않는다. */
+function normalizeBodyText(text) {
+    return (text ?? "").replace(/\s+/g, " ").trim();
+}
 /**
  * raw HTML 문자열(JS 미실행)에서 신호를 추출한다. linkedom으로 파싱 — 정규식 매칭은
  * ReDoS·오탐 위험이 있어 사용하지 않는다(DO-NOT/보안 원칙).
@@ -35,6 +39,7 @@ export function extractSignalsFromHtml(html) {
             ogDescription: null,
             metaDescription: null,
             imagesWithoutAltCount: 0,
+            bodyText: "",
         };
     }
     const title = document.querySelector("title")?.textContent?.trim() ?? null;
@@ -60,6 +65,7 @@ export function extractSignalsFromHtml(html) {
         .map((el) => el.textContent?.trim() ?? "")
         .filter((text) => text.length > 0);
     const imagesWithoutAltCount = Array.from(document.querySelectorAll("img")).filter((el) => getAttrCI(el, "alt") === null).length;
+    const bodyText = normalizeBodyText(document.querySelector("body")?.textContent);
     return {
         title,
         canonical,
@@ -72,6 +78,7 @@ export function extractSignalsFromHtml(html) {
         ogDescription,
         metaDescription,
         imagesWithoutAltCount,
+        bodyText,
     };
 }
 /**
@@ -92,6 +99,9 @@ export async function extractSignalsFromPage(page) {
             .map((el) => (el.textContent ?? "").trim())
             .filter((text) => text.length > 0);
         const imagesWithoutAltCount = Array.from(document.querySelectorAll("img")).filter((el) => !el.hasAttribute("alt")).length;
+        // normalizeBodyText와 동일한 규칙(연속 공백/줄바꿈→스페이스 하나+trim)을 인라인 적용한다 —
+        // 이 콜백은 page.evaluate로 브라우저 컨텍스트에 직렬화돼 실행되므로 외부 함수를 참조할 수 없다.
+        const bodyText = (document.querySelector("body")?.textContent ?? "").replace(/\s+/g, " ").trim();
         return {
             title: titleEl?.textContent?.trim() ?? null,
             canonical: canonicalEl?.getAttribute("href") ?? null,
@@ -104,6 +114,7 @@ export async function extractSignalsFromPage(page) {
             ogDescription: ogDescriptionEl?.getAttribute("content") ?? null,
             metaDescription: metaDescriptionEl?.getAttribute("content") ?? null,
             imagesWithoutAltCount,
+            bodyText,
         };
     });
 }

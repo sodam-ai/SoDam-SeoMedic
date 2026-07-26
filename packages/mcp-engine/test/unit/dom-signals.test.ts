@@ -120,4 +120,23 @@ describe("extractSignalsFromHtml", () => {
     const signals = extractSignalsFromHtml(html);
     expect(signals.imagesWithoutAltCount).toBe(0);
   });
+
+  it("bodyText: body 텍스트를 추출하고 연속 공백/줄바꿈을 스페이스 하나로 정규화한다", () => {
+    const html = `<html><body>
+      <h1>제목</h1>
+      <p>본문   여러\n\n\t 공백</p>
+    </body></html>`;
+    const signals = extractSignalsFromHtml(html);
+    expect(signals.bodyText).toBe("제목 본문 여러 공백");
+  });
+
+  it("bodyText: body가 없으면 빈 문자열", () => {
+    const signals = extractSignalsFromHtml("<html><head><title>제목만</title></head></html>");
+    expect(signals.bodyText).toBe("");
+  });
+
+  it("bodyText: 깨진 HTML도 예외 없이 빈 문자열", () => {
+    const signals = extractSignalsFromHtml("<html><title>안닫힘");
+    expect(signals.bodyText).toBe("");
+  });
 });
