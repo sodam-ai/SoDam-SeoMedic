@@ -1,16 +1,21 @@
 import { canonicalMissingRule, canonicalJsOnlyRule } from "./definitions/canonical.js";
 import { noindexDetectedRule } from "./definitions/indexing.js";
 import { jsonLdMissingRule, jsonLdInvalidRule } from "./definitions/jsonld.js";
+import { qaStructureMissingRule } from "./definitions/qa-structure.js";
+import { jsonLdProductIncompleteRule } from "./definitions/jsonld-required-fields.js";
 import { ogBasicMissingRule, ogDescriptionMissingRule, metaDescriptionMissingRule } from "./definitions/og.js";
 import { statusClientErrorRule, statusServerErrorRule, redirectChainLongRule } from "./definitions/status-redirect.js";
 import { rawRenderedGapRule } from "./definitions/raw-rendered-gap.js";
-import { cwvLcpPoorRule, cwvClsPoorRule } from "./definitions/cwv-threshold.js";
+import { cwvLcpPoorRule, cwvClsPoorRule, cwvTbtPoorRule } from "./definitions/cwv-threshold.js";
+import { titleMissingRule, h1MissingRule, h1MultipleRule, imgAltMissingRule, } from "./definitions/content-structure.js";
 export const ALL_RULES = [
     canonicalMissingRule,
     canonicalJsOnlyRule,
     noindexDetectedRule,
     jsonLdMissingRule,
     jsonLdInvalidRule,
+    qaStructureMissingRule,
+    jsonLdProductIncompleteRule,
     ogBasicMissingRule,
     ogDescriptionMissingRule,
     metaDescriptionMissingRule,
@@ -20,6 +25,11 @@ export const ALL_RULES = [
     rawRenderedGapRule,
     cwvLcpPoorRule,
     cwvClsPoorRule,
+    cwvTbtPoorRule,
+    titleMissingRule,
+    h1MissingRule,
+    h1MultipleRule,
+    imgAltMissingRule,
 ];
 /** rule_id는 registry 전체에서 유일해야 finding_key(page_url+rule_id+rule_version) 매칭이 안정적이다. */
 function assertUniqueRuleIds(rules) {

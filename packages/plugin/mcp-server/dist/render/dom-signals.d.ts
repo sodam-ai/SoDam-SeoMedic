@@ -15,6 +15,8 @@ export interface PageSignals {
     ogDescription: string | null;
     /** <meta name="description" content> */
     metaDescription: string | null;
+    /** alt 속성 자체가 없는 <img> 개수. alt="" (장식용 이미지의 의도된 빈 값)는 위반이 아니므로 카운트 제외 */
+    imagesWithoutAltCount: number;
 }
 /**
  * linkedom은 태그명은 소문자로 정규화하지만(HTML5 스펙과 동일) **속성명은 원문 대소문자를 그대로 보존한다**

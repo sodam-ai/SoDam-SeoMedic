@@ -34,6 +34,7 @@ export function extractSignalsFromHtml(html) {
             ogUrl: null,
             ogDescription: null,
             metaDescription: null,
+            imagesWithoutAltCount: 0,
         };
     }
     const title = document.querySelector("title")?.textContent?.trim() ?? null;
@@ -58,6 +59,7 @@ export function extractSignalsFromHtml(html) {
         .filter((el) => getAttrCI(el, "type")?.toLowerCase() === "application/ld+json")
         .map((el) => el.textContent?.trim() ?? "")
         .filter((text) => text.length > 0);
+    const imagesWithoutAltCount = Array.from(document.querySelectorAll("img")).filter((el) => getAttrCI(el, "alt") === null).length;
     return {
         title,
         canonical,
@@ -69,6 +71,7 @@ export function extractSignalsFromHtml(html) {
         ogUrl,
         ogDescription,
         metaDescription,
+        imagesWithoutAltCount,
     };
 }
 /**
@@ -88,6 +91,7 @@ export async function extractSignalsFromPage(page) {
         const jsonLdBlocks = Array.from(document.querySelectorAll('script[type="application/ld+json" i]'))
             .map((el) => (el.textContent ?? "").trim())
             .filter((text) => text.length > 0);
+        const imagesWithoutAltCount = Array.from(document.querySelectorAll("img")).filter((el) => !el.hasAttribute("alt")).length;
         return {
             title: titleEl?.textContent?.trim() ?? null,
             canonical: canonicalEl?.getAttribute("href") ?? null,
@@ -99,6 +103,7 @@ export async function extractSignalsFromPage(page) {
             ogUrl: ogUrlEl?.getAttribute("content") ?? null,
             ogDescription: ogDescriptionEl?.getAttribute("content") ?? null,
             metaDescription: metaDescriptionEl?.getAttribute("content") ?? null,
+            imagesWithoutAltCount,
         };
     });
 }

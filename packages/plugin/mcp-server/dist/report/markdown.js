@@ -21,6 +21,13 @@ export function buildMarkdownReport(input) {
     lines.push(`- 진단 페이지 수: ${summary.totalPages}`);
     lines.push(`- 총 위반 건수: ${summary.totalViolations}`);
     lines.push("");
+    // 진단 페이지가 0개면 위반도 0건이라 종합 상태가 "양호"로 계산되지만, 실제로는 사이트에
+    // 접속조차 못 했을 가능성이 크다(실측: 존재하지 않는 도메인 진단 시 재현됨). "양호" 라벨만
+    // 보고 오해하지 않도록 별도 경고를 덧붙인다(라벨 자체는 기존 동작 유지 — 하위 호환).
+    if (summary.totalPages === 0) {
+        lines.push(`> ⚠️ 진단한 페이지가 0개입니다 — "양호"는 위반이 없다는 뜻이 아니라 확인할 페이지 자체를 찾지 못했다는 뜻입니다. URL 철자와 사이트 접속 가능 여부를 확인해주세요.`);
+        lines.push("");
+    }
     for (const page of input.pages) {
         lines.push(`## ${page.url}`);
         lines.push("");
