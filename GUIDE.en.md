@@ -91,6 +91,8 @@ This document and its Korean counterpart (**[GUIDE.md](./GUIDE.md)**) contain id
    ```
 5. You might also see items related to structured data (JSON-LD) or Open Graph in your report, such as "No structured data found" or "Open Graph title missing." These aren't serious problems — they're marked with "low" severity because they're "opportunities" to make your social sharing or search results richer, not things that are currently broken.
 6. You might also see an **AI crawler policy** item — for example, "GPTBot is blocked in robots.txt." Whether to allow or block AI services like ChatGPT or Claude from crawling and training on this site is **a decision for the site owner to make**; SeoMedic only reports the current state and doesn't recommend which way to go.
+7. You might also see **page title / heading (h1) / image description (alt)** items — for example, "title tag is missing" or "multiple h1 tags found." These are among the most basic elements search engines use to understand your page content.
+8. You might also see a **Product information** item — for example, "Product type is missing a product name." This appears when a product page's structured data is missing fields Google requires (product name, plus at least one of review/rating/price).
 
 ## Step 4. Check again later (regression detection)
 
