@@ -55,7 +55,13 @@ server.registerTool(
     try {
       const markdown = buildMarkdownReport(result.reportInput);
       const notes: string[] = [];
-      if (result.skippedByRobots.length > 0) notes.push(`robots.txt로 차단되어 건너뛴 URL ${result.skippedByRobots.length}개`);
+      // "robots.txt로 차단"이라고 단정하지 않는다 — robots.txt 조회 자체가 네트워크 오류로 실패해도
+      // 안전을 위해 동일하게 크롤을 건너뛰므로(fail-closed), 실제 원인이 "명시적 차단"인지
+      // "사이트 접속 실패(오타·다운 등)"인지 이 시점엔 구분할 수 없다(추측 금지).
+      if (result.skippedByRobots.length > 0)
+        notes.push(
+          `robots.txt 정책 또는 사이트 접속 실패로 건너뛴 URL ${result.skippedByRobots.length}개 — URL이 정확한지, 사이트가 접속 가능한지 확인해주세요`,
+        );
       if (result.truncated) notes.push("max-pages 상한에 도달해 크롤이 잘렸습니다");
       const footer = notes.length > 0 ? `\n\n> 참고: ${notes.join(" · ")}` : "";
       return { content: [{ type: "text" as const, text: markdown + footer }] };

@@ -1,0 +1,27 @@
+{
+  "name": "@seomedic/mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@octokit/rest": "^22.0.1",
+    "better-sqlite3": "^12.11.1",
+    "commander": "^15.0.0",
+    "fast-xml-parser": "^5.9.3",
+    "lighthouse": "^13.4.0",
+    "linkedom": "^0.18.12",
+    "playwright": "^1.61.1",
+    "robots-parser": "^3.0.1",
+    "tree-kill": "^1.2.2",
+    "ts-morph": "^28.0.0",
+    "undici": "^8.6.0",
+    "zod": "^4.4.3"
+  },
+  "scripts": {
+    "postinstall": "playwright install chromium || echo 'Playwright 브라우저 자동설치 실패 — 수동으로 `npx playwright install chromium` 실행 필요'"
+  }
+}

@@ -93,4 +93,31 @@ describe("extractSignalsFromHtml", () => {
     const signals = extractSignalsFromHtml(html);
     expect(signals.ogTitle).toBe("대문자 속성");
   });
+
+  it("alt 속성이 아예 없는 img만 센다", () => {
+    const html = `<html><body>
+      <img src="a.png">
+      <img src="b.png" alt="설명 있음">
+      <img src="c.png">
+    </body></html>`;
+    const signals = extractSignalsFromHtml(html);
+    expect(signals.imagesWithoutAltCount).toBe(2);
+  });
+
+  it('alt="" (장식용 이미지의 의도된 빈 값)는 위반으로 세지 않는다', () => {
+    const html = `<html><body><img src="deco.png" alt=""></body></html>`;
+    const signals = extractSignalsFromHtml(html);
+    expect(signals.imagesWithoutAltCount).toBe(0);
+  });
+
+  it("img가 없으면 0", () => {
+    const signals = extractSignalsFromHtml("<html><body>이미지 없음</body></html>");
+    expect(signals.imagesWithoutAltCount).toBe(0);
+  });
+
+  it("ALT 속성이 대문자여도 정상 인식된다(linkedom 대소문자 회귀 방지)", () => {
+    const html = `<html><body><IMG SRC="a.png" ALT="대문자 속성"></body></html>`;
+    const signals = extractSignalsFromHtml(html);
+    expect(signals.imagesWithoutAltCount).toBe(0);
+  });
 });
