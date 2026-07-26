@@ -51,14 +51,20 @@ Think of it as a **health checkup for websites**: just as a doctor examines a bo
 
 > First time running a terminal command? On Windows, open `PowerShell` (search for it in the Start menu); on Mac/Linux, open the `Terminal` app. Type the command exactly as shown and press Enter.
 
+> **What should the check commands show?** `node -v` should print something like `v22.4.0`, `git --version` something like `git version 2.43.0`, and `claude --version` a similar version string — any specific number is fine. If instead you see an **error** such as `'node' is not recognized as an internal or external command` (Windows) or `command not found: node` (Mac/Linux), that program isn't installed yet — use the "If missing" link in the table above, then **open a brand-new terminal window** and try again (a window that was already open won't know about a program you just installed).
+>
+> **What exactly is Node.js?** It's a tool that lets a computer run programs written in JavaScript, a programming language. SeoMedic's internal diagnostic engine is built with it, so it's required — you'll never need to write any code yourself.
+
 ## 3. Download & Install
 
 SeoMedic isn't a separate file you download and run — it's installed **from inside Claude Code itself**, via marketplace commands (Claude Code fetches whatever files it needs automatically).
 
 ```
-/plugin marketplace add <marketplace-source>
-/plugin install seomedic@<marketplace-name>
+/plugin marketplace add sodam-ai/SoDam-SeoMedic
+/plugin install seomedic@sodam-seomedic-marketplace
 ```
+
+(The two values above are this project's actual GitHub repository address and marketplace name. Copy them exactly as shown.)
 
 **⚠️ You must fully quit and restart Claude Code after installing.** (Confirmed by direct testing: a newly installed plugin is only recognized after a full restart. Opening a new chat tab is not enough — you must quit and relaunch the actual application.)
 
@@ -218,7 +224,13 @@ Automatically detects when a page is missing structured data (JSON-LD — a spec
 Checks whether the title and URL shown when a link is shared on social media (Open Graph tags) are missing. Of these, **only the title and url** are auto-filled with your approval — this is safe because they're simply copied from values that already exist on the page. (The description is excluded, since writing one requires generating a new sentence.)
 </details>
 
-**Planned, not yet started**: AI crawler policy, Google Search Console/Analytics integration (Phase 2); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
+<details>
+<summary><strong>✅ Phase 2 Stage 3 — AI Crawler Policy (GEO) Detection (Done)</strong></summary>
+
+Checks how your `robots.txt` treats the crawlers used by AI search and AI training (11 bots, including GPTBot and ClaudeBot) and reports whether each is allowed or blocked. **This only detects the current state — it does not recommend a policy.** Whether allowing or blocking is the right call is a decision for the site owner, so this reports the facts neutrally, without opinion.
+</details>
+
+**Planned, not yet started**: **real** Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
 
 ## 9. Security & Data Flow
 

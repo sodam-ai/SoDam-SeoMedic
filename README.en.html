@@ -137,10 +137,15 @@
 <blockquote>
 <p>First time running a terminal command? On Windows, open <code>PowerShell</code> (search for it in the Start menu); on Mac/Linux, open the <code>Terminal</code> app. Type the command exactly as shown and press Enter.</p>
 </blockquote>
+<blockquote>
+<p><strong>What should the check commands show?</strong> <code>node -v</code> should print something like <code>v22.4.0</code>, <code>git --version</code> something like <code>git version 2.43.0</code>, and <code>claude --version</code> a similar version string — any specific number is fine. If instead you see an <strong>error</strong> such as <code>'node' is not recognized as an internal or external command</code> (Windows) or <code>command not found: node</code> (Mac/Linux), that program isn't installed yet — use the "If missing" link in the table above, then <strong>open a brand-new terminal window</strong> and try again (a window that was already open won't know about a program you just installed).</p>
+<p><strong>What exactly is Node.js?</strong> It's a tool that lets a computer run programs written in JavaScript, a programming language. SeoMedic's internal diagnostic engine is built with it, so it's required — you'll never need to write any code yourself.</p>
+</blockquote>
 <h2 id="3-download-install">3. Download &amp; Install</h2>
 <p>SeoMedic isn't a separate file you download and run — it's installed <strong>from inside Claude Code itself</strong>, via marketplace commands (Claude Code fetches whatever files it needs automatically).</p>
-<pre><code>/plugin marketplace add &lt;marketplace-source&gt;
-/plugin install seomedic@&lt;marketplace-name&gt;</code></pre>
+<pre><code>/plugin marketplace add sodam-ai/SoDam-SeoMedic
+/plugin install seomedic@sodam-seomedic-marketplace</code></pre>
+<p>(The two values above are this project's actual GitHub repository address and marketplace name. Copy them exactly as shown.)</p>
 <p><strong>⚠️ You must fully quit and restart Claude Code after installing.</strong> (Confirmed by direct testing: a newly installed plugin is only recognized after a full restart. Opening a new chat tab is not enough — you must quit and relaunch the actual application.)</p>
 <p>Verify the install:</p>
 <pre><code>/plugin list</code></pre>
@@ -251,7 +256,7 @@ if needed</code></pre>
 </details>
 <details>
 <summary>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</summary>
-<p>We added a new automated check that confirms the build and all 260 tests pass on Windows, macOS, and Linux. In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
+<p>We added a new automated check that confirms the build and all 260 tests pass on Windows, macOS, and Linux (<strong>this 260 was the test count as of 2026-07-06; the suite has since grown to 379 tests as features were added</strong>). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
 </details>
 <details>
 <summary>✅ Phase 2 Stage 1 — Structured Data (JSON-LD) Detection (Done)</summary>
@@ -261,7 +266,11 @@ if needed</code></pre>
 <summary>✅ Phase 2 Stage 2 — Open Graph (Social Share Preview) Detection + Partial Auto-fix (Done)</summary>
 <p>Checks whether the title and URL shown when a link is shared on social media (Open Graph tags) are missing. Of these, <strong>only the title and url</strong> are auto-filled with your approval — this is safe because they're simply copied from values that already exist on the page. (The description is excluded, since writing one requires generating a new sentence.)</p>
 </details>
-<p><strong>Planned, not yet started</strong>: AI crawler policy, Google Search Console/Analytics integration (Phase 2); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
+<details>
+<summary>✅ Phase 2 Stage 3 — AI Crawler Policy (GEO) Detection (Done)</summary>
+<p>Checks how your <code>robots.txt</code> treats the crawlers used by AI search and AI training (11 bots, including GPTBot and ClaudeBot) and reports whether each is allowed or blocked. <strong>This only detects the current state — it does not recommend a policy.</strong> Whether allowing or blocking is the right call is a decision for the site owner, so this reports the facts neutrally, without opinion.</p>
+</details>
+<p><strong>Planned, not yet started</strong>: <strong>real</strong> Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
 <h2 id="9-security-data-flow">9. Security &amp; Data Flow</h2>
 <ul>
 <li><strong>Everything is stored only in the <code>.seomedic/</code> folder.</strong> Running a diagnosis creates a single SQLite database file (<code>.seomedic/seomedic.db</code>) inside the project folder, holding diagnosis history, baselines, and regression records. This folder is set up to be excluded from git tracking automatically.</li>

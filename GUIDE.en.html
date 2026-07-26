@@ -90,6 +90,7 @@
 <tr><td>GEO</td><td>Generative Engine Optimization — making your page likely to be cited in AI answers (ChatGPT, Perplexity, etc.)</td></tr>
 <tr><td>Crawl</td><td>A program automatically visiting web pages and reading their content</td></tr>
 <tr><td>Render</td><td>A browser drawing code (HTML/JavaScript) into what actually appears on screen</td></tr>
+<tr><td>Core Web Vitals, LCP</td><td>A set of metrics Google uses to measure "how fast and smooth a page feels." LCP (Largest Contentful Paint) is one of them — the time it takes for the largest visible element on the page to finish rendering. Smaller (faster) numbers are better</td></tr>
 <tr><td>Canonical</td><td>A tag telling search engines "this is the true, representative address for this page"</td></tr>
 <tr><td>Structured Data (JSON-LD)</td><td>A special, hidden markup that helps search engines understand your page content more precisely. It's part of how search results can show extra info like ratings, prices, or reviews</td></tr>
 <tr><td>Open Graph</td><td>Settings that control the preview (title, description, URL) shown when someone shares your page link on social media like Facebook or KakaoTalk</td></tr>
@@ -111,10 +112,11 @@
 <p>   <strong>What success looks like</strong>: a version number like <code>v22.x.x</code>. If nothing appears, or you get an error, see <a href="./README.en.md#2-prerequisites--required-software" target="_blank" rel="noopener noreferrer">README section 2</a> to install Node.js.</p>
 <p class="ol-item"><strong>3.</strong> Confirm Claude Code runs:</p>
 <pre><code>claude --version</code></pre>
+<p>   <strong>What success looks like</strong>: a version number. If you see an error like <code>'claude' is not recognized as an internal or external command</code> (Windows) or <code>command not found: claude</code>, Claude Code isn't installed yet — install it via the link in <a href="./README.en.md#2-prerequisites--required-software" target="_blank" rel="noopener noreferrer">README section 2</a>, then <strong>open a new terminal window</strong> and try again.</p>
 <h2 id="step-2-install-seomedic-3-5-minutes">Step 2. Install SeoMedic (~3-5 minutes)</h2>
-<p class="ol-item"><strong>1.</strong> In the Claude Code chat, type (replace with the real marketplace address):</p>
-<pre><code>/plugin marketplace add &lt;marketplace-source&gt;
-/plugin install seomedic@&lt;marketplace-name&gt;</code></pre>
+<p class="ol-item"><strong>1.</strong> In the Claude Code chat, type this exactly (these are this project's real repository address and marketplace name — no need to replace anything, just copy and paste):</p>
+<pre><code>/plugin marketplace add sodam-ai/SoDam-SeoMedic
+/plugin install seomedic@sodam-seomedic-marketplace</code></pre>
 <p class="ol-item"><strong>2.</strong> <strong>⭐ The single most important step</strong>: once installation finishes, <strong>fully quit</strong> and <strong>relaunch</strong> Claude Code. Closing the window isn't enough — you must actually quit and restart the application.</p>
 <p class="ol-item"><strong>3.</strong> After relaunching, verify:</p>
 <pre><code>/plugin list</code></pre>
@@ -146,6 +148,7 @@ HTTP status: `200`
 |---|---|---|---|---|
 | 🟠 high | R-CANONICAL-MISSING | canonical | - | Add a self-canonical tag |</code></pre>
 <p class="ol-item"><strong>5.</strong> You might also see items related to structured data (JSON-LD) or Open Graph in your report, such as "No structured data found" or "Open Graph title missing." These aren't serious problems — they're marked with "low" severity because they're "opportunities" to make your social sharing or search results richer, not things that are currently broken.</p>
+<p class="ol-item"><strong>6.</strong> You might also see an <strong>AI crawler policy</strong> item — for example, "GPTBot is blocked in robots.txt." Whether to allow or block AI services like ChatGPT or Claude from crawling and training on this site is <strong>a decision for the site owner to make</strong>; SeoMedic only reports the current state and doesn't recommend which way to go.</p>
 <h2 id="step-4-check-again-later-regression-detection">Step 4. Check again later (regression detection)</h2>
 <p class="ol-item"><strong>1.</strong> Once you're happy with (or done reviewing) an audit, ask in the chat:</p>
 <pre><code>Save this as a baseline</code></pre>
@@ -162,13 +165,16 @@ HTTP status: `200`
 <p class="ol-item"><strong>3.</strong> The AI shows a plan (what it would fix and how).</p>
 <ul>
 <li>Purely additive fixes ("add what's missing") proceed automatically.</li>
-<li>Anything affecting how the site is indexed/displayed shows a diff and asks for your approval — review it and answer "approve" or "reject."</li>
+<li>Anything affecting how the site is indexed/displayed shows <strong>a diff</strong> (an exact before/after comparison of the text that would change) and asks for your approval — review it and answer "approve" or "reject."</li>
 </ul>
 <p class="ol-item"><strong>4.</strong> Once applied, the AI reports whether <code>next build</code> still passes. <strong>If the build fails, it's automatically rolled back</strong> — you don't need to do anything.</p>
 <p class="ol-item"><strong>5.</strong> If you're not happy with the result, ask to "undo the fix I just applied."</p>
 <p class="ol-item"><strong>6.</strong> <strong>Applied fixes are still real file changes</strong> — review with <code>git diff</code> as you normally would before committing.</p>
 <h2 id="step-6-optional-get-an-auto-fix-proposal-for-a-github-repository-experimental">Step 6. (Optional) Get an auto-fix proposal for a GitHub repository — ⚠️ Experimental</h2>
 <p>This step only applies if <strong>you have a Next.js project on GitHub and want to receive a Pull Request (proposed change)</strong>. If this is your first time, we recommend getting comfortable with Step 5 (local folder) first. The "your own repository" path of this feature has been fully verified against real GitHub, including an actual generated Pull Request. The flow for forking a repository you don't own and proposing changes has been verified up through fork creation and cloning in a real GitHub environment (we confirmed the fork repository actually gets created). However, the final step of actually creating the Pull Request hasn't been confirmed yet (the test repository used had no Next.js project files, so the process stopped one step before that). Please read the following carefully before proceeding.</p>
+<blockquote>
+<p><strong>Copyright &amp; license notice</strong>: this feature creates real branches and Pull Requests on a GitHub repository — first make sure you have permission to do so on the target repository, and review SeoMedic's own license and commercial-use terms in <a href="./README.en.md#14-legal-copyright-license-and-commercial-use" target="_blank" rel="noopener noreferrer">README section 14, "Legal, Copyright, License, and Commercial Use"</a>.</p>
+</blockquote>
 <p class="ol-item"><strong>1.</strong> <strong>Create a GitHub Personal Access Token</strong></p>
 <p class="ol-item ol-item-nested"><strong>1.</strong> In your browser, go to <code>https://github.com/settings/personal-access-tokens/new</code> and log in.</p>
 <p class="ol-item ol-item-nested"><strong>2.</strong> <strong>Repository access</strong>: choose "Only select repositories" → select the target repository from the list.</p>

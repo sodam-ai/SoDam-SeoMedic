@@ -137,10 +137,15 @@
 <blockquote>
 <p>"명령 실행"이 처음이신 분: Windows는 <code>PowerShell</code>(시작 메뉴에서 검색), Mac/Linux는 <code>터미널(Terminal)</code>을 여신 뒤 위 명령을 그대로 입력하고 Enter를 누르시면 됩니다.</p>
 </blockquote>
+<blockquote>
+<p><strong>확인 명령을 실행하면 무엇이 보여야 하나요?</strong> <code>node -v</code>는 <code>v22.4.0</code>, <code>git --version</code>은 <code>git version 2.43.0</code>, <code>claude --version</code>도 이와 비슷하게 <strong>버전 번호</strong>가 나오면 전부 정상입니다(정확한 숫자는 달라도 됩니다). 반대로 <code>'node'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는 배치 파일이 아닙니다</code> 같은 <strong>오류 문구</strong>가 나오면, 그 프로그램이 아직 설치되지 않은 것입니다 — 위 표의 "없으면 설치" 링크에서 설치한 뒤, <strong>터미널 창을 새로 연 상태에서</strong> 다시 시도하세요(이미 열려있던 창은 방금 설치한 프로그램을 인식하지 못합니다).</p>
+<p><strong>Node.js가 정확히 뭔가요?</strong> 자바스크립트라는 프로그래밍 언어로 만들어진 프로그램을 컴퓨터에서 실행할 수 있게 해주는 도구입니다. SeoMedic의 내부 진단 엔진이 이 언어로 만들어져 있어서 필요하며, 설치만 하면 되고 사용자가 직접 코드를 작성할 일은 없습니다.</p>
+</blockquote>
 <h2 id="3-다운로드설치">3. 다운로드·설치</h2>
 <p>SeoMedic은 별도 설치 파일을 "다운로드"하는 방식이 아니라, <strong>Claude Code 안에서 마켓플레이스 명령으로 설치</strong>합니다(따로 실행 파일을 내려받아 실행하지 않습니다 — Claude Code가 알아서 필요한 파일을 받아옵니다).</p>
-<pre><code>/plugin marketplace add &lt;마켓플레이스-저장소-주소&gt;
-/plugin install seomedic@&lt;마켓플레이스-이름&gt;</code></pre>
+<pre><code>/plugin marketplace add sodam-ai/SoDam-SeoMedic
+/plugin install seomedic@sodam-seomedic-marketplace</code></pre>
+<p>(위 두 값은 이 프로젝트의 실제 GitHub 저장소 주소와 마켓플레이스 이름입니다. 그대로 복사해서 사용하시면 됩니다.)</p>
 <p><strong>⚠️ 설치 후 반드시 Claude Code를 완전히 종료했다가 다시 켜주세요.</strong> (실측 확인된 사실: 새로 설치한 플러그인은 다시 시작해야 인식됩니다. 그냥 새 대화창만 여는 것으로는 부족합니다 — 프로그램 자체를 껐다 켜야 합니다.)</p>
 <p>설치가 잘 됐는지 확인:</p>
 <pre><code>/plugin list</code></pre>
@@ -257,10 +262,14 @@
 <p>소셜 미디어(카카오톡·페이스북 등)에 링크를 공유했을 때 보이는 제목·주소(Open Graph 태그)가 없는지 확인합니다. 그중 <strong>제목과 주소는 이미 페이지에 있는 실제 값을 그대로 복사하는 것</strong>이라 안전해서, 승인을 거쳐 자동으로 채워드릴 수 있습니다(설명 문구는 새로운 문장을 만들어야 해서 자동 수정 대상에서 제외했습니다).</p>
 </details>
 <details>
-<summary>🔧 2026-07-06 — 품질 자동검증(CI) 도입 + 실제 결함 발견·수정</summary>
-<p>Windows·Mac·Linux 3개 운영체제 전부에서 자동으로 빌드와 260개 테스트가 통과하는지 확인하는 절차(CI)를 새로 만들었습니다. 그 과정에서 지금까지 Windows에서만 개발·확인해와서 미처 몰랐던 실제 문제 몇 가지를 찾아 고쳤습니다(예: GitHub 자동 수정 기능이 Mac·Linux 환경에서 내부적으로 필요한 프로그램 경로를 못 찾던 문제). 지금은 3개 운영체제 모두에서 빌드·테스트 통과가 자동으로 확인되지만, <strong>사람이 Mac·Linux에서 직접 명령을 실행해보는 수동 검증까지 마친 것은 아닙니다</strong> — 자동 검증으로 위험을 낮춘 것이지, 완전히 없앤 것은 아닙니다.</p>
+<summary>✅ Phase 2 Stage 3 — AI 크롤러 정책(GEO) 탐지 (완료)</summary>
+<p>ChatGPT·Claude 등 AI 검색·AI 학습에 쓰이는 크롤러(GPTBot·ClaudeBot 등 11종)가 이 사이트의 <code>robots.txt</code>에서 허용되는지 차단되는지를 확인해 리포트에 보여줍니다. <strong>탐지만 하고 "이렇게 바꾸세요"라는 정책 권고는 하지 않습니다</strong>(허용·차단 중 어느 쪽이 맞는지는 사이트 운영자의 정책 판단 영역이라, 사실만 중립적으로 알려드립니다).</p>
 </details>
-<p><strong>앞으로 계획된 것(아직 시작 안 함)</strong>: AI 크롤러 정책·Google Search Console/Analytics 연동(Phase 2), 네이버·Bing 지원(Phase 3). 이 문서는 실제로 구현·검증된 것만 다루며, 계획 단계 기능을 이미 되는 것처럼 설명하지 않습니다.</p>
+<details>
+<summary>🔧 2026-07-06 — 품질 자동검증(CI) 도입 + 실제 결함 발견·수정</summary>
+<p>Windows·Mac·Linux 3개 운영체제 전부에서 자동으로 빌드와 260개 테스트가 통과하는지 확인하는 절차(CI)를 새로 만들었습니다(<strong>이 260개는 2026-07-06 당시 테스트 개수이며, 이후 기능이 늘어나며 현재는 379개로 늘었습니다</strong>). 그 과정에서 지금까지 Windows에서만 개발·확인해와서 미처 몰랐던 실제 문제 몇 가지를 찾아 고쳤습니다(예: GitHub 자동 수정 기능이 Mac·Linux 환경에서 내부적으로 필요한 프로그램 경로를 못 찾던 문제). 지금은 3개 운영체제 모두에서 빌드·테스트 통과가 자동으로 확인되지만, <strong>사람이 Mac·Linux에서 직접 명령을 실행해보는 수동 검증까지 마친 것은 아닙니다</strong> — 자동 검증으로 위험을 낮춘 것이지, 완전히 없앤 것은 아닙니다.</p>
+</details>
+<p><strong>앞으로 계획된 것(아직 시작 안 함)</strong>: Google Search Console/Analytics <strong>실연동</strong>(Phase 2 — 현재는 인터페이스 골격과 가짜 클라이언트만 있으며 실제 계정 연동은 안 돼 있습니다), 네이버·Bing 지원(Phase 3). 이 문서는 실제로 구현·검증된 것만 다루며, 계획 단계 기능을 이미 되는 것처럼 설명하지 않습니다.</p>
 <h2 id="9-보안데이터-흐름">9. 보안·데이터 흐름</h2>
 <ul>
 <li><strong><code>.seomedic/</code> 폴더에만 저장됩니다.</strong> 진단을 실행한 프로젝트 폴더 안에 SQLite 데이터베이스 파일(<code>.seomedic/seomedic.db</code>) 하나가 생기고, 여기에 진단 이력·베이스라인·회귀 기록이 저장됩니다. 이 폴더는 자동으로 git 추적에서 제외되도록 안내됩니다.</li>
