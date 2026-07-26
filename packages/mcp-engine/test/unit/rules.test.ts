@@ -14,6 +14,7 @@ const emptySignals: PageSignals = {
   ogUrl: null,
   ogDescription: null,
   metaDescription: null,
+  imagesWithoutAltCount: 0,
 };
 const validJsonLd = '{"@context":"https://schema.org","@type":"WebPage"}';
 
@@ -155,33 +156,70 @@ describe("R-CWV-LCP-POOR / R-CWV-CLS-POOR", () => {
   });
 });
 
+describe("R-CWV-TBT-POOR", () => {
+  it("known-good: TBT 50ms(데스크톱 임계값 150ms 이하)", () => {
+    const ctx = baseCtx({ cwv: { lcpMs: 1000, clsUnitless: 0.02, inpProxyTbtMs: 50, isLabData: true, runsCompleted: 3 } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-CWV-TBT-POOR")).toBe(false);
+  });
+
+  it("known-bad: TBT 400ms(데스크톱 임계값 150ms 초과)", () => {
+    const ctx = baseCtx({ cwv: { lcpMs: 1000, clsUnitless: 0.02, inpProxyTbtMs: 400, isLabData: true, runsCompleted: 3 } });
+    const violations = evaluateAllRules(ctx);
+    const found = violations.find((v) => v.ruleId === "R-CWV-TBT-POOR");
+    expect(found).toBeDefined();
+    expect(found!.severity).toBe("high");
+    expect(found!.currentValue).toContain("400ms");
+  });
+
+  it("CWV 미측정(cwv undefined)이면 조용히 skip", () => {
+    const violations = evaluateAllRules(baseCtx());
+    expect(violations.some((v) => v.ruleId === "R-CWV-TBT-POOR")).toBe(false);
+  });
+
+  it("경계값: TBT 정확히 150ms(임계값과 동일)면 미발화(<=이므로 good)", () => {
+    const ctx = baseCtx({ cwv: { lcpMs: 1000, clsUnitless: 0.02, inpProxyTbtMs: 150, isLabData: true, runsCompleted: 3 } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-CWV-TBT-POOR")).toBe(false);
+  });
+
+  it("경계값: TBT 151ms(임계값 1ms 초과)면 발화", () => {
+    const ctx = baseCtx({ cwv: { lcpMs: 1000, clsUnitless: 0.02, inpProxyTbtMs: 151, isLabData: true, runsCompleted: 3 } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-CWV-TBT-POOR")).toBe(true);
+  });
+});
+
 describe("종합: known-good/known-bad 픽스처 세트 (성공기준 검증)", () => {
   it("known-good 픽스처 8종은 오탐 0", () => {
     const ogComplete = { ogTitle: "t", ogUrl: "x", ogDescription: "d", metaDescription: "d" };
+    // title/h1MissingRule/h1MultipleRule 도입(Phase 2 Stage 4) 이후로는 "결함 없는 페이지"가 되려면
+    // title·h1도 채워야 한다 — 301 픽스처(status 게이트로 애초에 미평가)만 예외.
+    const contentComplete = { title: "예시 페이지 제목", h1Count: 1, h1Text: "예시 페이지 제목" };
     const goodFixtures: RuleContext[] = [
       baseCtx({
-        rawSignals: { ...emptySignals, canonical: "https://example.com/", jsonLdBlocks: [validJsonLd], ...ogComplete },
-        renderedSignals: { ...emptySignals, canonical: "https://example.com/", jsonLdBlocks: [validJsonLd], ...ogComplete },
+        rawSignals: { ...emptySignals, canonical: "https://example.com/", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
+        renderedSignals: { ...emptySignals, canonical: "https://example.com/", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
       }),
       baseCtx({
         statusCode: 200,
-        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
-        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
+        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
       }),
       baseCtx({ statusCode: 301, rawSignals: { ...emptySignals, canonical: "x" }, renderedSignals: { ...emptySignals, canonical: "x" } }),
       baseCtx({
         redirectChain: ["https://example.com/old"],
-        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
-        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
+        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
       }),
       baseCtx({
-        rawSignals: { ...emptySignals, canonical: "x", title: "t", metaRobots: "index", jsonLdBlocks: [validJsonLd], ...ogComplete },
-        renderedSignals: { ...emptySignals, canonical: "x", title: "t", metaRobots: "index", jsonLdBlocks: [validJsonLd], ...ogComplete },
+        rawSignals: { ...emptySignals, canonical: "x", metaRobots: "index", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", metaRobots: "index", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
       }),
       baseCtx({
         cwv: { lcpMs: 1200, clsUnitless: 0.01, inpProxyTbtMs: 10, isLabData: true, runsCompleted: 3 },
-        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
-        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete },
+        rawSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
+        renderedSignals: { ...emptySignals, canonical: "x", jsonLdBlocks: [validJsonLd], ...ogComplete, ...contentComplete },
       }),
     ];
     for (const ctx of goodFixtures) {

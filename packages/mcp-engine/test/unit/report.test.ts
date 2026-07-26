@@ -104,6 +104,18 @@ describe("buildMarkdownReport", () => {
     expect(buildMarkdownReport(input)).toContain("위반 사항 없음");
   });
 
+  it("진단 페이지가 0개면 '양호'와 별개로 접속 실패 가능성 경고를 포함한다(실사용 검증에서 발견: 존재하지 않는 도메인 진단 시 '양호'만 보이면 오해 소지)", () => {
+    const input: AuditReportInput = { target: "https://this-domain-should-not-exist.invalid", generatedAt: GENERATED_AT, pages: [] };
+    const md = buildMarkdownReport(input);
+    expect(md).toContain("양호"); // 기존 라벨 동작은 유지(하위 호환)
+    expect(md).toContain("페이지 자체를 찾지 못했다");
+  });
+
+  it("진단 페이지가 1개 이상이면 접속 실패 경고를 붙이지 않는다(정상 케이스 오탐 방지)", () => {
+    const input: AuditReportInput = { target: "https://example.com", generatedAt: GENERATED_AT, pages: [{ url: "https://example.com/", statusCode: 200, violations: [] }] };
+    expect(buildMarkdownReport(input)).not.toContain("페이지 자체를 찾지 못했다");
+  });
+
   it("CWV 섹션에 lab/field 구분 경고를 포함한다", () => {
     const input: AuditReportInput = {
       target: "https://example.com",
