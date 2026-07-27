@@ -15,6 +15,7 @@ const emptySignals: PageSignals = {
   ogDescription: null,
   metaDescription: null,
   imagesWithoutAltCount: 0,
+  bodyText: "",
 };
 
 function baseCtx(overrides: Partial<RuleContext> = {}): RuleContext {

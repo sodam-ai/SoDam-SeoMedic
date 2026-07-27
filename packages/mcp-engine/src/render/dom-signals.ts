@@ -19,6 +19,10 @@ export interface PageSignals {
   metaDescription: string | null;
   /** alt 속성 자체가 없는 <img> 개수. alt="" (장식용 이미지의 의도된 빈 값)는 위반이 아니므로 카운트 제외 */
   imagesWithoutAltCount: number;
+  /** <body> 전체 텍스트(공백 정규화: 연속 공백/줄바꿈을 스페이스 하나로 축약 + trim). JSON-LD 값이
+   * 실제 페이지에 존재하는지 대조(환각 0)하는 용도로만 쓴다 — 원문 그대로가 아니라 정규화된 형태라
+   * 표시용이 아닌 포함 여부(substring) 검사 전용 필드다. */
+  bodyText: string;
 }
 
 /**
@@ -33,6 +37,11 @@ export function getAttrCI(el: Element, attrName: string): string | null {
     if (attr.name.toLowerCase() === lower) return attr.value;
   }
   return null;
+}
+
+/** 연속 공백/줄바꿈을 스페이스 하나로 축약 + trim. raw/rendered 양쪽에서 동일하게 적용해야 대칭이 깨지지 않는다. */
+function normalizeBodyText(text: string | null | undefined): string {
+  return (text ?? "").replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -56,6 +65,7 @@ export function extractSignalsFromHtml(html: string): PageSignals {
       ogDescription: null,
       metaDescription: null,
       imagesWithoutAltCount: 0,
+      bodyText: "",
     };
   }
 
@@ -93,6 +103,8 @@ export function extractSignalsFromHtml(html: string): PageSignals {
     (el) => getAttrCI(el, "alt") === null,
   ).length;
 
+  const bodyText = normalizeBodyText(document.querySelector("body")?.textContent);
+
   return {
     title,
     canonical,
@@ -105,6 +117,7 @@ export function extractSignalsFromHtml(html: string): PageSignals {
     ogDescription,
     metaDescription,
     imagesWithoutAltCount,
+    bodyText,
   };
 }
 
@@ -130,6 +143,10 @@ export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
       (el) => !el.hasAttribute("alt"),
     ).length;
 
+    // normalizeBodyText와 동일한 규칙(연속 공백/줄바꿈→스페이스 하나+trim)을 인라인 적용한다 —
+    // 이 콜백은 page.evaluate로 브라우저 컨텍스트에 직렬화돼 실행되므로 외부 함수를 참조할 수 없다.
+    const bodyText = (document.querySelector("body")?.textContent ?? "").replace(/\s+/g, " ").trim();
+
     return {
       title: titleEl?.textContent?.trim() ?? null,
       canonical: canonicalEl?.getAttribute("href") ?? null,
@@ -142,6 +159,7 @@ export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
       ogDescription: ogDescriptionEl?.getAttribute("content") ?? null,
       metaDescription: metaDescriptionEl?.getAttribute("content") ?? null,
       imagesWithoutAltCount,
+      bodyText,
     };
   });
 }

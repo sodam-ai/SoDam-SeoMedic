@@ -14,6 +14,7 @@ const empty: PageSignals = {
   ogDescription: null,
   metaDescription: null,
   imagesWithoutAltCount: 0,
+  bodyText: "",
 };
 
 describe("diffSignals", () => {

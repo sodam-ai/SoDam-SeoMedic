@@ -15,6 +15,7 @@ const emptySignals: PageSignals = {
   ogDescription: null,
   metaDescription: null,
   imagesWithoutAltCount: 0,
+  bodyText: "",
 };
 const validJsonLd = '{"@context":"https://schema.org","@type":"WebPage"}';
 const validQaJsonLd = '{"@context":"https://schema.org","@type":"FAQPage"}';
@@ -259,6 +260,76 @@ describe("R-JSONLD-PRODUCT-INCOMPLETE", () => {
     const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [ratedProduct] } });
     const violations = evaluateAllRules(ctx);
     expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-INCOMPLETE")).toBe(false);
+  });
+});
+
+describe("R-JSONLD-PRODUCT-NAME-MISMATCH", () => {
+  it("known-good: Product 타입이 아니면(예: WebPage) 미발화", () => {
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [validJsonLd], bodyText: "아무 상관없는 본문" } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-NAME-MISMATCH")).toBe(false);
+  });
+
+  it("known-good: name이 본문에 그대로 등장하면 미발화", () => {
+    const product = '{"@context":"https://schema.org","@type":"Product","name":"러닝화 프로 X"}';
+    const ctx = baseCtx({
+      renderedSignals: { ...emptySignals, jsonLdBlocks: [product], bodyText: "이 러닝화 프로 X는 최고의 신발입니다" },
+    });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-NAME-MISMATCH")).toBe(false);
+  });
+
+  it("known-good: 대소문자가 달라도 일치로 인정된다(대소문자 무관 비교)", () => {
+    const product = '{"@context":"https://schema.org","@type":"Product","name":"Running Shoe Pro"}';
+    const ctx = baseCtx({
+      renderedSignals: { ...emptySignals, jsonLdBlocks: [product], bodyText: "이 페이지는 running shoe pro 상품입니다" },
+    });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-NAME-MISMATCH")).toBe(false);
+  });
+
+  it("known-bad: name이 본문 어디에도 없으면 high severity로 발화", () => {
+    const product = '{"@context":"https://schema.org","@type":"Product","name":"전혀 다른 상품명"}';
+    const ctx = baseCtx({
+      renderedSignals: { ...emptySignals, jsonLdBlocks: [product], bodyText: "이 페이지는 완전히 다른 내용을 담고 있습니다" },
+    });
+    const violations = evaluateAllRules(ctx);
+    const found = violations.find((v) => v.ruleId === "R-JSONLD-PRODUCT-NAME-MISMATCH");
+    expect(found).toBeDefined();
+    expect(found!.severity).toBe("high");
+  });
+
+  it("엣지: bodyText가 비어있으면(파싱 실패 등) 판단 근거가 없어 fail-closed로 미발화", () => {
+    const product = '{"@context":"https://schema.org","@type":"Product","name":"어떤 상품"}';
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [product], bodyText: "" } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-NAME-MISMATCH")).toBe(false);
+  });
+
+  it("엣지: name 필드 자체가 없으면(다른 규칙 R-JSONLD-PRODUCT-INCOMPLETE 소관) 미발화", () => {
+    const product = '{"@context":"https://schema.org","@type":"Product","offers":{"@type":"Offer","price":"10000"}}';
+    const ctx = baseCtx({ renderedSignals: { ...emptySignals, jsonLdBlocks: [product], bodyText: "아무 본문" } });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-NAME-MISMATCH")).toBe(false);
+  });
+
+  it("엣지: 404 페이지는 미발화(status 게이트)", () => {
+    const product = '{"@context":"https://schema.org","@type":"Product","name":"상품"}';
+    const ctx = baseCtx({
+      statusCode: 404,
+      renderedSignals: { ...emptySignals, jsonLdBlocks: [product], bodyText: "전혀 다른 내용" },
+    });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-NAME-MISMATCH")).toBe(false);
+  });
+
+  it("price/offers는 검사 대상이 아니다(포맷 차이로 인한 오탐 방지 설계) — price가 안 보여도 미발화", () => {
+    const product = '{"@context":"https://schema.org","@type":"Product","name":"상품","offers":{"@type":"Offer","price":"10000"}}';
+    const ctx = baseCtx({
+      renderedSignals: { ...emptySignals, jsonLdBlocks: [product], bodyText: "이 상품은 10,000원입니다(쉼표 포맷 차이)" },
+    });
+    const violations = evaluateAllRules(ctx);
+    expect(violations.some((v) => v.ruleId === "R-JSONLD-PRODUCT-NAME-MISMATCH")).toBe(false);
   });
 });
 
