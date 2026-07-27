@@ -96,6 +96,29 @@
 <p><strong>Current capabilities: diagnosis + regression detection + approval-gated auto-fix for local Next.js projects + experimental GitHub-repository auto-fix proposals (Pull Requests).</strong> This document only describes what is actually implemented and working today, and clearly flags anything that is implemented but not yet fully verified.</p>
 </blockquote>
 <p>New to computers, terminals, or AI tools? Just follow the steps below in order. This document and its Korean counterpart (<strong><a href="./README.md" target="_blank" rel="noopener noreferrer">README.md</a></strong>) contain identical information — read whichever language you prefer.</p>
+<details>
+<summary>📖 Terms worth knowing before you start (click to expand)</summary>
+<table>
+<thead><tr><th>Term</th><th>Plain-language explanation</th></tr></thead>
+<tbody>
+<tr><td>SEO</td><td>Search Engine Optimization — making your page easy for search engines like Google to find</td></tr>
+<tr><td>GEO</td><td>Generative Engine Optimization — making your page likely to be cited in AI answers like ChatGPT/Perplexity</td></tr>
+<tr><td>Crawl</td><td>A program automatically visiting a web page and reading its content</td></tr>
+<tr><td>Render</td><td>A browser turning code (HTML/JavaScript) into what actually appears on screen</td></tr>
+<tr><td>Core Web Vitals, LCP</td><td>A set of metrics Google uses to measure "how fast and pleasant a page feels." LCP is one of them — "how long it takes for the largest visible element to finish painting." Smaller (faster) is better</td></tr>
+<tr><td>Canonical</td><td>A marker telling search engines "this is the true, representative address for this page"</td></tr>
+<tr><td>Structured data (JSON-LD)</td><td>Special hidden markup that helps search engines understand a page's content more precisely</td></tr>
+<tr><td>Open Graph</td><td>Settings that determine the preview (title, description, address) shown when a link is shared on KakaoTalk, Facebook, etc.</td></tr>
+<tr><td>Regression</td><td>A problem that was previously fixed but has come back</td></tr>
+<tr><td>Baseline</td><td>A saved snapshot of diagnosis results, used as a reference point for later comparison</td></tr>
+<tr><td>Repository (repo)</td><td>A folder-like space on GitHub holding an entire project's code</td></tr>
+<tr><td>Branch</td><td>A "branch" of code you can work on separately without touching the original (like a copy)</td></tr>
+<tr><td>Pull Request (PR)</td><td>A proposed change sent to a repository's maintainer — only takes effect once they approve it</td></tr>
+<tr><td>Fork</td><td>Copying someone else's entire repository into your own account</td></tr>
+<tr><td>Personal Access Token</td><td>A limited-permission key you lend to a specific program instead of your real GitHub password</td></tr>
+<tr><td>Environment variable</td><td>A single setting a program reads from your computer (often used to store things like passwords out of plain sight)</td></tr>
+</tbody></table>
+</details>
 <hr>
 <h2 id="table-of-contents">Table of Contents</h2>
 <p class="ol-item"><strong>1.</strong> <a href="#1-overview">Overview</a></p>
@@ -241,7 +264,7 @@ Local: review plan → approve/reject →    GitHub: diagnose → auto-apply →
 apply → re-verify build → rollback       create Pull Request → owner review
 if needed</code></pre>
 <h2 id="8-whats-new-update-summary">8. What's New (Update Summary)</h2>
-<p>This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.</p>
+<p>This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it. <strong>22 automatic diagnostic rules currently run.</strong></p>
 <details>
 <summary>✅ Phase 1 — URL diagnosis + regression detection (Complete)</summary>
 <p>Crawl + render + Core Web Vitals measurement, plus regression detection. Verified end-to-end against a real live site.</p>
@@ -256,7 +279,7 @@ if needed</code></pre>
 </details>
 <details>
 <summary>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</summary>
-<p>We added a new automated check that confirms the build and all 260 tests pass on Windows, macOS, and Linux (<strong>this 260 was the test count as of 2026-07-06; the suite has since grown to 379 tests as features were added</strong>). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
+<p>We added a new automated check that confirms the build and tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06 — this number kept growing as features were added; see the "2026-07-27" entry below for the latest count). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). At the time this was introduced, all three operating systems automatically passed build + test on every change, but <strong>this did not include a human manually running the commands on macOS/Linux</strong> — the automated checks reduced this risk, they didn't fully eliminate it. (This automated check is currently paused — see the "2026-07-27" entry below.)</p>
 </details>
 <details>
 <summary>✅ Phase 2 Stage 1 — Structured Data (JSON-LD) Detection (Done)</summary>
@@ -270,7 +293,24 @@ if needed</code></pre>
 <summary>✅ Phase 2 Stage 3 — AI Crawler Policy (GEO) Detection (Done)</summary>
 <p>Checks how your <code>robots.txt</code> treats the crawlers used by AI search and AI training (11 bots, including GPTBot and ClaudeBot) and reports whether each is allowed or blocked. <strong>This only detects the current state — it does not recommend a policy.</strong> Whether allowing or blocking is the right call is a decision for the site owner, so this reports the facts neutrally, without opinion.</p>
 </details>
-<p><strong>Planned, not yet started</strong>: <strong>real</strong> Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
+<details>
+<summary>✅ Phase 2 Stage 4 — Content-Structure Detection: Title, Heading, Image Descriptions (Done)</summary>
+<p>Automatically detects and reports when a page has no <code>&lt;title&gt;</code> (browser-tab/search-result title) at all, when its main heading (<code>&lt;h1&gt;</code>) is missing or duplicated, and when images are missing description text (the <code>alt</code> attribute). <strong>This only detects the issue — nothing is auto-filled.</strong> Titles and descriptions require composing new sentences, which was deliberately excluded from auto-fix, since making something up could backfire and damage trust. A missing <code>&lt;title&gt;</code> is flagged high severity since it directly affects search-result titles and ranking; a missing <code>&lt;h1&gt;</code> is medium; duplicate <code>&lt;h1&gt;</code>s and missing image descriptions are low, to account for possible false positives.</p>
+</details>
+<details>
+<summary>✅ Phase 2 Stage 5 — Q&amp;A Structure Detection + Product Required-Field Validation (Done)</summary>
+<p>Checks whether FAQ-style structured data (FAQPage/QAPage) is present (having it creates a <em>possibility</em> of being cited in AI-search answers, but adding it is not a guarantee — only the facts are reported). Also checks whether a product page's structured data (Product) is missing any field Google's official documentation requires (product name, plus at least one of review/rating/price). Both are detection-only; nothing is auto-generated.</p>
+</details>
+<details>
+<summary>✅ JSON-LD Product-Name Content-Match Verification — Meeting the "Zero Hallucination" Goal (2026-07-27, Done)</summary>
+<p>Checks whether the product name written in a product page's structured data (JSON-LD) <strong>actually appears in the page's visible content</strong>. For example, if the structured data says "Wireless Earbuds A" but that name doesn't appear anywhere on the actual page, it's flagged high severity, since it means the search engine is being given incorrect information. This feature was added to satisfy a success criterion the project's planning document (PRD) set from the start: "structured data must match the actual page content (zero hallucination)." Rather than "plausibly guessing" with AI, it mechanically checks whether the exact text is literally present — since it never invents a value, the risk of false positives (reporting a problem that doesn't actually exist) is low. If the page text needed to make this judgment couldn't be read, the rule is skipped as "unknown" rather than forcing a guess.</p>
+</details>
+<details>
+<summary>🔧 2026-07-27 — Merged pending branches, patched a security vulnerability, fixed 2 stability issues, and paused automated CI</summary>
+<p>Merged several features that had been developed on separate branches (including Stage 4 and 5 above) into one, and fixed two stability issues along the way: ① a report incorrectly showing "OK" even when the site connection had actually failed, and ② the SeoMedic diagnostic engine (MCP server) losing its connection because it referenced an npm package that no longer exists. Also resolved 4 high-severity security vulnerabilities newly disclosed in dependency libraries (code written by other developers that this project relies on), per <code>npm audit</code> (these were newly disclosed vulnerabilities in the dependencies, not defects in this project's own code — fixed by updating the dependencies to their latest versions). After this merge, the test suite has <strong>427 tests total</strong> (across 61 test files), and a full run confirming all of them pass was directly executed.</p>
+<p>⚠️ <strong>However, starting with this merge, automated 3-OS CI (GitHub Actions) has stopped working due to a billing issue</strong> (this repository belongs to a personal account and is private, and it used up its monthly free automated-check quota, which triggered a billing notice — this is not a code defect). So this merge and fix set has only gone through <strong>direct execution verification on Windows (successful build + all 427 tests passing)</strong> — it has not received automated confirmation on macOS or Linux. Resuming automated CI is not currently a required goal for this project (it remains a planned, not-yet-started item below), so resolving the billing issue was not rushed — but this fact is disclosed here honestly rather than hidden.</p>
+</details>
+<p><strong>Planned, not yet started</strong>: <strong>real</strong> Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet); Naver/Bing support (Phase 3); resuming automated 3-OS CI (can be resumed any time; currently postponed since it has no effect on code safety). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
 <h2 id="9-security-data-flow">9. Security &amp; Data Flow</h2>
 <ul>
 <li><strong>Everything is stored only in the <code>.seomedic/</code> folder.</strong> Running a diagnosis creates a single SQLite database file (<code>.seomedic/seomedic.db</code>) inside the project folder, holding diagnosis history, baselines, and regression records. This folder is set up to be excluded from git tracking automatically.</li>
@@ -313,7 +353,6 @@ if needed</code></pre>
 <tr><td>Security policy</td><td><code>packages/plugin/SECURITY.md</code></td></tr>
 <tr><td>Disclaimer</td><td><code>packages/plugin/DISCLAIMER.md</code></td></tr>
 <tr><td>License</td><td><code>LICENSE</code>, <code>THIRD_PARTY_NOTICES.md</code></td></tr>
-<tr><td>Detailed guide</td><td><code>GUIDE.md</code> (Korean), <code>GUIDE.en.md</code> (English)</td></tr>
 <tr><td>Troubleshooting</td><td><code>TROUBLESHOOTING.md</code> (Korean), <code>TROUBLESHOOTING.en.md</code> (English)</td></tr>
 <tr><td>FAQ</td><td><code>FAQ.md</code> (Korean), <code>FAQ.en.md</code> (English)</td></tr>
 </tbody></table>
@@ -365,7 +404,7 @@ if needed</code></pre>
 </ul>
 <p>⚠️ <strong>None of the above constitutes legal advice.</strong> A professional legal review is strongly recommended before commercial distribution, delivery to clients, or offering this as a service to third parties.</p>
 <hr>
-<p>For a more detailed, beginner-friendly step-by-step walkthrough, see <strong><a href="./GUIDE.en.md" target="_blank" rel="noopener noreferrer">GUIDE.en.md</a></strong>.</p>
+<p>This document is the single guide covering everything from installation to usage. If you get stuck, see section 12 "Troubleshooting" and section 13 "FAQ".</p>
 
 </body>
 </html>

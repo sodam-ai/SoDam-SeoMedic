@@ -6,6 +6,30 @@
 
 New to computers, terminals, or AI tools? Just follow the steps below in order. This document and its Korean counterpart (**[README.md](./README.md)**) contain identical information — read whichever language you prefer.
 
+<details>
+<summary><strong>📖 Terms worth knowing before you start (click to expand)</strong></summary>
+
+| Term | Plain-language explanation |
+|---|---|
+| SEO | Search Engine Optimization — making your page easy for search engines like Google to find |
+| GEO | Generative Engine Optimization — making your page likely to be cited in AI answers like ChatGPT/Perplexity |
+| Crawl | A program automatically visiting a web page and reading its content |
+| Render | A browser turning code (HTML/JavaScript) into what actually appears on screen |
+| Core Web Vitals, LCP | A set of metrics Google uses to measure "how fast and pleasant a page feels." LCP is one of them — "how long it takes for the largest visible element to finish painting." Smaller (faster) is better |
+| Canonical | A marker telling search engines "this is the true, representative address for this page" |
+| Structured data (JSON-LD) | Special hidden markup that helps search engines understand a page's content more precisely |
+| Open Graph | Settings that determine the preview (title, description, address) shown when a link is shared on KakaoTalk, Facebook, etc. |
+| Regression | A problem that was previously fixed but has come back |
+| Baseline | A saved snapshot of diagnosis results, used as a reference point for later comparison |
+| Repository (repo) | A folder-like space on GitHub holding an entire project's code |
+| Branch | A "branch" of code you can work on separately without touching the original (like a copy) |
+| Pull Request (PR) | A proposed change sent to a repository's maintainer — only takes effect once they approve it |
+| Fork | Copying someone else's entire repository into your own account |
+| Personal Access Token | A limited-permission key you lend to a specific program instead of your real GitHub password |
+| Environment variable | A single setting a program reads from your computer (often used to store things like passwords out of plain sight) |
+
+</details>
+
 ---
 
 ## Table of Contents
@@ -186,7 +210,7 @@ if needed
 
 ## 8. What's New (Update Summary)
 
-This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.
+This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it. **22 automatic diagnostic rules currently run.**
 
 <details>
 <summary><strong>✅ Phase 1 — URL diagnosis + regression detection (Complete)</strong></summary>
@@ -209,7 +233,7 @@ The "your own repository" flow (new branch + Pull Request) has been confirmed ag
 <details>
 <summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
 
-We added a new automated check that confirms the build and all 260 tests pass on Windows, macOS, and Linux. In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
+We added a new automated check that confirms the build and tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06 — this number kept growing as features were added; see the "2026-07-27" entry below for the latest count). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). At the time this was introduced, all three operating systems automatically passed build + test on every change, but **this did not include a human manually running the commands on macOS/Linux** — the automated checks reduced this risk, they didn't fully eliminate it. (This automated check is currently paused — see the "2026-07-27" entry below.)
 </details>
 
 <details>
@@ -230,7 +254,33 @@ Checks whether the title and URL shown when a link is shared on social media (Op
 Checks how your `robots.txt` treats the crawlers used by AI search and AI training (11 bots, including GPTBot and ClaudeBot) and reports whether each is allowed or blocked. **This only detects the current state — it does not recommend a policy.** Whether allowing or blocking is the right call is a decision for the site owner, so this reports the facts neutrally, without opinion.
 </details>
 
-**Planned, not yet started**: **real** Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
+<details>
+<summary><strong>✅ Phase 2 Stage 4 — Content-Structure Detection: Title, Heading, Image Descriptions (Done)</strong></summary>
+
+Automatically detects and reports when a page has no `<title>` (browser-tab/search-result title) at all, when its main heading (`<h1>`) is missing or duplicated, and when images are missing description text (the `alt` attribute). **This only detects the issue — nothing is auto-filled.** Titles and descriptions require composing new sentences, which was deliberately excluded from auto-fix, since making something up could backfire and damage trust. A missing `<title>` is flagged high severity since it directly affects search-result titles and ranking; a missing `<h1>` is medium; duplicate `<h1>`s and missing image descriptions are low, to account for possible false positives.
+</details>
+
+<details>
+<summary><strong>✅ Phase 2 Stage 5 — Q&A Structure Detection + Product Required-Field Validation (Done)</strong></summary>
+
+Checks whether FAQ-style structured data (FAQPage/QAPage) is present (having it creates a *possibility* of being cited in AI-search answers, but adding it is not a guarantee — only the facts are reported). Also checks whether a product page's structured data (Product) is missing any field Google's official documentation requires (product name, plus at least one of review/rating/price). Both are detection-only; nothing is auto-generated.
+</details>
+
+<details>
+<summary><strong>✅ JSON-LD Product-Name Content-Match Verification — Meeting the "Zero Hallucination" Goal (2026-07-27, Done)</strong></summary>
+
+Checks whether the product name written in a product page's structured data (JSON-LD) **actually appears in the page's visible content**. For example, if the structured data says "Wireless Earbuds A" but that name doesn't appear anywhere on the actual page, it's flagged high severity, since it means the search engine is being given incorrect information. This feature was added to satisfy a success criterion the project's planning document (PRD) set from the start: "structured data must match the actual page content (zero hallucination)." Rather than "plausibly guessing" with AI, it mechanically checks whether the exact text is literally present — since it never invents a value, the risk of false positives (reporting a problem that doesn't actually exist) is low. If the page text needed to make this judgment couldn't be read, the rule is skipped as "unknown" rather than forcing a guess.
+</details>
+
+<details>
+<summary><strong>🔧 2026-07-27 — Merged pending branches, patched a security vulnerability, fixed 2 stability issues, and paused automated CI</strong></summary>
+
+Merged several features that had been developed on separate branches (including Stage 4 and 5 above) into one, and fixed two stability issues along the way: ① a report incorrectly showing "OK" even when the site connection had actually failed, and ② the SeoMedic diagnostic engine (MCP server) losing its connection because it referenced an npm package that no longer exists. Also resolved 4 high-severity security vulnerabilities newly disclosed in dependency libraries (code written by other developers that this project relies on), per `npm audit` (these were newly disclosed vulnerabilities in the dependencies, not defects in this project's own code — fixed by updating the dependencies to their latest versions). After this merge, the test suite has **427 tests total** (across 61 test files), and a full run confirming all of them pass was directly executed.
+
+⚠️ **However, starting with this merge, automated 3-OS CI (GitHub Actions) has stopped working due to a billing issue** (this repository belongs to a personal account and is private, and it used up its monthly free automated-check quota, which triggered a billing notice — this is not a code defect). So this merge and fix set has only gone through **direct execution verification on Windows (successful build + all 427 tests passing)** — it has not received automated confirmation on macOS or Linux. Resuming automated CI is not currently a required goal for this project (it remains a planned, not-yet-started item below), so resolving the billing issue was not rushed — but this fact is disclosed here honestly rather than hidden.
+</details>
+
+**Planned, not yet started**: **real** Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet); Naver/Bing support (Phase 3); resuming automated 3-OS CI (can be resumed any time; currently postponed since it has no effect on code safety). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
 
 ## 9. Security & Data Flow
 
@@ -279,7 +329,6 @@ The plugin (a thin shell) and the diagnostic engine (the actual heavy lifting) a
 | Security policy | `packages/plugin/SECURITY.md` |
 | Disclaimer | `packages/plugin/DISCLAIMER.md` |
 | License | `LICENSE`, `THIRD_PARTY_NOTICES.md` |
-| Detailed guide | `GUIDE.md` (Korean), `GUIDE.en.md` (English) |
 | Troubleshooting | `TROUBLESHOOTING.md` (Korean), `TROUBLESHOOTING.en.md` (English) |
 | FAQ | `FAQ.md` (Korean), `FAQ.en.md` (English) |
 
@@ -334,4 +383,4 @@ See **[FAQ.en.md](./FAQ.en.md)** for frequently asked questions.
 
 ---
 
-For a more detailed, beginner-friendly step-by-step walkthrough, see **[GUIDE.en.md](./GUIDE.en.md)**.
+This document is the single guide covering everything from installation to usage. If you get stuck, see section 12 "Troubleshooting" and section 13 "FAQ".
