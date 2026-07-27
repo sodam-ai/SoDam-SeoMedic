@@ -165,7 +165,7 @@
 <h3 id="17-github-mode-error-that-seomedicgithubtoken-is-not-set">17. GitHub mode — error that <code>SEOMEDIC_GITHUB_TOKEN</code> is not set</h3>
 <ul>
 <li><strong>Symptom</strong>: running <code>/seo-fix https://github.com/...</code> is immediately refused with a message that the environment variable is missing</li>
-<li><strong>Fix</strong>: even after creating a token, <strong>it won't be recognized unless you register it on your computer (<code>setx</code>/<code>export</code>) AND fully restart Claude Code afterward.</strong> This isn't a random bug — it's structural: the SeoMedic engine is a separate program launched alongside Claude Code, and an already-running instance has no way to learn about a variable set afterward. Re-check Step 6.3 in <code>GUIDE.en.md</code>.</li>
+<li><strong>Fix</strong>: even after creating a token, <strong>it won't be recognized unless you register it on your computer (<code>setx</code>/<code>export</code>) AND fully restart Claude Code afterward.</strong> This isn't a random bug — it's structural: the SeoMedic engine is a separate program launched alongside Claude Code, and an already-running instance has no way to learn about a variable set afterward. Re-check the token-registration step in <code>README.en.md</code> section 5 (GitHub-repository auto-fix proposal).</li>
 </ul>
 <h3 id="18-github-mode-404-not-found-even-though-a-token-is-set">18. GitHub mode — "404 Not Found" even though a token is set</h3>
 <ul>

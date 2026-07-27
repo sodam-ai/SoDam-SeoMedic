@@ -18,7 +18,7 @@ The safety mechanisms have been verified through real execution — there is no 
 Only partially. **Structured data (JSON-LD) is detected only — it is never auto-generated**, since inventing new values could be risky, so this was intentionally excluded. **For Open Graph, only the title and URL** can be auto-filled after your approval, since those are copied directly from values that already exist on the page. The description is not auto-filled (it would require writing a new sentence), and is only flagged in the report as "low" severity.
 
 ### Q. Why does GitHub mode need a token? Can't I just use my password?
-Using your real GitHub password would give the program access to everything in your account. A Personal Access Token is a much safer alternative — it can be scoped to "only this one repository, only these specific actions (read/write code, create PRs)."See Step 6 of `GUIDE.en.md` for exact instructions on creating one.
+Using your real GitHub password would give the program access to everything in your account. A Personal Access Token is a much safer alternative — it can be scoped to "only this one repository, only these specific actions (read/write code, create PRs)." See the "GitHub-repository auto-fix proposal" steps in `README.en.md` section 5 for exact instructions on creating one.
 
 ### Q. Can I paste my GitHub token into the chat?
 **Absolutely not.** Chat conversations are logged, so the moment a token is typed even once, it must be treated as compromised. Always register it only as an environment variable (`SEOMEDIC_GITHUB_TOKEN`) on your own computer. If you accidentally paste it, immediately revoke that token on GitHub and generate a new one.

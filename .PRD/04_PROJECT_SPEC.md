@@ -202,7 +202,7 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 > **대상 독자**: 비개발자·왕초보·**처음 컴퓨터/AI/메신저/IT 기기를 다루는 사람**. 전문용어를 풀어쓰고 **복붙 가능한 명령·그림·단계 번호**로.
 
 ### 문서 세트
-- `README.md`(한글, 정본) · `README.en.md`(영문) · `GUIDE.md`(왕초보 단계별)
+- `README.md`(한글, 정본) · `README.en.md`(영문) — 왕초보 단계별 안내는 README에 통합됨(별도 GUIDE.md는 2026-07-27 제거, README에 용어집·단계별 설명 병합)
 - `TROUBLESHOOTING.md`(문제/오류 대처) · `FAQ.md`
 - `LICENSE` · `THIRD_PARTY_NOTICES` · `DISCLAIMER.md` · `SECURITY.md`
 - 모든 문서에 **라이선스·저작권·상업 용도 일관 반영**(법률 L10)
@@ -252,7 +252,7 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 
 ### 우선순위
 - **Must**: 한글 README(전 목차)·빠른시작·명령어·TROUBLESHOOTING 매트릭스·FAQ·법률/면책·설치/준비물
-- **Should**: 영문 README·GUIDE.md(왕초보 단계별)·스크린샷·용어집·데이터흐름/아키텍처 그림
+- **Should**: 영문 README(왕초보 단계별 안내는 README에 통합됨)·스크린샷·용어집(README에 통합됨)·데이터흐름/아키텍처 그림
 - **Could**: 동영상/GIF·다국어 확장·인터랙티브 도움말
 
 ### 기존 설계 보존
