@@ -72,7 +72,7 @@ This document and its Korean counterpart (**[TROUBLESHOOTING.md](./TROUBLESHOOTI
 
 ### 17. GitHub mode — error that `SEOMEDIC_GITHUB_TOKEN` is not set
 - **Symptom**: running `/seo-fix https://github.com/...` is immediately refused with a message that the environment variable is missing
-- **Fix**: even after creating a token, **it won't be recognized unless you register it on your computer (`setx`/`export`) AND fully restart Claude Code afterward.** This isn't a random bug — it's structural: the SeoMedic engine is a separate program launched alongside Claude Code, and an already-running instance has no way to learn about a variable set afterward. Re-check Step 6.3 in `GUIDE.en.md`.
+- **Fix**: even after creating a token, **it won't be recognized unless you register it on your computer (`setx`/`export`) AND fully restart Claude Code afterward.** This isn't a random bug — it's structural: the SeoMedic engine is a separate program launched alongside Claude Code, and an already-running instance has no way to learn about a variable set afterward. Re-check the GitHub-repository procedure in `README.en.md` section 5.
 
 ### 18. GitHub mode — "404 Not Found" even though a token is set
 - **Symptom**: even after registering the token and restarting, the target repository can't be found
