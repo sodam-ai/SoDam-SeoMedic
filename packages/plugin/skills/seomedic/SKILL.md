@@ -5,7 +5,7 @@ description: 웹 URL의 SEO/GEO(검색엔진·생성형AI 노출) 상태를 진�
 
 # SeoMedic 사용 지침
 
-이 스킬은 `seomedic` MCP 서버(`npx -y @seomedic/mcp`)가 제공하는 도구를 조합해 SEO/GEO 진단을 안내한다.
+이 스킬은 `seomedic` MCP 서버(플러그인에 번들된 `mcp-server/dist/server.js`)가 제공하는 도구를 조합해 SEO/GEO 진단을 안내한다.
 
 ## 언제 무엇을 쓰는가
 - 새 URL을 처음 진단 → `/seo-audit` (또는 `seomedic_audit` MCP 도구 직접 호출)
