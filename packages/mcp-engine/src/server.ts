@@ -329,9 +329,9 @@ server.registerTool(
 server.registerTool(
   "seomedic_fix_github",
   {
-    title: "GitHub 저장소 자동 수정(PR 제안) — 미검증",
+    title: "GitHub 저장소 자동 수정(PR 제안) — 부분 검증",
     description:
-      "⚠️ 실제 GitHub API로 아직 검증되지 않은 기능입니다(타입체크만 통과). GitHub 저장소를 대상으로 add_safe 수정을 적용하고 PR을 생성합니다(제안, main 직접 push·자동 머지 없음). SEOMEDIC_GITHUB_TOKEN 환경변수가 필요합니다. 색인·표시에 영향을 주는(gated) 항목은 이 1회성 흐름에서 대화형 승인이 불가능해 자동 적용하지 않고 보고만 합니다.",
+      "GitHub 저장소를 대상으로 add_safe 수정을 적용하고 PR을 생성합니다(제안, main 직접 push·자동 머지 없음). 본인 소유 저장소는 실제 GitHub에서 PR 생성까지 검증 완료(2026-07-04). fork(남의 저장소) 경로는 fork 생성·복제까지 실제 GitHub로 검증됐으나 ⚠️ 마지막 PR 생성 단계는 아직 미검증입니다. SEOMEDIC_GITHUB_TOKEN 환경변수가 필요합니다. 색인·표시에 영향을 주는(gated) 항목은 이 1회성 흐름에서 대화형 승인이 불가능해 자동 적용하지 않고 보고만 합니다.",
     inputSchema: {
       repoUrl: z.string().describe("GitHub 저장소 주소(예: https://github.com/owner/repo 또는 owner/repo)"),
       maxRepoSizeKb: z.number().int().positive().optional().describe("clone 허용 최대 저장소 크기(KB), 기본 500MB"),
