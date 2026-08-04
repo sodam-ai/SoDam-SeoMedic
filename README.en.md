@@ -66,6 +66,8 @@ SeoMedic isn't a separate file you download and run — it's installed **from in
 
 (The two values above are this project's actual GitHub repository address and marketplace name. Copy them exactly as shown.)
 
+**⚠️ This repository is currently Private on GitHub.** The install command above only succeeds if you're logged in as the repository owner, or an account that has been granted access (otherwise you'll get a "repository not found" error). This restriction will go away once the repository is made Public.
+
 **⚠️ You must fully quit and restart Claude Code after installing.** (Confirmed by direct testing: a newly installed plugin is only recognized after a full restart. Opening a new chat tab is not enough — you must quit and relaunch the actual application.)
 
 Verify the install:
@@ -207,12 +209,6 @@ The "your own repository" flow (new branch + Pull Request) has been confirmed ag
 </details>
 
 <details>
-<summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
-
-We added a new automated check that confirms the build and all 260 tests pass on Windows, macOS, and Linux. In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
-</details>
-
-<details>
 <summary><strong>✅ Phase 2 Stage 1 — Structured Data (JSON-LD) Detection (Done)</strong></summary>
 
 Automatically detects when a page is missing structured data (JSON-LD — a special markup that helps search engines understand your content more precisely) or has malformed JSON-LD, and flags it in the report. **This only detects the issue — it does not auto-generate a fix.** Creating structured-data values from scratch was deliberately left out, since fabricating them carries real risk.
@@ -230,7 +226,31 @@ Checks whether the title and URL shown when a link is shared on social media (Op
 Checks how your `robots.txt` treats the crawlers used by AI search and AI training (11 bots, including GPTBot and ClaudeBot) and reports whether each is allowed or blocked. **This only detects the current state — it does not recommend a policy.** Whether allowing or blocking is the right call is a decision for the site owner, so this reports the facts neutrally, without opinion.
 </details>
 
-**Planned, not yet started**: **real** Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
+<details>
+<summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
+
+We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 427** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
+</details>
+
+<details>
+<summary><strong>✅ Phase 2 Stage 4 — Content-structure detection (title/H1/image alt text) + Core Web Vitals completed (Done)</strong></summary>
+
+Automatically detects pages with a missing `<title>`, a missing (or duplicated) H1 heading, or images missing alt text (the description used by screen readers and search engines to understand an image). At the same time, the last missing Core Web Vitals (speed) threshold rule — TBT (a responsiveness metric used as a lab-measurable proxy for real INP, which requires an actual user interaction to measure) — was added, completing all three speed metrics (LCP, CLS, TBT). **Detection only — no auto-fix** (these are pure "present or missing" checks rather than value generation, so we judged that a human filling them in is more appropriate than an automated guess).
+</details>
+
+<details>
+<summary><strong>✅ Phase 2 — Q&A structure + JSON-LD Product required-field validation (Done)</strong></summary>
+
+Checks whether FAQ-style structured data exists (this only checks whether the structure exists in a form that AI search could cite — it **does not guarantee AI-search visibility**). For pages that mark themselves up as a "Product" via JSON-LD, it also checks that the product name and at least one of review/rating/price information are actually present (without these, the page may lose eligibility for rich-result extras like star ratings). **Detection only — no auto-fix.**
+</details>
+
+<details>
+<summary><strong>✅ Phase 2 — JSON-LD product name vs. actual page content match check ("zero hallucination") (Done)</strong></summary>
+
+Checks whether the product name declared in a page's JSON-LD structured data actually matches text that appears on the rendered page — if the structured data you're telling search engines doesn't match what's actually shown ("hallucination"), search engines can treat this as spam and penalize the page. Price/discount fields were deliberately excluded from this check, since formatting differences (commas, currency symbols) create a high risk of false "mismatch" results on their own; product name is the one field that can be compared safely and deterministically. **Detection only — no auto-fix.**
+</details>
+
+**Planned, not yet started**: **real** Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet, and this can't start until the user provides real Google service-account credentials); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
 
 ## 9. Security & Data Flow
 
@@ -279,7 +299,6 @@ The plugin (a thin shell) and the diagnostic engine (the actual heavy lifting) a
 | Security policy | `packages/plugin/SECURITY.md` |
 | Disclaimer | `packages/plugin/DISCLAIMER.md` |
 | License | `LICENSE`, `THIRD_PARTY_NOTICES.md` |
-| Detailed guide | `GUIDE.md` (Korean), `GUIDE.en.md` (English) |
 | Troubleshooting | `TROUBLESHOOTING.md` (Korean), `TROUBLESHOOTING.en.md` (English) |
 | FAQ | `FAQ.md` (Korean), `FAQ.en.md` (English) |
 
@@ -334,4 +353,4 @@ See **[FAQ.en.md](./FAQ.en.md)** for frequently asked questions.
 
 ---
 
-For a more detailed, beginner-friendly step-by-step walkthrough, see **[GUIDE.en.md](./GUIDE.en.md)**.
+This document (README.en.md) contains the complete beginner-friendly, step-by-step walkthrough from install through daily use (the separate GUIDE document was merged into this file as of 2026-08-04 and no longer exists). If something goes wrong, see **[TROUBLESHOOTING.en.md](./TROUBLESHOOTING.en.md)**; for common questions, see **[FAQ.en.md](./FAQ.en.md)**.

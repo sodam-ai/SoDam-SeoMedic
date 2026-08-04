@@ -146,6 +146,7 @@
 <pre><code>/plugin marketplace add sodam-ai/SoDam-SeoMedic
 /plugin install seomedic@sodam-seomedic-marketplace</code></pre>
 <p>(The two values above are this project's actual GitHub repository address and marketplace name. Copy them exactly as shown.)</p>
+<p><strong>⚠️ This repository is currently Private on GitHub.</strong> The install command above only succeeds if you're logged in as the repository owner, or an account that has been granted access (otherwise you'll get a "repository not found" error). This restriction will go away once the repository is made Public.</p>
 <p><strong>⚠️ You must fully quit and restart Claude Code after installing.</strong> (Confirmed by direct testing: a newly installed plugin is only recognized after a full restart. Opening a new chat tab is not enough — you must quit and relaunch the actual application.)</p>
 <p>Verify the install:</p>
 <pre><code>/plugin list</code></pre>
@@ -255,10 +256,6 @@ if needed</code></pre>
 <p>The "your own repository" flow (new branch + Pull Request) has been confirmed against real GitHub, including real Pull Request creation. <strong>The "fork a repository you don't own, then propose" flow has been partially verified</strong>: creating the fork and cloning it have been confirmed against real GitHub, but actually opening the Pull Request from the fork has not yet been exercised (the test repository used didn't contain any Next.js project files, so the flow stopped just short of that step). Please review section 14 and the in-app warning before using this.</p>
 </details>
 <details>
-<summary>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</summary>
-<p>We added a new automated check that confirms the build and all 260 tests pass on Windows, macOS, and Linux (<strong>this 260 was the test count as of 2026-07-06; the suite has since grown to 379 tests as features were added</strong>). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
-</details>
-<details>
 <summary>✅ Phase 2 Stage 1 — Structured Data (JSON-LD) Detection (Done)</summary>
 <p>Automatically detects when a page is missing structured data (JSON-LD — a special markup that helps search engines understand your content more precisely) or has malformed JSON-LD, and flags it in the report. <strong>This only detects the issue — it does not auto-generate a fix.</strong> Creating structured-data values from scratch was deliberately left out, since fabricating them carries real risk.</p>
 </details>
@@ -270,7 +267,23 @@ if needed</code></pre>
 <summary>✅ Phase 2 Stage 3 — AI Crawler Policy (GEO) Detection (Done)</summary>
 <p>Checks how your <code>robots.txt</code> treats the crawlers used by AI search and AI training (11 bots, including GPTBot and ClaudeBot) and reports whether each is allowed or blocked. <strong>This only detects the current state — it does not recommend a policy.</strong> Whether allowing or blocking is the right call is a decision for the site owner, so this reports the facts neutrally, without opinion.</p>
 </details>
-<p><strong>Planned, not yet started</strong>: <strong>real</strong> Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
+<details>
+<summary>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</summary>
+<p>We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; <strong>now 427</strong> as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
+</details>
+<details>
+<summary>✅ Phase 2 Stage 4 — Content-structure detection (title/H1/image alt text) + Core Web Vitals completed (Done)</summary>
+<p>Automatically detects pages with a missing <code>&lt;title&gt;</code>, a missing (or duplicated) H1 heading, or images missing alt text (the description used by screen readers and search engines to understand an image). At the same time, the last missing Core Web Vitals (speed) threshold rule — TBT (a responsiveness metric used as a lab-measurable proxy for real INP, which requires an actual user interaction to measure) — was added, completing all three speed metrics (LCP, CLS, TBT). <strong>Detection only — no auto-fix</strong> (these are pure "present or missing" checks rather than value generation, so we judged that a human filling them in is more appropriate than an automated guess).</p>
+</details>
+<details>
+<summary>✅ Phase 2 — Q&amp;A structure + JSON-LD Product required-field validation (Done)</summary>
+<p>Checks whether FAQ-style structured data exists (this only checks whether the structure exists in a form that AI search could cite — it <strong>does not guarantee AI-search visibility</strong>). For pages that mark themselves up as a "Product" via JSON-LD, it also checks that the product name and at least one of review/rating/price information are actually present (without these, the page may lose eligibility for rich-result extras like star ratings). <strong>Detection only — no auto-fix.</strong></p>
+</details>
+<details>
+<summary>✅ Phase 2 — JSON-LD product name vs. actual page content match check ("zero hallucination") (Done)</summary>
+<p>Checks whether the product name declared in a page's JSON-LD structured data actually matches text that appears on the rendered page — if the structured data you're telling search engines doesn't match what's actually shown ("hallucination"), search engines can treat this as spam and penalize the page. Price/discount fields were deliberately excluded from this check, since formatting differences (commas, currency symbols) create a high risk of false "mismatch" results on their own; product name is the one field that can be compared safely and deterministically. <strong>Detection only — no auto-fix.</strong></p>
+</details>
+<p><strong>Planned, not yet started</strong>: <strong>real</strong> Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet, and this can't start until the user provides real Google service-account credentials); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
 <h2 id="9-security-data-flow">9. Security &amp; Data Flow</h2>
 <ul>
 <li><strong>Everything is stored only in the <code>.seomedic/</code> folder.</strong> Running a diagnosis creates a single SQLite database file (<code>.seomedic/seomedic.db</code>) inside the project folder, holding diagnosis history, baselines, and regression records. This folder is set up to be excluded from git tracking automatically.</li>
@@ -313,7 +326,6 @@ if needed</code></pre>
 <tr><td>Security policy</td><td><code>packages/plugin/SECURITY.md</code></td></tr>
 <tr><td>Disclaimer</td><td><code>packages/plugin/DISCLAIMER.md</code></td></tr>
 <tr><td>License</td><td><code>LICENSE</code>, <code>THIRD_PARTY_NOTICES.md</code></td></tr>
-<tr><td>Detailed guide</td><td><code>GUIDE.md</code> (Korean), <code>GUIDE.en.md</code> (English)</td></tr>
 <tr><td>Troubleshooting</td><td><code>TROUBLESHOOTING.md</code> (Korean), <code>TROUBLESHOOTING.en.md</code> (English)</td></tr>
 <tr><td>FAQ</td><td><code>FAQ.md</code> (Korean), <code>FAQ.en.md</code> (English)</td></tr>
 </tbody></table>
@@ -365,7 +377,7 @@ if needed</code></pre>
 </ul>
 <p>⚠️ <strong>None of the above constitutes legal advice.</strong> A professional legal review is strongly recommended before commercial distribution, delivery to clients, or offering this as a service to third parties.</p>
 <hr>
-<p>For a more detailed, beginner-friendly step-by-step walkthrough, see <strong><a href="./GUIDE.en.md" target="_blank" rel="noopener noreferrer">GUIDE.en.md</a></strong>.</p>
+<p>This document (README.en.md) contains the complete beginner-friendly, step-by-step walkthrough from install through daily use (the separate GUIDE document was merged into this file as of 2026-08-04 and no longer exists). If something goes wrong, see <strong><a href="./TROUBLESHOOTING.en.html" target="_blank" rel="noopener noreferrer">TROUBLESHOOTING.en.md</a></strong>; for common questions, see <strong><a href="./FAQ.en.html" target="_blank" rel="noopener noreferrer">FAQ.en.md</a></strong>.</p>
 
 </body>
 </html>
