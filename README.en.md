@@ -230,6 +230,18 @@ Checks whether the title and URL shown when a link is shared on social media (Op
 Checks how your `robots.txt` treats the crawlers used by AI search and AI training (11 bots, including GPTBot and ClaudeBot) and reports whether each is allowed or blocked. **This only detects the current state — it does not recommend a policy.** Whether allowing or blocking is the right call is a decision for the site owner, so this reports the facts neutrally, without opinion.
 </details>
 
+<details>
+<summary><strong>✅ Phase 2 Stage 4 — Basic Content Element (title / heading / image description) Detection (Done)</strong></summary>
+
+Checks the most basic elements search engines use to understand your page content: whether the page title (`<title>`) is missing, whether the main heading (`<h1>`) is missing or duplicated, and whether images are missing descriptions (alt text). **This only detects — it does not fix automatically** (titles and image descriptions vary by page, so generating them automatically could produce inaccurate text, which is why this was deliberately left out).
+</details>
+
+<details>
+<summary><strong>✅ Phase 2 Stage 5 — Product Structured Data Required Fields + Q&A Structure Detection (Done)</strong></summary>
+
+Two additional checks: (1) whether a product page's structured data (JSON-LD) is missing fields Google requires (product name, plus at least one of review/rating/price), and (2) whether Q&A-style structured data (FAQPage/QAPage) exists. **Both are detection-only — no content is auto-generated** (generating content that doesn't match reality could hurt trust). Adding Q&A structure also does not guarantee AI search visibility, and the report notes this.
+</details>
+
 **Planned, not yet started**: **real** Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
 
 ## 9. Security & Data Flow

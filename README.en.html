@@ -270,6 +270,14 @@ if needed</code></pre>
 <summary>✅ Phase 2 Stage 3 — AI Crawler Policy (GEO) Detection (Done)</summary>
 <p>Checks how your <code>robots.txt</code> treats the crawlers used by AI search and AI training (11 bots, including GPTBot and ClaudeBot) and reports whether each is allowed or blocked. <strong>This only detects the current state — it does not recommend a policy.</strong> Whether allowing or blocking is the right call is a decision for the site owner, so this reports the facts neutrally, without opinion.</p>
 </details>
+<details>
+<summary>✅ Phase 2 Stage 4 — Basic Content Element (title / heading / image description) Detection (Done)</summary>
+<p>Checks the most basic elements search engines use to understand your page content: whether the page title (<code>&lt;title&gt;</code>) is missing, whether the main heading (<code>&lt;h1&gt;</code>) is missing or duplicated, and whether images are missing descriptions (alt text). <strong>This only detects — it does not fix automatically</strong> (titles and image descriptions vary by page, so generating them automatically could produce inaccurate text, which is why this was deliberately left out).</p>
+</details>
+<details>
+<summary>✅ Phase 2 Stage 5 — Product Structured Data Required Fields + Q&amp;A Structure Detection (Done)</summary>
+<p>Two additional checks: (1) whether a product page's structured data (JSON-LD) is missing fields Google requires (product name, plus at least one of review/rating/price), and (2) whether Q&amp;A-style structured data (FAQPage/QAPage) exists. <strong>Both are detection-only — no content is auto-generated</strong> (generating content that doesn't match reality could hurt trust). Adding Q&amp;A structure also does not guarantee AI search visibility, and the report notes this.</p>
+</details>
 <p><strong>Planned, not yet started</strong>: <strong>real</strong> Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
 <h2 id="9-security-data-flow">9. Security &amp; Data Flow</h2>
 <ul>
