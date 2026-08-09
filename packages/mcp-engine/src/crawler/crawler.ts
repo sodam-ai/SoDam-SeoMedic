@@ -4,6 +4,7 @@ import { safeFetch } from "./fetch-client.js";
 import { loadRobotsPolicy } from "./robots.js";
 import { fetchSitemapUrls } from "./sitemap.js";
 import { CrawlFrontier, RateLimiter } from "./queue.js";
+import { assertSafeUrl } from "./ssrf-guard.js";
 
 export interface CrawlOptions {
   siteMode: boolean;
@@ -69,6 +70,13 @@ export function extractSameOriginLinks(html: string, pageUrl: string): string[] 
  */
 export async function crawl(startUrl: string, options: Partial<CrawlOptions> = {}): Promise<CrawlResult> {
   const opts: CrawlOptions = { ...DEFAULT_CRAWL_OPTIONS, ...options };
+  // 스킴·사설IP 검증을 크롤 진입점에서 가장 먼저 수행한다(2026-08-09 발견·수정).
+  // 이전에는 이 검증 없이 곧장 loadRobotsPolicy(origin)를 호출했는데, file:// 같은 스킴은
+  // opaque origin이 되어(new URL("file:///x").origin === "null") robots.ts 내부의
+  // new URL("/robots.txt", origin)이 "TypeError: Invalid URL"로 우연히 죽는 방식으로만
+  // 막혔다 — 의도된 SsrfBlockedError(명확한 사유)가 아니라 우연한 예외였다(실제 MCP 서버
+  // 호출로 재현·확인). assertSafeUrl은 이미 27개 단위테스트로 검증된 함수를 그대로 재사용한다.
+  assertSafeUrl(startUrl);
   const origin = new URL(startUrl).origin;
   const robots = await loadRobotsPolicy(origin);
   const rateLimiter = new RateLimiter(opts.requestsPerSecond);
