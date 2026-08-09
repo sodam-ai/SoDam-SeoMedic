@@ -116,7 +116,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
     } finally {
       db.close();
     }
-  });
+  }, 120_000); // makeIsolatedJsOnlyCanonicalProject()의 node_modules 전체 복사가 Windows CI에서 30s를 넘길 수 있음(2026-08-09 실측)
 
   it("(1b) 방어적 fail-closed: pages 배열에 해당 finding의 page_url이 없으면 null(추측하지 않음)", () => {
     const projectRoot = makeIsolatedJsOnlyCanonicalProject();
@@ -129,7 +129,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
     } finally {
       db.close();
     }
-  });
+  }, 120_000); // makeIsolatedJsOnlyCanonicalProject()의 node_modules 전체 복사가 Windows CI에서 30s를 넘길 수 있음(2026-08-09 실측)
 
   it("(1c) 방어적 fail-closed: renderedCanonical이 null인 페이지면 null(값 추측·자기참조 폴백 금지)", () => {
     const projectRoot = makeIsolatedJsOnlyCanonicalProject();
@@ -153,7 +153,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
     } finally {
       db.close();
     }
-  });
+  }, 120_000); // makeIsolatedJsOnlyCanonicalProject()의 node_modules 전체 복사가 Windows CI에서 30s를 넘길 수 있음(2026-08-09 실측)
 
   it("(1d) 방어적 fail-closed: 정적 페이지 파일을 찾을 수 없으면(동적 라우트 등) null", () => {
     const projectRoot = makeIsolatedJsOnlyCanonicalProject();
@@ -177,7 +177,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
     } finally {
       db.close();
     }
-  });
+  }, 120_000); // makeIsolatedJsOnlyCanonicalProject()의 node_modules 전체 복사가 Windows CI에서 30s를 넘길 수 있음(2026-08-09 실측)
 
   it("(2) 승인 → 적용 → 실제 next build 통과 → 파일에 보존된(비자기참조) 값 반영 → rollback으로 원복", async () => {
     const projectRoot = makeIsolatedJsOnlyCanonicalProject();

@@ -129,5 +129,5 @@ describe("fix-orchestrator 통합 — 실제 Next.js 빌드+git", () => {
     } finally {
       db.close();
     }
-  }, 30_000);
+  }, 120_000); // makeIsolatedNextProject()의 node_modules 전체 복사가 Windows CI에서 30s를 넘길 수 있음(2026-08-09 실측 35~40s, 다른 테스트와 동일한 120s 여유)
 });
