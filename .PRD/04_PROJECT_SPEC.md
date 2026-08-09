@@ -18,7 +18,30 @@
 
 ## 아키텍처 — 얇은 플러그인 + MCP 엔진 (확정)
 
-플러그인은 마크다운(명령·스킬)이라 무거운 엔진(Playwright·SQLite)을 직접 못 담음 → **엔진은 npm 배포 MCP 서버로 분리**, 플러그인은 그걸 부르는 얇은 껍데기.
+> **2026-08-09 정정 (구현 실측 반영)**: 아래 원안은 엔진을 **npm에 배포해 `npx -y @seomedic/mcp`로
+> 실행**하는 것이었으나, **실제 구현은 그렇게 되지 않았다.** 확인된 사실:
+> - `@seomedic/mcp`는 **npm 레지스트리에 배포된 적이 없다**(`npm view @seomedic/mcp` → 404).
+> - 실제 실행은 **플러그인에 번들된 파일 직접 실행**이다 —
+>   `packages/plugin/.mcp.json` = `node ${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/server.js`,
+>   `NODE_PATH=${CLAUDE_PLUGIN_DATA}/node_modules`.
+> - 의존성은 npm이 아니라 **SessionStart 훅**이 설치한다 —
+>   `packages/plugin/hooks/hooks.json` → `scripts/ensure-mcp-deps.mjs`
+>   (번들 `package.json`이 직전 설치본과 동일하면 재설치 생략).
+> - 이 때문에 `dist/`가 예외적으로 git에 커밋된다(루트 `.gitignore`의 `!packages/plugin/mcp-server/dist/`
+>   주석에 이유 명시 — 마켓플레이스로 설치된 플러그인은 형제 폴더 `packages/mcp-engine`를 못 읽음).
+>
+> **왜 바뀌었나**: 2026-07-18 실사용자가 "테스트 400여개 통과·로컬 빌드 성공" 상태에서도 MCP 연결
+> 자체에 실패한 사고가 있었고, 그 대응(`fix/plugin-mcp-server-bundling`)으로 번들 방식이 채택됐다.
+> 배송 폴더 문구는 PR #6(2026-08-04)에서 정정됐으나 **이 PRD는 그때 갱신되지 않아 낡은 채로 남았다.**
+>
+> 아래 원문은 결정 이력 보존을 위해 남기되, **실제 구현과 다른 부분은 취소선·주석으로 표시**한다.
+> npm 배포(`npx` 실행)는 폐기가 아니라 **확정 백로그**다. `CHECKPOINT.md`(2026-07-18 기록)가 명시한
+> 근거를 그대로 따른다: 번들 방식은 "법무 게이트(L1·L2·L4·L5·L12·L13) 통과 전까지 쓰는 정확한 임시
+> 다리"이고, **"법무 6건 완료 후 npm 발행으로 전환 필요"**로 이미 못박혀 있다. "필요해지면 그때
+> 결정"이 아니라 "언제 전환하는지(법무 게이트 통과 시점)는 이미 정해져 있고, 무엇으로 전환하는지도
+> 이미 정해져 있다"가 정확한 상태다 — 임시방편이 영구 설계로 오인되지 않도록 이 문서에도 명시한다.
+
+플러그인은 마크다운(명령·스킬)이라 무거운 엔진(Playwright·SQLite)을 직접 못 담음 → ~~**엔진은 npm 배포 MCP 서버로 분리**~~ **(실제: 엔진 빌드 산출물을 플러그인 폴더에 번들)**, 플러그인은 그걸 부르는 얇은 껍데기.
 
 ```
 seomedic/                         # 마켓플레이스 플러그인 저장소
@@ -27,7 +50,9 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 ├── commands/                     # /seo-audit.md /seo-fix.md /seo-check.md (슬래시=파일명)
 ├── skills/
 │   └── seomedic/SKILL.md         # 자동 활성 스킬(폴더명=스킬명)
-├── .mcp.json                     # 엔진 실행: npx -y @seomedic/mcp  (env로 옵션 전달)
+├── .mcp.json                     # 엔진 실행: node ${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/server.js
+├── hooks/hooks.json              # SessionStart → scripts/ensure-mcp-deps.mjs (의존성 설치)
+├── mcp-server/                   # 번들된 엔진(dist/ 커밋됨 + package.json)
 ├── SECURITY.md                   # 보안 정책(필수)
 ├── DISCLAIMER.md                 # 면책·크롤 합법성 고지(필수)
 └── README.md                     # 설치·사용법
@@ -42,8 +67,8 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 └── report/         # Markdown/JSON
 ```
 
-- **엔진 = MCP 서버**(`npx -y @seomedic/mcp`) → Claude Code가 `audit`/`fix`/`check` 툴로 호출. npm이 의존성·크로스플랫폼 처리.
-- **CLI 겸용**(선택): 같은 엔진을 `npx @seomedic/cli`로 CI에서도 사용.
+- **엔진 = MCP 서버**(실제: `node ${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/server.js` — 번들 실행) → Claude Code가 `audit`/`fix`/`check` 툴로 호출. 의존성은 SessionStart 훅(`ensure-mcp-deps.mjs`)이 `${CLAUDE_PLUGIN_DATA}/node_modules`에 설치. *(원안은 `npx -y @seomedic/mcp` — npm 미배포로 미착수)*
+- **CLI 겸용**(선택·미착수): 같은 엔진을 `npx @seomedic/cli`로 CI에서도 사용. *(npm 미배포 상태라 현재는 저장소 내 `packages/mcp-engine/src/cli.ts` 직접 실행만 가능)*
 - 플러그인 내부 경로는 **`${CLAUDE_PLUGIN_ROOT}`** 사용(하드코딩 절대 금지 — 설치 위치가 OS·방법마다 다름).
 
 ---
@@ -52,7 +77,7 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 
 | 영역 | 선택 | 이유 |
 |------|------|------|
-| 배포 | **Claude Code 플러그인(마켓) + npm MCP 엔진** | "어느 프로젝트에서나 설치" = 마켓 플러그인. 선례 다수(확인됨) |
+| 배포 | **Claude Code 플러그인(마켓) + 번들 MCP 엔진** *(2026-08-09 정정: 원안 "npm MCP 엔진" → 실제는 플러그인 내 번들, npm 미배포)* | "어느 프로젝트에서나 설치" = 마켓 플러그인. 선례 다수(확인됨) |
 | 런타임/언어 | Node.js + TypeScript | MCP·CLI·크롤 라이브러리 표준 |
 | 렌더링 | Playwright(headless Chrome) | raw↔렌더드 비교·CWV. **바이너리 설치 필요 → 첫 실행 자동 설치 안내** |
 | 성능 | Lighthouse | CWV(LCP/INP/CLS). **3회 중앙값**, lab≠field(CrUX) 명시 |
@@ -202,9 +227,14 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 > **대상 독자**: 비개발자·왕초보·**처음 컴퓨터/AI/메신저/IT 기기를 다루는 사람**. 전문용어를 풀어쓰고 **복붙 가능한 명령·그림·단계 번호**로.
 
 ### 문서 세트
-- `README.md`(한글, 정본) · `README.en.md`(영문) · `GUIDE.md`(왕초보 단계별)
+- `README.md`(한글, 정본) · `README.en.md`(영문)
+  - **2026-08-09 정정**: 원안은 `GUIDE.md`(왕초보 단계별)를 README와 별도 문서로 뒀으나, 2026-08-04
+    PR #7(`docs/guide-removal-readme-consolidation`)에서 **GUIDE.md를 README.md/README.en.md로
+    통합·삭제**했다(양쪽 문서 367행·356행에 통합 사실 명시). 요구사항의 취지(왕초보 단계별 안내)는
+    유지되나, **별도 파일이 아니라 README 안의 절**로 구현됐다 — 아래 필수 목차는 그대로 README가
+    담당한다.
 - `TROUBLESHOOTING.md`(문제/오류 대처) · `FAQ.md`
-- `LICENSE` · `THIRD_PARTY_NOTICES` · `DISCLAIMER.md` · `SECURITY.md`
+- `LICENSE` · `THIRD_PARTY_NOTICES` · `DISCLAIMER.md` · `SECURITY.md`(후자 둘은 `packages/plugin/`에 위치 — 배송 폴더가 실제 사용자에게 도달하는 경로이므로)
 - 모든 문서에 **라이선스·저작권·상업 용도 일관 반영**(법률 L10)
 
 ### 필수 목차 (README/가이드가 반드시 포함)
@@ -252,7 +282,7 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 
 ### 우선순위
 - **Must**: 한글 README(전 목차)·빠른시작·명령어·TROUBLESHOOTING 매트릭스·FAQ·법률/면책·설치/준비물
-- **Should**: 영문 README·GUIDE.md(왕초보 단계별)·스크린샷·용어집·데이터흐름/아키텍처 그림
+- **Should**: 영문 README·README 내 왕초보 단계별 절(2026-08-09 정정: 원안 별도 `GUIDE.md`는 README로 통합됨, 위 "문서 세트" 정정 참고)·스크린샷·용어집·데이터흐름/아키텍처 그림
 - **Could**: 동영상/GIF·다국어 확장·인터랙티브 도움말
 
 ### 기존 설계 보존
@@ -328,7 +358,7 @@ npx tsc --noEmit && npm run build
 ---
 
 ## 결정 완료 (v2.5)
-- [x] 배포 = **마켓 플러그인 + npm MCP 엔진**(엔진 npx 실행, 플러그인은 얇은 껍데기)
+- [x] 배포 = **마켓 플러그인 + MCP 엔진**(플러그인은 얇은 껍데기) — *2026-08-09 정정: 엔진 실행 방식은 원안 `npx`(npm 배포)가 아니라 **플러그인 내 번들 직접 실행**으로 구현됨. 상세는 위 "아키텍처" 절 정정 주석 참고*
 - [x] 저장 위치 = **대상 프로젝트별 `.seomedic/`(gitignore)**
 - [~] 라이선스 = **권장 MIT**(최종·저작권자·연도 확정 필요·법무), SECURITY.md·DISCLAIMER.md·**THIRD_PARTY_NOTICES** 필수
 - [x] 경로 = `${CLAUDE_PLUGIN_ROOT}`, 크로스플랫폼 검증
