@@ -113,7 +113,8 @@
 - [ ] 라이선스 최종 확정(저작권자·연도)·6건 법무 검토(L1·L2·L4·L5·L12·L13) — **사용자/법무 결정 영역, 코드로 대신 결정 안 함**
 
 ### M9-2 문서화 게이트 (Must: 문서 없이는 완료 아님)
-- [x] `README.md`(13개 목차 전부), `README.en.md`, `GUIDE.md`(왕초보 단계별+용어집), `TROUBLESHOOTING.md`(16종 매트릭스), `FAQ.md`
+- [x] `README.md`(13개 목차 전부), `README.en.md`, ~~`GUIDE.md`(왕초보 단계별+용어집)~~, `TROUBLESHOOTING.md`(16종 매트릭스), `FAQ.md`
+  - ⚠️ 2026-08-10 정정: `GUIDE.md`/`GUIDE.en.md`는 PR #7(2026-08-04, "GUIDE 문서 제거 및 README 정확성 종합 갱신")로 **삭제되고 README에 통합**됐다. 이 M9-2 완료 체크는 원래 시점(2026-07-06)엔 사실이었으나, 현재 존재하지 않는 파일을 계속 산출물로 기재하고 있어 취소선 처리한다. 문서화 요구사항 자체는 "README 안의 절"로 형태만 바뀌어 계속 충족됨(취지 훼손 없음) — `README.md:367`/`README.en.md:356`이 이 통합을 스스로 명시.
 - [x] `SECURITY.md`/`DISCLAIMER.md` 실측 반영(npm audit 현재상태·라이선스 스캔 결과 링크·상표 무관 고지 추가)
 
 ### M9-3 보안 최종 sweep
