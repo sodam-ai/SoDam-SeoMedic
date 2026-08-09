@@ -93,7 +93,8 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 
 | 변경 유형 | 분류 | 근거 |
 |-----------|------|------|
-| 빠진 sitemap 항목·신규 OG/Twitter 태그 **추가** | **add_safe**(자동 제안) | "없는 것 추가"는 비파괴적 |
+| 빠진 sitemap 항목 **추가** | **add_safe**(자동 제안) | "없는 것 추가"는 비파괴적, URL 목록일 뿐 표시·CTR에 영향 없음 |
+| ~~신규 OG/Twitter 태그 추가~~ **og:title/og:url 추가** | ~~add_safe~~ **gated** | ⚠️ **2026-08-09 정정(코드 실측, `fix-orchestrator/plan.ts:337` `planOgFixForFinding`)**: 원안은 add_safe였으나 실제 구현은 gated다. 코드 주석이 밝힌 이유가 타당하다 — og:title은 페이지의 실제 `title` 값을 그대로 복사하는데, 바로 아래 행이 `title`을 CTR/랭킹 신호라는 이유로 gated로 분류한다. 소셜 공유 시 노출되는 표시값이라 이 표 자신의 원칙("색인·표시에 영향을 주는 모든 변경"=gated, 아래 참고)에 og:title/og:url을 add_safe로 뒀던 원안의 요약행 자체가 어긋나 있었다 — 실제 구현이 표보다 원칙에 더 정확히 부합한다. |
 | `title`·`meta` (기존 값 덮어쓰기) | **gated** | CTR/랭킹 신호 |
 | `alt` 자동 생성 | **gated/제안만** | 비전 없이 생성 시 이미지 내용 환각 |
 | `canonical`·`noindex`·`robots` | **gated** | 색인·표시 직접 통제 |
