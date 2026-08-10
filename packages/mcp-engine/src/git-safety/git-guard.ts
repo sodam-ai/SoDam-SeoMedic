@@ -34,8 +34,18 @@ export async function checkGitClean(projectRoot: string): Promise<GitCleanStatus
   if (result.code !== 0) {
     return { clean: false, reason: "not_a_repo", details: result.stderr.trim() || "git status 실패" };
   }
-  if (result.stdout.trim().length > 0) {
-    return { clean: false, reason: "dirty", details: result.stdout.trim() };
+  // .seomedic/은 이 도구 자신의 DB·백업 저장소이지 사용자 프로젝트 콘텐츠가 아니다 — git status에
+  // 잡혀도 "dirty"로 취급하지 않는다(2026-08-10 실측 발견: openSeomedicDb가 .gitignore 여부와
+  // 무관하게 .seomedic/를 항상 먼저 만들기 때문에, 이 디렉터리를 아직 gitignore하지 않은 프로젝트는
+  // seomedic_fix_plan을 단 한 번도 성공시키지 못하고 매번 "자기 자신" 때문에 dirty로 거부당했다).
+  const relevantLines = result.stdout.split("\n").filter((line) => {
+    const trimmed = line.replace(/\r$/, "");
+    if (trimmed.length === 0) return false;
+    const filePath = trimmed.slice(3);
+    return filePath !== ".seomedic" && !filePath.startsWith(".seomedic/") && !filePath.startsWith(".seomedic\\");
+  });
+  if (relevantLines.length > 0) {
+    return { clean: false, reason: "dirty", details: relevantLines.join("\n") };
   }
   return { clean: true };
 }
