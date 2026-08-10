@@ -23,6 +23,7 @@ New to computers, terminals, or AI tools? Just follow the steps below in order. 
 12. [Troubleshooting](#12-troubleshooting)
 13. [FAQ](#13-faq)
 14. [Legal, Copyright, License, and Commercial Use](#14-legal-copyright-license-and-commercial-use)
+15. [Developer / Contributor Guide](#15-developer--contributor-guide)
 
 ---
 
@@ -66,7 +67,7 @@ SeoMedic isn't a separate file you download and run — it's installed **from in
 
 (The two values above are this project's actual GitHub repository address and marketplace name. Copy them exactly as shown.)
 
-**⚠️ This repository is currently Private on GitHub.** The install command above only succeeds if you're logged in as the repository owner, or an account that has been granted access (otherwise you'll get a "repository not found" error). This restriction will go away once the repository is made Public.
+This repository is **Public** on GitHub — anyone can run the install command above without needing special access.
 
 **⚠️ You must fully quit and restart Claude Code after installing.** (Confirmed by direct testing: a newly installed plugin is only recognized after a full restart. Opening a new chat tab is not enough — you must quit and relaunch the actual application.)
 
@@ -75,6 +76,8 @@ Verify the install:
 /plugin list
 ```
 Success looks like: `seomedic` shows up in the list with status "enabled".
+
+> **⚠️ Known issue as of 2026-08-10**: Installing this repository right now may show "2 errors during load" when you run `/reload-plugins`, with commands like `/seo-audit` not appearing at all, in some environments. The root cause has been fully identified and a fix has been completed, but it has **not yet been merged** into this repository's `master` (default) branch (see section 8 below and the "Rediscovered after M9" entry in `CHECKPOINT.md`). If you hit this, please contact the repository maintainer.
 
 ## 4. Quick Start (5 minutes)
 
@@ -250,6 +253,12 @@ Checks whether FAQ-style structured data exists (this only checks whether the st
 Checks whether the product name declared in a page's JSON-LD structured data actually matches text that appears on the rendered page — if the structured data you're telling search engines doesn't match what's actually shown ("hallucination"), search engines can treat this as spam and penalize the page. Price/discount fields were deliberately excluded from this check, since formatting differences (commas, currency symbols) create a high risk of false "mismatch" results on their own; product name is the one field that can be compared safely and deterministically. **Detection only — no auto-fix.**
 </details>
 
+<details>
+<summary><strong>🔴 2026-08-09 to 10 — Plugin failed to load via the real install path (root cause found and fixed, merge pending)</strong></summary>
+
+For the first time in this project's history, a real user testing via the **actual install path** (`/plugin marketplace add` → `/plugin install`), rather than an isolated test session, discovered that the SEO diagnostic commands never loaded into the session at all. Both root causes were confirmed by direct code comparison: (1) the plugin's version number had never been bumped in the repository's entire history, so the install cache kept serving old content; (2) even after fixing the source code, the manual step required to regenerate the actual deployed bundle had been skipped, so two recent fixes were missing from what gets installed. Both issues have been fixed and are awaiting review (Pull Request), not yet merged into this repository's default branch. See `CHECKPOINT.md` for current status.
+</details>
+
 **Planned, not yet started**: **real** Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet, and this can't start until the user provides real Google service-account credentials); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
 
 ## 9. Security & Data Flow
@@ -319,14 +328,14 @@ See **[FAQ.en.md](./FAQ.en.md)** for frequently asked questions.
 **Presented strictly, without minimizing or overstating anything.**
 
 ### License
-- This project intends to adopt the **MIT License** (broadly permits modification, redistribution, and commercial use, provided the copyright notice is preserved). See the `LICENSE` file for the exact text.
-- **⚠️ The current `LICENSE` file is a draft with the copyright holder temporarily filled in as "SoDam AI Studio" (2026).** This only settles the factual question of "what name goes here" — **final adoption of the MIT License itself, and this copyright attribution, are still pending formal legal review.** Until this is finalized, the license terms should not be treated as fully in legal effect — always confirm this file has been finalized before commercial distribution or redistribution.
-- Third-party open-source dependencies and their licenses are listed in `THIRD_PARTY_NOTICES.md`. A review found **no copyleft licenses (e.g., GPL, which impose source-disclosure obligations on redistribution).**
+- This project is licensed under the **Apache License 2.0** (broadly permits modification, redistribution, commercial use, and an express patent license, provided you preserve copyright/patent notices, mark changed files as changed, and comply with the NOTICE-file terms). See the `LICENSE` file for the exact text.
+- **Copyright holder: SoDam AI Studio (2026).** Adopting this license is a decision the project owner has finalized; the items still pending legal review are listed separately below.
+- Third-party open-source dependencies and their licenses are listed in `THIRD_PARTY_NOTICES.md`. A review found **no copyleft licenses (e.g., GPL, which impose source-disclosure obligations on redistribution).** The NOTICE-republishing obligation for the Apache-2.0-licensed dependencies among them (e.g., Playwright) is already fulfilled in that same file.
 
 ### What you can do
 - Freely install and run diagnostics in personal or company projects.
-- Modify and redistribute the source code (once the license above is finalized, subject to its terms).
-- Commercial use (once the license is finalized, under MIT terms).
+- Modify and redistribute the source code (subject to the Apache License 2.0 — preserve the original notices/NOTICE file, mark your changes).
+- Commercial use (under Apache License 2.0 terms).
 
 ### What you cannot do / must be careful about
 - **Diagnosing or modifying a site or repository you don't own or don't have explicit permission for** — legal responsibility rests entirely with the user. SeoMedic is designed to always ask for permission confirmation before proceeding, but it cannot prevent someone from answering that confirmation dishonestly.
@@ -343,13 +352,69 @@ See **[FAQ.en.md](./FAQ.en.md)** for frequently asked questions.
 - **This tool has no official affiliation, endorsement, or partnership with Google, Anthropic (Claude), OpenAI (ChatGPT), Perplexity, or any other service named in this document or in diagnostic output.** Names of search engines/AI services are mentioned purely for descriptive purposes.
 
 ### Items still pending legal review
-- Final confirmation of the copyright holder (see License section above)
 - Potential copyright issues in crawled content
 - Scope of fair use regarding trademarks (e.g., product names referenced in diagnostics)
 - Copyright attribution for AI-generated code/documentation output
 - Whether this project's own product name ("SeoMedic") requires trademark registration
 
 ⚠️ **None of the above constitutes legal advice.** A professional legal review is strongly recommended before commercial distribution, delivery to clients, or offering this as a service to third parties.
+
+## 15. Developer / Contributor Guide
+
+This section is for people who want to modify this project's own code or ship a new version, not just use the tool. Regular users can skip it.
+
+### Folder structure
+```
+SoDam-SeoMedic/
+├── packages/
+│   ├── plugin/                        # The part that actually gets installed (the marketplace only copies this folder into its cache)
+│   │   ├── .claude-plugin/plugin.json # Plugin name, version, description
+│   │   ├── .mcp.json                  # Defines how the MCP server is launched
+│   │   ├── hooks/                     # Hooks run automatically at session start
+│   │   ├── scripts/                   # Scripts the hooks run (e.g. auto-installing dependencies)
+│   │   ├── skills/                    # Claude Code skill definitions
+│   │   └── mcp-server/dist/           # Build output of the diagnostic engine (committed — see "Deployment" below)
+│   └── mcp-engine/                    # The actual diagnostic engine source (a sibling folder the marketplace can't read directly)
+│       ├── src/                       # TypeScript source
+│       ├── test/                      # vitest tests
+│       └── scripts/                   # Build-then-copy automation scripts
+├── .PRD/                              # Planning documents
+├── README.md / README.en.md           # This document
+├── CHECKPOINT*.md                     # Per-phase progress/verification records
+├── LICENSE, THIRD_PARTY_NOTICES.md
+└── TROUBLESHOOTING*.md, FAQ*.md
+```
+
+### Build
+```
+npm run build       # Compiles packages/mcp-engine with tsc (generates dist/)
+npm run typecheck   # Full type check including test files (separate from build)
+```
+
+### Test
+```
+npm test        # Runs the full vitest suite in packages/mcp-engine (includes one real-network smoke test against example.com — requires internet access)
+npm run audit   # Checks only for high-severity vulnerabilities (npm audit --audit-level=high)
+```
+
+### Deployment — how a new version reaches real users
+This project does not publish an npm package or a separate CLI executable (there is no standalone command-line tool yet — see section 6). Instead, **the Claude Code marketplace reads this GitHub repository directly.** So "deployment" simply means "merging the correct content into the repository's default branch (`master`)":
+
+1. Edit the source under `packages/mcp-engine/src/`.
+2. `cd packages/mcp-engine && npm run package:plugin` — builds, then re-copies the output into `packages/plugin/mcp-server/` (⚠️ skipping this step means the source is fixed but the actually-deployed file isn't — this really happened on 2026-08-10, see `CHECKPOINT.md`).
+3. Bump the `version` field in `packages/plugin/.claude-plugin/plugin.json` (⚠️ skipping this means already-installed users' caches never refresh — also documented in `CHECKPOINT.md`).
+4. Commit → Pull Request → review → merge into `master`.
+
+### Environment variables
+| Variable | Required? | Purpose |
+|---|---|---|
+| `SEOMEDIC_GITHUB_TOKEN` | Optional (only for the GitHub-repository auto-fix feature) | GitHub Personal Access Token. Never hardcoded anywhere in the code — read only from an environment variable on your own computer (see section 5) |
+
+No other environment variables are used anywhere in this project's code (confirmed by a full source search).
+
+### Operational notes
+- `packages/plugin/mcp-server/dist/` is explicitly **exempted** from the general `.gitignore` rule that excludes `dist/` — it must stay committed. Accidentally removing this exception breaks marketplace installs.
+- `CHECKPOINT.md` is this repository's real verification history — decide commit timing for it carefully (it may be managed separately per team convention).
 
 ---
 
