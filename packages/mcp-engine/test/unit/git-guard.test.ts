@@ -52,6 +52,27 @@ describe("checkGitClean — 실제 git 저장소", () => {
     if (!status.clean) expect(status.reason).toBe("not_a_repo");
   });
 
+  it("자기 자신의 .seomedic/ 디렉터리는 gitignore 여부와 무관하게 dirty로 취급하지 않는다(회귀 방지 — 2026-08-10 발견)", async () => {
+    // openSeomedicDb()는 .gitignore 존재 여부와 무관하게 .seomedic/를 항상 먼저 만든다. 이 디렉터리를
+    // 아직 gitignore하지 않은(흔한) 프로젝트에서 fix-orchestrator를 처음 실행하면, 그 도구 자신이
+    // 만든 디렉터리 때문에 매번 dirty로 거부당하는 실결함을 실제 MCP 함수 호출로 발견했다.
+    const repo = makeGitRepo();
+    fs.mkdirSync(path.join(repo, ".seomedic"));
+    fs.writeFileSync(path.join(repo, ".seomedic", "seomedic.db"), "fake db content");
+    const status = await checkGitClean(repo);
+    expect(status.clean).toBe(true);
+  });
+
+  it(".seomedic/ 밖의 실제 변경은 .seomedic/가 섞여 있어도 여전히 dirty로 잡는다", async () => {
+    const repo = makeGitRepo();
+    fs.mkdirSync(path.join(repo, ".seomedic"));
+    fs.writeFileSync(path.join(repo, ".seomedic", "seomedic.db"), "fake db content");
+    fs.writeFileSync(path.join(repo, "file.txt"), "changed\n");
+    const status = await checkGitClean(repo);
+    expect(status.clean).toBe(false);
+    if (!status.clean) expect(status.details).not.toContain(".seomedic");
+  });
+
   it("PATH에 git이 없으면 실제로 git_not_found로 fail-closed", async () => {
     const repo = makeGitRepo();
     const originalPath = process.env.PATH;

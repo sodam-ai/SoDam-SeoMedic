@@ -15,5 +15,5 @@
     "typecheck": "npm run typecheck --workspace=packages/mcp-engine",
     "audit": "npm audit --audit-level=high"
   },
-  "license": "MIT"
+  "license": "Apache-2.0"
 }

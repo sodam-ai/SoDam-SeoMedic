@@ -112,6 +112,7 @@
 <p class="ol-item"><strong>12.</strong> <a href="#12-문제오류-대처">문제/오류 대처</a></p>
 <p class="ol-item"><strong>13.</strong> <a href="#13-faq">FAQ</a></p>
 <p class="ol-item"><strong>14.</strong> <a href="#14-법률저작권라이선스상업적-용도">법률·저작권·라이선스·상업적 용도</a></p>
+<p class="ol-item"><strong>15.</strong> <a href="#15-개발자기여자-가이드">개발자·기여자 가이드</a></p>
 <hr>
 <h2 id="1-한눈-소개">1. 한눈 소개</h2>
 <p>SeoMedic은 "내 사이트(또는 권한이 있는 사이트)가 구글 검색과 AI 검색(ChatGPT/Perplexity 같은 답변형 검색)에 잘 노출될 수 있는 상태인지"를 자동으로 점검해주는 도구입니다.</p>
@@ -146,11 +147,12 @@
 <pre><code>/plugin marketplace add sodam-ai/SoDam-SeoMedic
 /plugin install seomedic@sodam-seomedic-marketplace</code></pre>
 <p>(위 두 값은 이 프로젝트의 실제 GitHub 저장소 주소와 마켓플레이스 이름입니다. 그대로 복사해서 사용하시면 됩니다.)</p>
-<p><strong>⚠️ 이 저장소는 현재 GitHub에서 비공개(Private) 상태입니다.</strong> 저장소 소유자 본인 계정이거나, 저장소에 접근 권한을 부여받은 계정으로 로그인한 상태에서만 위 설치 명령이 성공합니다(권한이 없으면 "저장소를 찾을 수 없다"는 오류가 납니다). 나중에 공개(Public)로 전환되면 이 제한은 사라집니다.</p>
+<p>이 저장소는 GitHub에서 <strong>공개(Public)</strong> 상태입니다 — 별도 권한 없이 누구나 위 설치 명령을 실행할 수 있습니다.</p>
 <p><strong>⚠️ 설치 후 반드시 Claude Code를 완전히 종료했다가 다시 켜주세요.</strong> (실측 확인된 사실: 새로 설치한 플러그인은 다시 시작해야 인식됩니다. 그냥 새 대화창만 여는 것으로는 부족합니다 — 프로그램 자체를 껐다 켜야 합니다.)</p>
 <p>설치가 잘 됐는지 확인:</p>
 <pre><code>/plugin list</code></pre>
 <p>목록에 <code>seomedic</code>이 "enabled" 상태로 보이면 성공입니다.</p>
+<p>⚠️ <strong>2026-08-10 기준 알려진 문제</strong>: 지금 이 저장소를 설치하면 일부 환경에서 <code>/reload-plugins</code> 실행 시 "2 errors during load"가 뜨고 <code>/seo-audit</code> 등 명령어가 아예 안 보일 수 있습니다. 원인은 전부 파악됐고 수정도 완료돼 있으나, 아직 이 저장소의 <code>master</code>(기본) 브랜치에 <strong>병합되기 전</strong> 상태입니다(자세한 내용은 8번 항목과 <code>CHECKPOINT.md</code>의 "M9 이후 재발견" 참고). 이 문제를 겪으신다면 저장소 관리자에게 문의해주세요.</p>
 <h2 id="4-빠른-시작5분">4. 빠른 시작(5분)</h2>
 <p>Claude Code 대화창에 아래처럼 입력하세요(원하는 사이트 주소로 바꾸세요):</p>
 <pre><code>/seo-audit https://example.com</code></pre>
@@ -290,6 +292,10 @@
 <summary>✅ Phase 2 — JSON-LD 상품명이 실제 페이지 내용과 일치하는지 검증("환각 0") (완료)</summary>
 <p>JSON-LD(구조화 데이터)에 적어놓은 상품 이름이 실제로 그 페이지 화면에 나오는 글자와 일치하는지 확인합니다 — 검색엔진에 알려주는 구조화 정보가 실제 화면 내용과 다르면("환각"이라고 부릅니다) 검색엔진이 스팸으로 간주해 불이익을 줄 수 있기 때문입니다. 가격·할인 정보는 쉼표·통화 기호 등 표시 형식이 사람마다 달라 "다르다"는 판정 자체가 오히려 틀릴 위험이 커서, 검사 대상에서 의도적으로 제외했습니다(상품명만 결정론적으로 안전하게 비교 가능). <strong>탐지만 하고 자동으로 고쳐주지는 않습니다.</strong></p>
 </details>
+<details>
+<summary>🔴 2026-08-09~10 — 실사용자 설치 경로에서 플러그인 미작동 발견 (원인 파악·수정 완료, 병합 대기)</summary>
+<p>이 프로젝트 역사상 처음으로 실사용자가 격리 테스트 환경이 아닌 <strong>진짜 설치 경로</strong>(<code>/plugin marketplace add</code> → <code>/plugin install</code>)로 검증하다가, SEO 진단 명령어가 세션에 전혀 로드되지 않는 문제를 발견했습니다. 원인 두 가지를 모두 코드 대조로 확인했습니다: (1) 플러그인 버전 번호가 저장소 역사상 한 번도 갱신되지 않아 설치 캐시가 예전 내용을 계속 서빙하고 있었음, (2) 소스 코드는 고쳐도 실제 배포 파일(번들)에 반영하는 재생성 단계가 수동이라 최근 수정 2건이 배포 파일에 빠져 있었음. 두 원인 모두 수정을 완료해 검토 대기 중(Pull Request)이며, 아직 이 저장소의 기본 브랜치에 병합되지는 않았습니다. 자세한 진행 상황은 <code>CHECKPOINT.md</code>의 "M9 이후 재발견" 항목을 참고하세요.</p>
+</details>
 <p><strong>앞으로 계획된 것(아직 시작 안 함)</strong>: Google Search Console/Analytics <strong>실연동</strong>(Phase 2 — 현재는 인터페이스 골격과 가짜 클라이언트만 있으며 실제 계정 연동은 안 돼 있습니다, 사용자의 실제 Google 서비스계정 자격증명이 있어야 착수 가능), 네이버·Bing 지원(Phase 3). 이 문서는 실제로 구현·검증된 것만 다루며, 계획 단계 기능을 이미 되는 것처럼 설명하지 않습니다.</p>
 <h2 id="9-보안데이터-흐름">9. 보안·데이터 흐름</h2>
 <ul>
@@ -347,15 +353,15 @@
 <p><strong>엄격하게, 축소·과장 없이 안내드립니다.</strong></p>
 <h3 id="라이선스">라이선스</h3>
 <ul>
-<li>이 프로젝트는 <strong>MIT 라이선스를 채택할 예정</strong>입니다(수정·복제·재배포·상업적 사용을 폭넓게 허용하되, 저작권 고지문을 그대로 유지해야 하는 조건). 정확한 전문은 <code>LICENSE</code> 파일을 확인하세요.</li>
-<li><strong>⚠️ 현재 <code>LICENSE</code> 파일은 저작권자를 임시로 "SoDam AI Studio"(2026년)로 채워둔 초안 상태입니다.</strong> 이는 "이름을 무엇으로 할지"라는 사실관계만 채운 것이며, <strong>MIT 라이선스 채택 자체와 이 저작권자 표기의 최종 확정은 여전히 법무 검토 대기 중</strong>입니다. 최종 확정 전까지는 라이선스 조건이 법적으로 완전히 발효됐다고 보기 어려우니, 상업적 배포·재배포 전에는 반드시 이 파일이 최종 확정됐는지 먼저 확인하세요.</li>
-<li>이 프로젝트가 사용하는 외부 오픈소스 라이브러리 목록과 각각의 라이선스는 <code>THIRD_PARTY_NOTICES.md</code>에 정리되어 있습니다. 확인 결과 <strong>저작권 카피레프트(GPL 등 재배포 시 소스공개 의무가 있는 라이선스) 계열은 발견되지 않았습니다.</strong></li>
+<li>이 프로젝트는 <strong>Apache License 2.0</strong>을 채택합니다(수정·복제·재배포·상업적 사용·특허 실시권까지 폭넓게 허용하되, 저작권·특허 고지문 유지, 변경한 파일에 변경 사실 명시, NOTICE 파일 관련 조건을 지켜야 합니다). 정확한 전문은 <code>LICENSE</code> 파일을 확인하세요.</li>
+<li><strong>저작권자: SoDam AI Studio(2026년).</strong> 라이선스 채택 자체는 프로젝트 소유자가 확정한 사실이며, 아래 "아직 법무 검토가 끝나지 않은 항목"은 이와 별개로 남아 있는 사안입니다.</li>
+<li>이 프로젝트가 사용하는 외부 오픈소스 라이브러리 목록과 각각의 라이선스는 <code>THIRD_PARTY_NOTICES.md</code>에 정리되어 있습니다. 확인 결과 <strong>저작권 카피레프트(GPL 등 재배포 시 소스공개 의무가 있는 라이선스) 계열은 발견되지 않았습니다.</strong> 그중 Apache-2.0으로 배포되는 일부 의존성(Playwright 등)의 NOTICE 재게시 의무는 같은 파일에서 이미 이행하고 있습니다.</li>
 </ul>
 <h3 id="할-수-있는-것">할 수 있는 것</h3>
 <ul>
 <li>개인·회사 프로젝트에 자유롭게 설치해 진단하기</li>
-<li>소스 코드 수정·재배포(위 라이선스 최종 확정 및 조건 준수 하)</li>
-<li>상업적 사용(라이선스가 최종 확정된 이후, MIT 조건 하)</li>
+<li>소스 코드 수정·재배포(Apache License 2.0 조건 준수 하 — 원본 고지문·NOTICE 유지, 변경 사실 명시)</li>
+<li>상업적 사용(Apache License 2.0 조건 하)</li>
 </ul>
 <h3 id="할-수-없는-것-반드시-주의할-것">할 수 없는 것 / 반드시 주의할 것</h3>
 <ul>
@@ -376,13 +382,61 @@
 </ul>
 <h3 id="아직-법무-검토가-끝나지-않은-항목">아직 법무 검토가 끝나지 않은 항목</h3>
 <ul>
-<li>저작권자 최종 확정(위 라이선스 항목)</li>
 <li>크롤 콘텐츠에 대한 저작권 문제 소지 여부</li>
 <li>상표(제품명 등) 관련 fair use 범위</li>
 <li>AI가 생성한 코드/문서 산출물의 저작권 귀속 문제</li>
 <li>이 프로젝트 자체의 제품명("SeoMedic")에 대한 상표 등록 여부</li>
 </ul>
 <p>⚠️ <strong>위 내용은 법률 자문이 아닙니다.</strong> 상업적 배포·납품·타인에게 서비스로 제공하기 전에는 반드시 전문 법률가의 검토를 받으시길 강력히 권장합니다.</p>
+<h2 id="15-개발자기여자-가이드">15. 개발자·기여자 가이드</h2>
+<p>이 절은 도구를 "사용"만 하는 게 아니라 이 프로젝트 코드 자체를 고치거나 새 버전을 배포하려는 분을 위한 안내입니다. 일반 사용자는 건너뛰셔도 됩니다.</p>
+<h3 id="폴더-구조">폴더 구조</h3>
+<pre><code>SoDam-SeoMedic/
+├── packages/
+│   ├── plugin/                        # 실제로 설치되는 부분(마켓플레이스가 이 폴더만 캐시에 복사함)
+│   │   ├── .claude-plugin/plugin.json # 플러그인 이름·버전·설명
+│   │   ├── .mcp.json                  # MCP 서버 실행 방법 정의
+│   │   ├── hooks/                     # 세션 시작 시 자동 실행되는 훅
+│   │   ├── scripts/                   # 훅이 실행하는 스크립트(의존성 자동설치 등)
+│   │   ├── skills/                    # Claude Code 스킬 정의
+│   │   └── mcp-server/dist/           # 진단 엔진의 빌드 산출물(커밋됨, 아래 "배포" 참고)
+│   └── mcp-engine/                    # 실제 진단 엔진 소스(형제 폴더라 마켓플레이스가 직접 못 읽음)
+│       ├── src/                       # TypeScript 소스
+│       ├── test/                      # vitest 테스트
+│       └── scripts/                   # 빌드→복사 자동화 스크립트
+├── .PRD/                              # 기획 문서
+├── README.md / README.en.md           # 이 문서
+├── CHECKPOINT*.md                     # Phase별 진행·검증 기록
+├── LICENSE, THIRD_PARTY_NOTICES.md
+└── TROUBLESHOOTING*.md, FAQ*.md
+</code></pre>
+<h3 id="빌드">빌드</h3>
+<pre><code>npm run build       # packages/mcp-engine를 tsc로 컴파일(dist/ 생성)
+npm run typecheck   # 테스트 파일 포함 전체 타입 검사(빌드와 별개)
+</code></pre>
+<h3 id="테스트">테스트</h3>
+<pre><code>npm test        # packages/mcp-engine의 vitest 전체 실행(실제 네트워크로 example.com에 접속하는 스모크 테스트 1건 포함 — 인터넷 연결 필요)
+npm run audit   # 고위험 취약점만 점검(npm audit --audit-level=high)
+</code></pre>
+<h3 id="배포--새-버전을-실사용자에게-반영하는-절차">배포 — 새 버전을 실사용자에게 반영하는 절차</h3>
+<p>이 프로젝트는 npm 패키지나 별도 CLI 실행 파일을 배포하지 않습니다(별도 커맨드라인 도구는 아직 없음, 6번 항목 참고). 대신 <strong>Claude Code 마켓플레이스가 이 GitHub 저장소 자체를 직접 읽어갑니다.</strong> 그래서 "배포"는 곧 "저장소의 기본 브랜치(<code>master</code>)에 정확한 내용을 병합하는 것"입니다:</p>
+<ol>
+<li><code>packages/mcp-engine/src/</code>에서 소스 수정</li>
+<li><code>cd packages/mcp-engine &amp;&amp; npm run package:plugin</code> — 빌드 후 결과물을 <code>packages/plugin/mcp-server/</code>로 재복사(⚠️ 이 단계를 잊으면 소스는 고쳤는데 실제 배포되는 파일은 안 바뀝니다 — 2026-08-10에 실제로 발생했던 문제, <code>CHECKPOINT.md</code> 참고)</li>
+<li><code>packages/plugin/.claude-plugin/plugin.json</code>의 <code>version</code> 필드를 올림(⚠️ 이것도 잊으면 이미 설치한 사용자의 캐시가 갱신되지 않습니다 — 역시 <code>CHECKPOINT.md</code> 참고)</li>
+<li>커밋 → Pull Request → 검토 후 <code>master</code> 병합</li>
+</ol>
+<h3 id="환경변수">환경변수</h3>
+<table>
+<thead><tr><th>변수명</th><th>필수 여부</th><th>용도</th></tr></thead>
+<tbody><tr><td><code>SEOMEDIC_GITHUB_TOKEN</code></td><td>선택(GitHub 저장소 자동 수정 기능을 쓸 때만)</td><td>GitHub Personal Access Token. 코드 어디에도 하드코딩되지 않으며, 사용자 컴퓨터의 환경변수로만 읽습니다(5번 항목 참고)</td></tr></tbody>
+</table>
+<p>이 외의 환경변수는 이 프로젝트 코드에서 사용하지 않습니다(전체 소스 검색으로 확인).</p>
+<h3 id="운영-주의사항">운영 주의사항</h3>
+<ul>
+<li><code>packages/plugin/mcp-server/dist/</code>는 <code>.gitignore</code>의 일반 규칙(<code>dist/</code> 제외)에서 <strong>예외 처리되어 커밋 대상</strong>입니다 — 실수로 이 예외를 지우면 마켓플레이스 설치가 깨집니다.</li>
+<li><code>CHECKPOINT.md</code>는 이 저장소의 실제 검증 이력을 담은 문서로, 커밋 시점을 신중하게 판단해야 합니다(팀 관례에 따라 별도 관리될 수 있음).</li>
+</ul>
 <hr>
 <p>이 문서(README.md)가 설치부터 사용까지의 왕초보용 단계별 안내를 전부 담고 있습니다(별도 GUIDE 문서는 2026-08-04부로 이 문서로 통합되어 더 이상 존재하지 않습니다). 문제가 생기면 <strong><a href="./TROUBLESHOOTING.html" target="_blank" rel="noopener noreferrer">TROUBLESHOOTING.md</a></strong>, 궁금한 점은 <strong><a href="./FAQ.html" target="_blank" rel="noopener noreferrer">FAQ.md</a></strong>를 확인하세요.</p>
 

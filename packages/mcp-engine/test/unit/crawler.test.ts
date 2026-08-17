@@ -15,6 +15,7 @@ vi.mock("../../src/crawler/sitemap.js", () => ({
 }));
 
 const { crawl } = await import("../../src/crawler/crawler.js");
+const { SsrfBlockedError } = await import("../../src/crawler/ssrf-guard.js");
 
 function allowAll() {
   return { isAllowed: () => true, crawlDelaySeconds: undefined, sitemaps: [] as string[] };
@@ -44,6 +45,22 @@ describe("crawl — 단일 URL 모드", () => {
     const result = await crawl("https://example.com/blocked", { siteMode: false });
     expect(result.pages).toHaveLength(0);
     expect(result.skippedByRobots).toEqual(["https://example.com/blocked"]);
+    expect(safeFetchMock).not.toHaveBeenCalled();
+  });
+
+  it("file:// 등 허용 안 된 스킴은 SsrfBlockedError로 즉시 거부한다(회귀 방지 — 2026-08-09 발견)", async () => {
+    // 실제 라이브 검증에서 이 케이스가 의도된 SsrfBlockedError가 아니라 robots.ts 내부의
+    // 우연한 "TypeError: Invalid URL"로만 막히고 있었음이 드러났다. 이 테스트는 (1) 명시적으로
+    // SsrfBlockedError가 던져지는지, (2) robots.txt 조회·fetch 등 이후 단계가 아예 호출되지
+    // 않는지(진입점에서 가장 먼저 걸러지는지) 둘 다 검증한다.
+    await expect(crawl("file:///etc/passwd", { siteMode: false })).rejects.toThrow(SsrfBlockedError);
+    expect(loadRobotsPolicyMock).not.toHaveBeenCalled();
+    expect(safeFetchMock).not.toHaveBeenCalled();
+  });
+
+  it("사설/예약 IP 리터럴(루프백)도 크롤 진입점에서 즉시 거부한다", async () => {
+    await expect(crawl("http://127.0.0.1/", { siteMode: false })).rejects.toThrow(SsrfBlockedError);
+    expect(loadRobotsPolicyMock).not.toHaveBeenCalled();
     expect(safeFetchMock).not.toHaveBeenCalled();
   });
 });
