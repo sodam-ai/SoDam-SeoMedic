@@ -35,6 +35,17 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify plugin bundle is in sync with source
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          npm run package:plugin --workspace=packages/mcp-engine
+          if [ -n "$(git status --porcelain -- packages/plugin/mcp-server/)" ]; then
+            echo "::error::packages/plugin/mcp-server/ 배포 번들이 mcp-engine/src와 불일치합니다. 'npm run package:plugin --workspace=packages/mcp-engine' 실행 후 재커밋하세요(2026-08 마켓캐시 버그의 근본원인과 같은 클래스)."
+            git status --porcelain -- packages/plugin/mcp-server/
+            git --no-pager diff -- packages/plugin/mcp-server/
+            exit 1
+          fi
+
       - name: Test
         run: npm run test
 
