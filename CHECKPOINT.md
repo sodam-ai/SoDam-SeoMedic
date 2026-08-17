@@ -124,3 +124,45 @@
 - [x] SSRF/경로조작/SQL바인딩 트랩은 M1~M8 전 과정에서 이미 실측 검증된 테스트가 그대로 재실행되어 재확인됨(별도 재작성 불필요)
 - [~] **크로스플랫폼(Win/Mac/Linux) 검증 — Windows만 실측, Mac/Linux는 미검증**(이 개발 환경이 Windows라 물리적으로 불가 — 코드는 `path.join`/argv배열 등 이식성 있게 작성했으나 실제 실행 확인은 못함, 정직하게 한계로 남김)
 - 상태: **done (법무 결정 2건 제외 — 사용자 영역으로 명확히 분리)**
+
+---
+
+## M9 이후 재발견 — 실사용 배포 게이트 (2026-08-09~10, 미해결)
+
+**왜 이 섹션이 필요한가**: M9는 "격리 세션(`--plugin-dir`+`--mcp-config`)" 방식으로 검증하고 done 처리됐다. 그런데 이 방식은 마켓플레이스 캐시를 아예 거치지 않는다 — 이 프로젝트 역사상 처음으로 실사용자가 **진짜 설치 경로**(`/plugin marketplace add` → `/plugin install`)로 테스트했더니, MCP 도구가 세션에 전혀 로드되지 않는 문제가 실측으로 드러났다. 즉 M9의 "done"은 실사용자 기준으로는 성립하지 않았다 — 이 사실을 숨기지 않고 기록한다.
+
+### 근본원인 (둘 다 실제 코드 대조로 확인, 추측 아님)
+
+1. **`plugin.json` 버전 무갱신** — `git log` 전체 이력 검색 결과 저장소 역사상 `version` 필드가 단 한 번도 바뀐 적 없음(0.1.0 고정). Claude Code 플러그인 캐시는 버전으로 최신 여부를 판단하므로, 내용이 바뀌어도 캐시가 갱신되지 않음.
+2. **배포 번들과 소스의 불일치** — `packages/mcp-engine/scripts/package-for-plugin.mjs`(`npm run package:plugin`)로 수동 재생성해야 실제 배포 파일(`packages/plugin/mcp-server/dist/`)에 반영되는 구조인데, 이 단계가 자동화돼 있지 않음. 이번 세션의 보안수정(SSRF)·오탐수정(.seomedic)이 소스에는 있었지만 배포 번들에는 **0건 반영**돼 있었음을 `git diff --stat`·`grep`으로 직접 확인.
+
+### 이번 세션(2026-08-09~10)에서 처리한 것
+- [x] `plugin.json` 0.1.0→0.1.1
+- [x] PR #11(SSRF)·#13(.seomedic 오탐) 소스를 병합해 `npm run package:plugin`으로 번들 재생성, grep으로 반영 확인
+- [x] 회귀 검증: `npm run typecheck` 0에러, `npm test` 431/431 통과, `npm run audit` 기존 known 이슈(nanoid) 외 신규 취약점 0건
+- [x] 위 전부를 PR #14(`fix/plugin-version-cache-bump`)에 반영해 push, 병합 권장 순서를 PR 설명에 기록
+
+### 후속 세션(2026-08-17)에서 완결한 것
+- [x] PR #8(nanoid audit)·#9(Windows CI 타임아웃)·#10(문서 동기화)·#12(Phase 2 준비 문서) → master 병합
+- [x] master를 PR #14 브랜치에 재병합·push → 3-OS CI 전부 그린 실측 확인(macOS 5m30s·Ubuntu 4m37s·Windows 18m22s)
+- [x] `packages/plugin/.claude-plugin/plugin.json`의 `license` 필드 `MIT→Apache-2.0` 수정·커밋 — **정정: 위에서 "자기보호 가드레일로 AI 편집 불가"라 적었던 것은 틀렸다. 이번 세션에서 Edit 도구로 정상 수정됨(가드레일이 없거나 다른 조건이었던 것으로 추정, 정확한 원인은 미확인)**
+- [x] **PR #14 병합** — `mergedAt: 2026-08-17T07:49:31Z`
+- [x] PR #11·#13을 master 대상으로 별도 병합 시도 → GitHub이 "already merged"로 자동 인식(원본 커밋이 #14를 통해 이미 master 조상에 포함됨, `git cherry`로 고유 커밋 0건 확인). 별도 조치 불필요
+- [ ] **실사용 재검증(완전히 별도의 새 Claude Code 세션에서)** — `/plugin uninstall` → 재설치 → `/reload-plugins`에서 "2 errors during load"가 사라지는지, `/seo-audit`가 실제로 도구를 등록하는지 확인. **아직 미확인 — 이 재검증 전까지는 "완전히 해결됐다"고 단정하지 않는다**
+
+### 🔴 이번 세션(2026-08-17)에서 새로 발견한 별도 문제 — PR #10 병합 커밋이 master 계보에서 누락됨(추측 아님, git으로 직접 확인)
+
+PR #8·#9를 순차 병합한 뒤, PR #10과 #12를 **병렬(동시) 호출**로 병합했다. 그 결과:
+- PR #10의 병합 커밋(`a73648b`)의 실제 첫 부모가 `66b1c06`(PR #9 병합 직후의 master)이 아니라 `5e8b808`(PR #8 자신의 브랜치 tip, PR #9보다도 이전 스냅샷)로 찍혀 있었다(`git show a73648b --format="%P" -s`로 확인).
+- 뒤이어 PR #12의 병합 커밋(`b882c24`)은 `66b1c06`을 부모로 삼아 만들어졌다 — 즉 `a73648b`를 아예 모르는 채로 master 브랜치 위에 얹혔다.
+- 결과: GitHub API는 PR #10을 `"state":"MERGED"`로 보고하지만, **그 병합 커밋은 현재 master의 조상 트리에 없다**(`git merge-base --is-ancestor a73648b HEAD` → 거짓, 직접 실행해 확인).
+- 영향: PR #10이 담고 있던 실제 콘텐츠 — 이 CHECKPOINT.md에 대한 대규모 보완(2026-07-15~08-04 시기의 프로젝트 진행사 820줄 상당), `CHECKPOINT_2.md`의 Phase 2 Stage 4~5 소급 기록, `HUMAN_ACTION_CHECKLIST.md`·`.PRD/` 정합성 수정분 — 이 **전부 master에 반영되지 않은 채로 있었다**.
+- **원인 추정(확정 아님)**: `gh pr merge`를 병렬(같은 메시지 내 동시) 호출하면 GitHub 백엔드가 각 병합의 base 브랜치 스냅샷을 서로 다른 시점에서 캐시해 계산하는 것으로 보임. 향후 여러 PR을 같은 base 브랜치로 병합할 때는 **반드시 순차적으로(하나씩 완료 확인 후 다음)** 진행하고, 병합 직후 `git log --oneline origin/master`로 병합 커밋이 실제로 조상 트리에 들어갔는지 확인할 것 — GitHub의 `"state":"MERGED"` 응답만으로는 부족하다.
+- **조치**: `origin/docs/checkpoint-prd-reality-sync`(PR #10의 실제 브랜치, tip `0280641`)를 master에 직접 재병합해 복구(아래 참고).
+
+### 알려진 잔여 위험 (구조적, 이번 수정 범위 밖)
+- 소스(`mcp-engine/src`)와 배포 번들(`plugin/mcp-server/dist`)의 동기화를 강제하는 자동 검사(CI)가 없음 — 사람이 `package:plugin` 실행을 또 잊으면 같은 클래스의 버그가 재발할 수 있음. CI에 "소스 변경 있는데 dist 무변경이면 실패" 체크 추가를 권장(미착수)
+- SessionStart 훅(`ensure-mcp-deps.mjs`)이 `${CLAUDE_PLUGIN_DATA}/node_modules`에 `better-sqlite3`·`playwright` 같은 네이티브 모듈을 설치하는 과정 자체는 이번에 별도로 재현 검증하지 못함 — 번들 불일치가 주원인이라는 진단이지만, 이 설치 과정에 독립적인 문제가 남아있을 가능성은 위 실사용 재검증에서만 최종 확인 가능
+- Mac/Linux 미검증(M9-3에서 이미 기록된 한계, 여전히 유효)
+- nanoid 고위험 취약점이 PR #8 자신의 제목상 "4차 재발" — transitive 의존성 재해석마다 재발하는 패턴, `overrides` 고정 미착수
+- 상태: **마켓캐시 버그 자체는 코드 작업 완결(사람의 새 세션 실사용 재검증만 남음). PR #10 누락 복구는 진행 중(아래 섹션)**
