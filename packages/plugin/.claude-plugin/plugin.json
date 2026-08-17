@@ -5,6 +5,6 @@
   "author": {
     "name": "SoDam"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": ["seo", "geo", "lighthouse", "playwright", "nextjs", "core-web-vitals"]
 }
