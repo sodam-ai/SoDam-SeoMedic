@@ -112,5 +112,5 @@ describe("MCP 서버 — fix 툴 5개, 실제 stdio 프로세스 간 통신", ()
     } finally {
       await client.close();
     }
-  }, 30_000);
+  }, 120_000); // makeIsolatedNextProject()의 node_modules 전체 복사가 Windows CI에서 30s를 넘길 수 있음(2026-08-09 실측)
 });
