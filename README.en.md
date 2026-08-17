@@ -66,7 +66,7 @@ SeoMedic isn't a separate file you download and run — it's installed **from in
 
 (The two values above are this project's actual GitHub repository address and marketplace name. Copy them exactly as shown.)
 
-**⚠️ This repository is currently Private on GitHub.** The install command above only succeeds if you're logged in as the repository owner, or an account that has been granted access (otherwise you'll get a "repository not found" error). This restriction will go away once the repository is made Public.
+**This repository is currently Public on GitHub.** Anyone can use the install command above — no login or special access needed. *(Corrected 2026-08-09: an earlier version of this doc assumed the repo was still Private, but a direct check via `gh repo view` confirmed it is Public — fixing the stale note.)*
 
 **⚠️ You must fully quit and restart Claude Code after installing.** (Confirmed by direct testing: a newly installed plugin is only recognized after a full restart. Opening a new chat tab is not enough — you must quit and relaunch the actual application.)
 

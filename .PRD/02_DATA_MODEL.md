@@ -93,7 +93,7 @@ Finding 하나에 대한 수정. 한 문제가 **여러 파일 수정**을 요�
 | approval_status | pending/approved/rejected/auto | pending | O |
 | applied_at | 자동 | 2026-07-02T10:05 | X |
 
-> **safe 경계(확정)**: `add_safe` = "없는 것을 추가"만(빠진 sitemap 항목, 신규 OG 태그). **기존 값 덮어쓰기·title/meta/alt·canonical/noindex/robots/sitemap/JSON-LD는 전부 `gated`**.
+> **safe 경계(확정)**: `add_safe` = "없는 것을 추가"만(빠진 sitemap 항목). **기존 값 덮어쓰기·title/meta/alt·canonical/noindex/robots/sitemap/JSON-LD는 전부 `gated`**. *(2026-08-09 정정: OG 태그는 원안엔 add_safe로 적혔으나 실제로는 title과 같은 이유로 gated 구현됨 — `04_PROJECT_SPEC.md` "safe/gated 경계" 표 참고)*
 
 ### Baseline
 회귀 비교 기준 스냅샷.
