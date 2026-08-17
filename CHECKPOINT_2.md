@@ -139,6 +139,9 @@ Next.js dev 서버 spawn, 이 스캐폴딩 작업과 무관한 `render-bridge/` 
 - [ ] **새 세션 인터뷰/스펙 선행 권장** — `CHECKPOINT_1.5.md` 267행 권고 그대로 유효. GSC/GA4/PSI
       3개 외부 인증(서비스계정 발급→API 활성화→속성 권한 부여)의 단계별 절차가 PRD에 없음 — 실연동
       착수 전 별도 세션에서 먼저 닫아야 할 진짜 스펙 공백.
+      → 2026-08-10 정정: 절차 자체는 `HUMAN_ACTION_CHECKLIST.md` "4-B"에 정리해뒀다(PSI는 API 키만
+      있으면 되는 공개 API라 3개 중 가장 먼저 부분 착수 가능). AI 크롤러 정책(4순위, 아래 우선순위
+      자기감사가 먼저 다루라고 한 항목)의 착수 결정 1문항도 같은 문서 "4-A"에 정리됨.
 - [ ] **실제 클라이언트 구현**(`api-client.ts`급) — `googleapis` 의존성 추가 + `GscClient`/
       `Ga4Client`/`PsiClient`의 실제 구현. Phase 1.5b가 `api-client-port.ts`(먼저) →
       `api-client.ts`(실토큰 검증 직전 단계에서 나중) 순서로 간 것과 동일한 순서를 따를 것.
