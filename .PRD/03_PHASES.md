@@ -66,7 +66,7 @@ Phase 1 범위:
 
 ### 기능
 - [ ] **렌더 브릿지** — 폴더 → `next build && next start`(또는 `next dev`) 기동 → 헬스체크 → 로컬 URL → 그 URL로 진단. 포트·타임아웃·기동실패 처리
-- [ ] **추가형 자동 수정(add_safe)** — "없는 것만 추가"(빠진 sitemap 항목·신규 OG). 기존 값 덮어쓰기 금지
+- [ ] **추가형 자동 수정(add_safe)** — "없는 것만 추가"(빠진 sitemap 항목). 기존 값 덮어쓰기 금지. *(2026-08-09 정정: OG는 실제로 gated 구현 — `04_PROJECT_SPEC.md` "safe/gated 경계" 표 참고)*
 - [ ] **승인 게이트(gated)** — canonical/noindex/robots/**sitemap/JSON-LD/title/meta/alt**는 검증(스키마·빌드) + diff 승인 후 적용
 - [ ] **안전 실행** — 적용 후 `build` 통과 확인, git clean 아니면 백업/중단, 멱등 삽입(마커)
 - [ ] **GitHub 저장소 모드** — repo를 임시 sandbox에 clone → 새 브랜치에 수정 → **PR 생성(제안)**. 내 repo=브랜치+PR, 남의 repo=**fork+PR**. **기본 브랜치(main) 직접 push·force-push·자동 머지 절대 금지**(머지는 사람이 결정), GitHub 토큰은 최소 권한·env-only

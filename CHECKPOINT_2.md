@@ -283,3 +283,49 @@ Stage 3 완료 직후 재검토하며 이전 턴에서 제기했던 리스크 �
 **최종**: `npm run typecheck && npm run build && npm run test` 전부 그린, **379/379**(테스트 개수
 무변화 — 기존 테스트에 assertion만 추가, 신규 테스트 파일 없음). 커밋/푸시는 하지 않음(git-workflow
 규칙 — 사용자 명시 요청 시에만).
+
+---
+
+## Stage 4~5 소급 기록 (2026-08-10 작성 — 실제 작업은 2026-07-16·07-26)
+
+> ⚠️ 이 절은 작업 당시 실시간으로 쓴 게 아니라, **README(427개 표기)와 이 문서의 마지막 기록(379개)
+> 사이의 48개 테스트 공백**을 발견하고 `git log`/병합된 PR 본문(#1·#4)을 근거로 사후 재구성한
+> 것이다. 실행 중 발견한 결함의 "재현 과정"처럼 생생한 디테일은 원 세션 기록이 없어 남길 수 없다 —
+> 아래는 커밋 해시·PR 번호로 검증 가능한 사실만 기재한다.
+
+### (참고) Phase 1 후속 보완 — CWV TBT 규칙 (2026-07-16, Stage 4/5와 무관한 별도 항목)
+커밋 `5e44b33`("CWV Total Blocking Time(INP 근사 프록시) 임계값 룰 추가 — Phase 1 미완성분
+발견·완결")이 `CHECKPOINT.md`가 이미 "done"으로 표시한 M4(규칙 엔진)의 공백을 뒤늦게 메웠다.
+`R-CWV-TBT-POOR` 추가. 이 커밋 시점의 정확한 테스트 총계는 **미확인**(당시 기록 없음, 소급 재현
+안 함) — 379라는 숫자에 이미 포함됐는지는 불명확하므로 아래 Stage 4/5 합계 산수와는 별도로 다룬다.
+
+### Stage 4: 콘텐츠 구조 탐지 (report_only) — `feat/content-structure-detection` 브랜치
+- 커밋 `34ad17e`: `R-TITLE-MISSING`·`R-H1-MISSING`·`R-H1-MULTIPLE`(title/h1 구조 탐지)
+- 커밋 `6e79864`: `R-IMG-ALT-MISSING`(이미지 alt 텍스트 부재, Stage 4 후속)
+- 커밋 `67d53c5`: "접속 실패 사이트가 리포트에 '양호'로 오표시되는 문제 수정"(이 브랜치 작업 중
+  발견한 별도 버그 — 상세 재현/원인 기록은 원 세션에 없어 소급 재구성 불가, 커밋 메시지만 확인됨)
+
+### Stage 5: Q&A 구조 + JSON-LD Product 검증 — `feat/geo-qa-and-jsonld-product-fields` 브랜치
+- 커밋 `498988c`: `R-QA-STRUCTURE-MISSING`(Q&A 구조 탐지) + `R-JSONLD-PRODUCT-INCOMPLETE`(JSON-LD
+  Product 필수필드 검증) 동시 추가
+
+### 통합 — PR #1(`chore/integrate-pending-branches`, 병합 2026-07-26 19:45)
+위 두 브랜치를 `fix/plugin-mcp-server-bundling`·`docs/readme-guide-ai-crawler-policy-sync`와 함께
+순차 병합. `rules.test.ts` 3곳에서 병합 충돌 발생 → 양쪽 추가분 전부 보존하는 방향으로 해결(21개
+규칙 전부 생존). **PR 본문이 스스로 기록한 중요 발견**: 브랜치 병합만으로는 플러그인 번들
+(`packages/plugin/mcp-server/dist`)이 갱신되지 않아 신규 규칙 7종이 실사용자에게 배송되지 않는
+상태였음 — `npm run package:plugin`으로 재생성해 해결. 검증: typecheck/build 0에러, **416/416**
+(2회 독립 재현), 3-OS CI는 이 PR이 처음 실행(결과는 PR 본문에 미기재).
+
+### Stage 5 후속: JSON-LD Product name 콘텐츠 일치(환각 0) — PR #4(병합 2026-07-26 23:37)
+`.PRD/03_PHASES.md:100`의 Phase 2 성공기준("JSON-LD가 페이지 내용과 일치, 환각 0")을 충족하는
+`R-JSONLD-PRODUCT-NAME-MISMATCH`(high) 추가. **의도적으로 name만 검사**(price/offers는 표시
+포맷 차이로 오판 위험이 커 범위 제외 — PR 본문에 근거 명시). 검증: **427/427**(기존 416 + 신규
+11: 규칙 8개 + dom-signals 추출 3개, 회귀 0).
+
+### 이 절 자체가 남기는 교훈
+Stage 1~3(위 본문)은 실행 중 발견한 결함·설계 근거·재현 과정까지 상세히 남았는데, Stage 4~5는
+브랜치명과 커밋 메시지에만 "Phase 2 Stage 4"라는 자기 인식이 있었을 뿐 **이 CHECKPOINT 파일 자체에는
+전혀 반영되지 않았다** — 아마 다른 작업(문서 정리·audit 수정 등)과 병렬로 여러 브랜치가 쌓이면서
+CHECKPOINT 갱신이 누락된 것으로 보인다(확실한 원인은 알 수 없음, 추측하지 않는다). 앞으로 새 규칙
+브랜치를 병합할 때는 **PR 병합 직후 CHECKPOINT 갱신을 같은 작업 단위로 묶는 것**을 권장한다.
