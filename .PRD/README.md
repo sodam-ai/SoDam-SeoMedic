@@ -32,7 +32,7 @@
 | **법률·저작권** | **핵심 요구사항** — 04_SPEC에 Must/Should/Could + **법무 검토 필요** 구분 | 마켓 공개·상업 사용·타인 저작물 크롤·의존성 라이선스가 실질 위험 |
 | **문서화** | **핵심 요구사항** — 왕초보용 README·GUIDE·TROUBLESHOOTING·FAQ(04_SPEC), 문서 없이는 '완료' 아님 | 비개발자·처음 사용자도 설치·사용 가능해야 채택됨 |
 | **저장 위치** | 대상 프로젝트별 `.seomedic/`(gitignore) | 베이스라인은 프로젝트별 → 홈 저장 시 충돌 |
-| **라이선스** | **권장 MIT**(최종 확정 필요·법무) + SECURITY.md + DISCLAIMER.md + THIRD_PARTY_NOTICES | 상업·수정·재배포 허용. 지정 라이선스 없음 → 저작권자·연도·최종 선택 결정 필요 |
+| **라이선스** | ~~권장 MIT(최종 확정 필요·법무)~~ **Apache License 2.0로 채택 확정**(2026-08-10) + SECURITY.md + DISCLAIMER.md + THIRD_PARTY_NOTICES | 상업·수정·재배포 허용(저작권·특허 고지 유지+NOTICE 준수 조건). 저작권자명·연도의 법무 최종 확정만 별도 대기 |
 | MVP 구조 | Phase 1(분석+회귀) / 1.5(수정기) 분리 | 위험이 수정기에 집중 → 격리 |
 | 제품명 | **SeoMedic** | 진단→처방 |
 | 수정 지원 스택 | Next.js만, 그 외 report-only | Metadata API 내장(공식) |

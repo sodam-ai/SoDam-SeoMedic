@@ -132,7 +132,7 @@
 > 보안 상세·우선순위(Must/Should/Could)·수용 기준은 04_PROJECT_SPEC.md "보안 요구사항(OWASP ASVS)" 참조.
 
 ### 법률·저작권·라이선스 (핵심 요구사항 — 선택 아님, 법무 검토 병행)
-- [ ] LICENSE(**권장 MIT, 최종 확정 필요**) + 저작권자·연도, README/영문 README/문서 일관.
+- [ ] LICENSE(**Apache License 2.0로 채택 확정** — 2026-08-10, `HUMAN_ACTION_CHECKLIST.md` 참고. 저작권자·연도 법무 최종 확정만 별도 대기) + README/영문 README/문서 일관.
 - [ ] 의존성 라이선스 스캔 — **copyleft(GPL/AGPL) 충돌 0** + THIRD_PARTY_NOTICES.
 - [ ] 저장소·문서·샘플·스크린샷에 **타인 상표/로고/저작물/PII/비공개 자료 0**.
 - [ ] **크롤 콘텐츠 재배포·동봉 0**(해시/요약만).
@@ -166,7 +166,7 @@
 
 - [x] **MVP 구조** → Phase 1(분석+회귀) / Phase 1.5(수정기) **분리 확정**
 - [x] **제품명** → **SeoMedic**
-- [x] **배포** → **v1부터 Claude Code 마켓플레이스 플러그인(범용)**. 배포 전 법적·보안 게이트(DISCLAIMER·SECURITY·소유 사이트만·MIT) 통과 필수 *(v2.1 — 이전 "Phase 2 이후" 결정을 사용자 지시로 변경)*
+- [x] **배포** → **v1부터 Claude Code 마켓플레이스 플러그인(범용)**. 배포 전 법적·보안 게이트(DISCLAIMER·SECURITY·소유 사이트만·라이선스) 통과 필수 *(v2.1 — 이전 "Phase 2 이후" 결정을 사용자 지시로 변경. 라이선스는 2026-08-10 Apache-2.0으로 채택 확정 — 위 §5 정정 참고)*
 - [x] **크롤 기본값** → 단일 URL 기본 · 사이트모드 max-pages 200·depth 3·rate 1req/s · 소유 사이트만
 - [x] **다국어** → 한국어 기본 + `--lang en` 옵션
 

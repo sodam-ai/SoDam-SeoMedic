@@ -46,7 +46,7 @@
 ```
 seomedic/                         # 마켓플레이스 플러그인 저장소
 ├── .claude-plugin/
-│   └── plugin.json               # name, version(semver), description, license=MIT, repository, keywords
+│   └── plugin.json               # name, version(semver), description, license=Apache-2.0, repository, keywords
 ├── commands/                     # /seo-audit.md /seo-fix.md /seo-check.md (슬래시=파일명)
 ├── skills/
 │   └── seomedic/SKILL.md         # 자동 활성 스킬(폴더명=스킬명)
@@ -85,7 +85,7 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 | MCP | 표준 MCP 서버 | Claude Code 툴로 통합. 선례: MaxAEO·LibreCrawl·seo-audit-mcp |
 | CLI | commander | CI 겸용 진입점 |
 | 수정 스택(P1.5) | Next.js만 공식 | Metadata API 내장(공식). 그 외 report-only |
-| 라이선스 | **권장 MIT**(최종 확정 필요·법무) | 수정·복제·재배포·상업 허용. 저작권자·연도·최종 선택 = 결정 필요(지정 라이선스 없음) |
+| 라이선스 | ~~권장 MIT(최종 확정 필요·법무)~~ **Apache License 2.0로 채택 확정**(2026-08-10, 소유자 결정) | 수정·복제·재배포·상업 허용. 저작권자명·연도의 법무 최종 확정만 별도 대기(`HUMAN_ACTION_CHECKLIST.md` 참고) |
 
 ---
 
@@ -184,7 +184,7 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 
 | # | 요구사항 | 상태 |
 |---|---------|------|
-| L1 | **프로젝트 라이선스 확정** — LICENSE 파일 + 저작권자 + 연도(2026). **권장: MIT**(수정·복제·재배포·상업 사용 허용, 저작권 고지 유지 조건). **단 지정 라이선스가 없으므로 최종 라이선스·저작권자 성명·연도는 임의 단정 금지** | **결정 필요(법무)** |
+| L1 | **프로젝트 라이선스 확정** — LICENSE 파일 + 저작권자 + 연도(2026). ~~권장: MIT~~ **2026-08-10 Apache License 2.0으로 채택 확정**(수정·복제·재배포·상업 사용 허용, 저작권·특허 고지 유지+NOTICE 준수 조건). **저작권자 성명·연도의 법무 공식 최종 확정만 남음** | **저작권자·연도 결정 필요(법무)** |
 | L2 | **의존성 라이선스 호환성 검사** — 전체 npm 의존성·Playwright 라이선스 스캔(license-checker 등), **퍼미시브·상업 배포와 충돌하는 copyleft(GPL/AGPL) 차단**, **라이선스별 NOTICE 요건 확인(예: Apache-2.0는 NOTICE 필수)**, `THIRD_PARTY_NOTICES` 유지 | Must + **법무 검토** |
 | L3 | **타인 보호 자료 미포함** — 코드·문서·샘플·데모·더미·테스트·스크린샷에 **상표·로고·브랜드·캐릭터·저작물·개인정보(PII)·비공개/고객사/내부 자료·민감 도메인·비공개 API 정보 금지**. 샘플·데모 데이터는 **합성(가공)** | Must (보안 M4/M11 연동) |
 | L4 | **크롤 콘텐츠 저작권** — 크롤한 타인 콘텐츠를 **재배포·제품 동봉 금지**, 해시/요약만 저장(원본 미보관), 분석 목적 범위 초과 저장 금지 | Must + **법무 검토(fair use 경계)** |
@@ -197,9 +197,9 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 
 | # | 요구사항 |
 |---|---------|
-| L9 | **상업적 이용 안내** — SeoMedic(권장 MIT)은 상업 사용 가능하나, 사용자가 **별도 확인**: Google API 요금제/약관(GSC·GA4·PSI), 모델 사용 정책(AI 사용 시), 외부 서비스 약관, 폰트/이미지/아이콘 라이선스, **크롤 대상 사이트의 robots·ToS** |
+| L9 | **상업적 이용 안내** — SeoMedic(~~권장 MIT~~ **Apache-2.0 채택 확정**)은 상업 사용 가능하나, 사용자가 **별도 확인**: Google API 요금제/약관(GSC·GA4·PSI), 모델 사용 정책(AI 사용 시), 외부 서비스 약관, 폰트/이미지/아이콘 라이선스, **크롤 대상 사이트의 robots·ToS** |
 | L10 | **README 법률 섹션(왕초보용)** — 라이선스·저작권자·사용 가능 범위·상업 사용 여부·금지 사항·책임 제한·무보증·외부 자료 주의를 **쉬운 말**로. **영어 README·가이드·배포 문서에 일관 반영** |
-| L11 | **사용 권리 매트릭스** — 수정·복제·포크·재배포·판매·서비스 운영·교육 자료·회사/고객사 납품 가능 여부를 (권장 MIT) 기준으로 명확히(저작권 고지 유지 조건) |
+| L11 | **사용 권리 매트릭스** — 수정·복제·포크·재배포·판매·서비스 운영·교육 자료·회사/고객사 납품 가능 여부를 (~~권장 MIT~~ **Apache-2.0**) 기준으로 명확히(저작권·특허 고지 유지 + NOTICE 준수 조건 — MIT보다 조건이 더 있음에 주의) |
 | L12 | **AI 생성물 점검** — AI가 생성한 코드/문서/이미지/콘텐츠(이 PRD 포함, 향후 아이콘 등)는 최종 사용 전 **저작권·출처·상업적 이용 가능성·유사 저작물 침해 가능성** 확인 |
 
 ### Could Have (C)
@@ -361,7 +361,8 @@ npx tsc --noEmit && npm run build
 ## 결정 완료 (v2.5)
 - [x] 배포 = **마켓 플러그인 + MCP 엔진**(플러그인은 얇은 껍데기) — *2026-08-09 정정: 엔진 실행 방식은 원안 `npx`(npm 배포)가 아니라 **플러그인 내 번들 직접 실행**으로 구현됨. 상세는 위 "아키텍처" 절 정정 주석 참고*
 - [x] 저장 위치 = **대상 프로젝트별 `.seomedic/`(gitignore)**
-- [~] 라이선스 = **권장 MIT**(최종·저작권자·연도 확정 필요·법무), SECURITY.md·DISCLAIMER.md·**THIRD_PARTY_NOTICES** 필수
+- [x] 라이선스 종류 = **Apache License 2.0 채택 확정**(2026-08-10). SECURITY.md·DISCLAIMER.md·**THIRD_PARTY_NOTICES** 완비
+- [~] 저작권자명·연도(현재 "SoDam AI Studio, 2026")의 법무 공식 최종 확정만 별도 대기
 - [x] 경로 = `${CLAUDE_PLUGIN_ROOT}`, 크로스플랫폼 검증
 - [x] **GitHub 저장소 수정** = clone→브랜치→PR(남 repo=fork+PR), main 직접 push·force·자동머지 금지
 - [x] **보안** = OWASP ASVS Must/Should/Could (핵심 요구사항)

@@ -31,7 +31,7 @@
 - [ ] `npx`/스킬로 남이 실제 실행 가능(브라우저 설치 안내 포함)
 - [ ] 제3자 사이트 1개로 end-to-end
 - [ ] **마켓 플러그인으로 설치 → 다른 프로젝트에서 `/seo-audit` 실행** 검증(Win/Mac/Linux)
-- [ ] **배포 게이트**: SECURITY.md·DISCLAIMER.md·MIT·"소유 사이트만" 경고·텔레메트리 0 확인
+- [ ] **배포 게이트**: SECURITY.md·DISCLAIMER.md·~~MIT~~**라이선스(Apache-2.0 채택 확정, 2026-08-10)**·"소유 사이트만" 경고·텔레메트리 0 확인
 - [ ] **보안 Must-Have 게이트(04_SPEC)**: SSRF·명령어주입·경로조작·시크릿노출·SQLi 방지 + `npm audit` 고위험 0 통과
 - [ ] **법률 게이트(04_SPEC)**: LICENSE+저작권자·의존성 라이선스 스캔(copyleft 0)·THIRD_PARTY_NOTICES·타인 자료 0·크롤 콘텐츠 미동봉·DISCLAIMER 고지 + 법무 검토 필요 항목 표시
 - [ ] **문서 게이트(04_SPEC)**: 왕초보용 README(전 목차)·빠른시작·명령어·**TROUBLESHOOTING 매트릭스**·FAQ·법률/면책 완비 — 문서 없이는 '완료' 아님

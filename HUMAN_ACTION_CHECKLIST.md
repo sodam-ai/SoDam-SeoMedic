@@ -14,12 +14,12 @@
 - `license-checker`로 전체 353개 서드파티 패키지 실제 스캔 → **GPL/AGPL 등 카피레프트 0건**(`CHECKPOINT.md` M9-1).
 - Apache-2.0 NOTICE 3건(playwright/playwright-core/import-in-the-middle) 원문 그대로 `THIRD_PARTY_NOTICES.md`에 재게시 완료.
 - MPL-2.0 3건(axe-core·lightningcss 계열) — 수정 없이 사용, 카피레프트 전이 없음 확인(전문가 재검토는 여전히 권장).
-- LICENSE 저작권자는 "SoDam AI Studio(2026)"로 **임시** 채움(MIT 채택 자체·copyleft 최종 검토는 미결).
+- LICENSE는 **Apache License 2.0으로 채택 확정**(2026-08-10, 프로젝트 소유자 결정 — 커밋 `02229b1`). 저작권자는 "SoDam AI Studio(2026)"로 채워짐 — 단 이 표기·연도의 최종 확정과 copyleft 최종 검토(L2)는 여전히 전문가 검토 대기.
 
 ### 전문가 검토가 실제로 필요한 6건
 | 항목 | 무엇을 결정해야 하는지 | 참고 |
 |---|---|---|
-| **L1** | 최종 라이선스(MIT 권장이나 확정 아님) + 저작권자명·연도 최종 확정 | `04_PROJECT_SPEC.md:161` |
+| **L1** | 라이선스 종류는 Apache-2.0으로 확정(소유자 결정, 2026-08-10). **저작권자명·연도의 법무 공식 최종 확정**만 남음 | `04_PROJECT_SPEC.md:161` |
 | **L2** | 위 라이선스 스캔 결과에 대한 전문가 최종 승인(카피레프트 재확인) | `04_PROJECT_SPEC.md:162` |
 | **L4** | 크롤 콘텐츠 저작권 — fair use 경계(국가별·CFAA·DB권) | `04_PROJECT_SPEC.md:164` |
 | **L5** | Google/Naver/Bing/Next.js/Claude/ChatGPT 등 상표 지명적 공정사용 경계 | `04_PROJECT_SPEC.md:165` |
