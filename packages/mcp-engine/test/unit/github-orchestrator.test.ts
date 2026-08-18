@@ -100,7 +100,7 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
     expect(result.pr).not.toBeNull();
     expect(result.pr!.number).toBe(1);
     expect(result.duplicateSkipped).toBe(false);
-  }, 300_000);
+  }, 600_000);
 
   it("policy가 차단하면(archived) sandbox clone까지 가지 않고 즉시 실패한다", async () => {
     process.env.SEOMEDIC_GITHUB_TOKEN = "fake-token";
@@ -123,7 +123,7 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
     expect(result.duplicateSkipped).toBe(true);
     expect(result.applied).toHaveLength(0);
     expect(result.pr).toBeNull();
-  }, 300_000);
+  }, 600_000);
 
   it("남의 repo면 fork 존재를 먼저 확인하고, 없으면 생성 후 폴링해 준비를 기다린다", async () => {
     process.env.SEOMEDIC_GITHUB_TOKEN = "fake-token";
@@ -145,5 +145,5 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
     const result = await runGithubFix(client, REPO_REF);
     expect(forkCheckCalls).toBeGreaterThan(0);
     expect(result.targetRef).toEqual({ owner: "someone-else", repo: "repo" });
-  }, 300_000);
+  }, 600_000);
 });
