@@ -33,10 +33,32 @@ if (bundled === installed) {
 mkdirSync(dataDir, { recursive: true });
 writeFileSync(installedPkgPath, bundled);
 
+// npm은 Windows에서 .cmd 배치 스크립트인데, Node가 CVE-2024-27980 대응으로 shell 없는 직접
+// spawn을 EINVAL로 거부한다(실측 확인 — 이 저장소가 mcp-engine/src/github/npm-install.ts에서
+// 이미 같은 문제를 겪고 고친 것과 동일 원인). shell:true로 우회하는 대신 npm의 JS 진입점을
+// process.execPath로 직접 실행해 문제 자체를 피한다(같은 파일의 resolveNpmCliJs 전략을 이식 —
+// 이 스크립트는 독립 부트스트랩이라 아직 아무 의존성도 설치 전이라 import로 공유할 수 없음).
+function resolveNpmCliJs() {
+  const fromEnv = process.env.npm_execpath;
+  if (fromEnv && existsSync(fromEnv)) return fromEnv;
+  const nodeBinDir = path.dirname(process.execPath);
+  const candidates = [
+    path.join(nodeBinDir, "node_modules", "npm", "bin", "npm-cli.js"), // Windows
+    path.join(path.dirname(nodeBinDir), "lib", "node_modules", "npm", "bin", "npm-cli.js"), // Unix
+  ];
+  return candidates.find((c) => existsSync(c)) ?? null;
+}
+
 try {
   console.error("[ensure-mcp-deps] seomedic MCP 서버 의존성 설치 중(최초 1회, 몇 분 걸릴 수 있음)...");
-  const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
-  execFileSync(npmCmd, ["install"], { cwd: dataDir, stdio: "inherit" });
+  const npmCliJs = resolveNpmCliJs();
+  if (npmCliJs) {
+    execFileSync(process.execPath, [npmCliJs, "install"], { cwd: dataDir, stdio: "inherit" });
+  } else {
+    // npm CLI 진입점을 못 찾은 예외적 상황에만 기존 방식으로 폴백(정상 환경에선 도달 안 함)
+    const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+    execFileSync(npmCmd, ["install"], { cwd: dataDir, stdio: "inherit" });
+  }
   console.error("[ensure-mcp-deps] 설치 완료");
 } catch (err) {
   console.error(`[ensure-mcp-deps] npm install 실패: ${err.message} — 다음 세션에서 재시도됩니다`);

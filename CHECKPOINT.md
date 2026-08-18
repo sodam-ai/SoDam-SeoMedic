@@ -984,3 +984,47 @@ PR #8·#9를 순차 병합한 뒤, PR #10과 #12를 **병렬(동시) 호출**로
 - Mac/Linux 미검증(M9-3에서 이미 기록된 한계, 여전히 유효)
 - nanoid 고위험 취약점이 PR #8 자신의 제목상 "4차 재발" — transitive 의존성 재해석마다 재발하는 패턴, `overrides` 고정 미착수
 - 상태: **마켓캐시 버그 자체는 코드 작업 완결(사람의 새 세션 실사용 재검증만 남음). PR #10 누락 복구는 진행 중(아래 섹션)**
+
+---
+
+## 🔴→✅ ensure-mcp-deps.mjs Windows EINVAL 실제 버그 발견·수정 (2026-08-19)
+
+**배경**: 위 "알려진 잔여 위험"이 "SessionStart 훅의 네이티브 모듈 설치 과정 자체는 재현 검증 못 함"이라
+명시적으로 남겨둔 미확인 지점이었다. 종합 검증 세션 중 이 파일을 직접 코드 리뷰하다가, 이미 이
+저장소가 **같은 클래스의 버그를 다른 파일(`github/npm-install.ts`)에서 한 번 겪고 고친 이력**이
+있다는 걸 상기하고, 같은 안티패턴이 여기 남아있는지 대조 확인했다.
+
+**재현(추측 아님, 실제 실행)**: `ensure-mcp-deps.mjs`가 `execFileSync("npm.cmd", ["install"], {...})`를
+Windows에서 `shell:true` 없이 직접 호출하고 있었다. 격리된 1회성 스크립트로 정확히 같은 호출을
+재현한 결과 — `EINVAL spawnSync npm.cmd EINVAL`로 즉시 실패(Node가 CVE-2024-27980 대응으로
+.cmd/.bat 파일의 shell-less 직접 spawn을 거부).
+
+**영향**: 이 스크립트는 **실사용자가 마켓플레이스로 플러그인을 설치한 뒤 Windows에서 첫 세션을 열 때**
+`${CLAUDE_PLUGIN_DATA}`에 `better-sqlite3`·`playwright` 등 MCP 서버 의존성을 설치하는 유일한
+경로다. try/catch로 세션 자체는 안 죽지만, **의존성 설치가 조용히 실패**해 MCP 서버가 끝내 못 뜬다 —
+어제 고친 "버전 캐시" 문제와는 **완전히 별개의, Windows 사용자에게 동일한 최종 증상("도구가 세션에
+로드 안 됨")을 일으킬 수 있는 두 번째 원인**이었다. 자동 테스트 스위트(431개)는 이 파일을 전혀
+커버하지 않는다(`packages/plugin/scripts/`는 `packages/mcp-engine/test/`의 커버리지 밖).
+
+**원인**: `github/npm-install.ts`가 이미 정확히 문서화해둔 것과 동일 — npm은 Windows에서 `.cmd`
+배치 스크립트라, Node 자체의 보안 강화(CVE-2024-27980)로 shell 없는 직접 spawn이 막힌다.
+
+**수정**: `github/npm-install.ts`의 `resolveNpmCliJs()` 전략(먼저 `npm_execpath` 환경변수 확인 →
+Windows/Unix 레이아웃 후보 확인 → 찾은 npm CLI 진입점을 `process.execPath`로 직접 실행)을
+`ensure-mcp-deps.mjs`에 이식했다. 공유 모듈로 추출하지 않고 자체 구현으로 복제했다 — 이 스크립트는
+아직 아무 의존성도 설치되기 전에 실행되는 독립 부트스트랩이라 `mcp-engine`의 코드를 import할 수
+없다(이 프로젝트의 기존 선례 — `og-fixer.ts`가 `canonical-fixer.ts` 로직을 의도적으로 복제한 것과
+같은 이유).
+
+**검증(실제 end-to-end 실행, 목업 아님)**:
+1. `node --check`로 문법 확인.
+2. 실제 임시 `CLAUDE_PLUGIN_ROOT`/`CLAUDE_PLUGIN_DATA`를 만들어 최소 의존성(`left-pad`) 1개를
+   가진 가짜 `mcp-server/package.json`으로 스크립트를 **그대로 실행** — 수정 전 방식(`npm.cmd`
+   직접 spawn)이면 EINVAL로 실패했을 시나리오가, 수정 후 정상적으로 `npm install` 실행 →
+   `node_modules/left-pad` 실제 설치 → exit 0으로 완료됨을 확인.
+2. 멱등성 재확인: 같은 조건으로 재실행 시 변경 없음을 감지해 조용히 스킵(기존 동작 무변경).
+
+**남은 것**: 이 수정도 마켓캐시 버그와 마찬가지로 **완전히 새로운 Windows 환경에서 실제 플러그인
+설치 후 첫 세션**으로 최종 확인해야 한다(위 실사용 재검증 항목에 통합). Mac/Linux의
+`npm_execpath` 우선 확인 경로는 `npm-install.ts`가 이미 CI 3-OS로 검증한 로직을 그대로 재사용해
+이식 위험은 낮다고 판단하나, 이 파일 자체로 별도 3-OS 검증은 하지 않았다(정직하게 명시).
