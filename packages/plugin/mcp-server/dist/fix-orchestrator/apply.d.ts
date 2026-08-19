@@ -10,6 +10,20 @@ export interface AppliedFixOutcome {
     outcome: AppliedFixOutcomeKind;
     detail: string;
 }
+export interface ApplyLocalFixesOptions {
+    /**
+     * 지정하면 이 id 목록에 있는 fix만 적용한다(auto/approved라도 목록 밖이면 건너뜀).
+     *
+     * ⚠️ 2026-08-20 추가 — GitHub PR 모드가 위험도별로 두 PR(safe/review)을 독립된 sandbox에서 각각
+     * 만들도록 재설계되며 발견된 실제 버그 때문에 필요해졌다: review bucket도 매번 완전히 새로 clone해
+     * 자기만의 planLocalFix를 새로 돌리는데, 그 결과 원본 저장소에 실재하는 add_safe 문제(예: sitemap
+     * 누락)가 review bucket의 plan에도 독립적으로 다시 잡히고, 그 fix는 approval_status='auto'로
+     * 무조건 즉시 적용 대상이 된다 — review bucket은 gated만 담아야 하는데 add_safe까지 같이 커밋에
+     * 섞여 들어가는 오염이 실제로 재현됐다(테스트로 발견). 로컬 모드(auditRunId 하나에 속한 전부를
+     * 적용하는 게 정확히 의도된 동작)는 이 옵션을 안 쓰면 기존과 완전히 동일하게 동작한다.
+     */
+    onlyFixIds?: number[];
+}
 /**
  * plan 단계에서 만든 fix 중 auto/approved·미적용인 것만 실제로 파일에 반영한다.
  * fix마다 순차로: 멱등성 재확인(TOCTOU) → 백업 → 파일 쓰기 → `next build`만 재실행 →
@@ -21,4 +35,4 @@ export interface AppliedFixOutcome {
  * git-clean을 요구하면 "직전 apply가 남긴 리뷰 대기 중인 변경"만으로 재실행(멱등 확인) 자체가
  * 막혀버린다(실제로 재현된 버그 — PRD의 "fix 2회 실행해도 멱등" 요구사항과 충돌했었음).
  */
-export declare function applyLocalFixes(db: SeomedicDb, projectRoot: string, auditRunId: number): Promise<AppliedFixOutcome[]>;
+export declare function applyLocalFixes(db: SeomedicDb, projectRoot: string, auditRunId: number, options?: ApplyLocalFixesOptions): Promise<AppliedFixOutcome[]>;

@@ -1322,3 +1322,58 @@ TOCTOU 재검증 설계(각 fixer가 이미 이전 fixer의 변경이 반영된 
 안전하게 동작함이 확인됐다. 남은 위험(브랜치 1개에 여러 rule_id가 섞여 저장소 관리자가 "일부만
 선택 승인"할 수 없는 점)은 기존에 이미 "이번 변경 범위 밖"으로 명시해둔 것과 동일한 사안이며, 이번
 검증으로 새로 발견된 문제는 없다.
+
+---
+
+## ✅ GitHub PR 모드 — 위험도별 PR 2개 분리(safe/review) + 실제 버그 1건 발견·수정(2026-08-20)
+
+사용자가 title/meta 자동생성(대화 승인형)·GitHub PR 브랜치 분리 중 **브랜치 분리를 먼저** 진행하기로
+확정(AskUserQuestion). 위 스트레스 테스트가 남겨둔 "브랜치 1개에 여러 위험도가 섞여 일부만 선택
+승인 못 함" 문제를 해소했다.
+
+### 설계 결정 — 왜 "한 clone에서 두 브랜치"가 아니라 "완전히 독립된 두 clone"인가
+같은 작업 폴더에서 브랜치를 오가며 파일별로 골라 커밋하는 방식도 가능했지만, "브랜치 A 커밋 후
+되돌리고 브랜치 B 시작" 단계가 불완전하면(git clean 누락 등) B에 A의 변경이 조용히 섞여 들어갈
+위험이 있다. **매 위험도(bucket)마다 완전히 새로 clone**하면 이 위험이 구조적으로 없다 — 대신
+clone·npm install·next build가 두 번(bucket마다 한 번씩) 실행돼 전체 소요시간이 늘어난다. 이
+프로젝트가 반복해서 택해 온 "속도보다 안전" 원칙을 그대로 따랐다(fixer 파일마다 로직을 의도적으로
+중복시켜 서로 건드리지 않게 한 것과 같은 판단). 두 bucket을 병렬로 돌리지 않은 이유도 같다 — 로컬
+렌더 브릿지 서버가 동시 실행에도 안전한지 검증된 적이 없어, 이번엔 순차 실행으로 확실한 쪽을 택했다
+(속도 개선은 검증 후 별도 과제로 남김).
+
+브랜치명은 `rule_id`가 아니라 **위험도 자체로 고정**했다(`seomedic/fix-safe` / `seomedic/fix-review`)
+— 어떤 rule_id 조합이 섞이든 항상 결정론적이라 브랜치가 계속 늘어나지 않고, "여러 rule_id가 섞일 때
+브랜치를 어떻게 나눌지"라는 기존 미해결 설계 질문 자체가 자연히 해소됐다.
+
+### 구현
+- `github/orchestrator.ts` 전면 재작성: 공통 전처리(정책 확인·fork/own 판별)는 한 번만 수행하고,
+  `runFixBucket()`(신규 private 함수)을 risk_level별로 두 번 호출. `GithubFixResult`가
+  `{targetRef, policyWarnings, safe, review}`로 바뀜(각 `GithubFixBucketResult`는 이전 단일
+  결과와 같은 필드 구성).
+- `server.ts`: `seomedic_fix_github` 결과 렌더링을 `renderGithubFixBucket()` 헬퍼로 두 번(safe/review)
+  호출하도록 재작성. 도구 설명 문구도 "PR 2개 분리" 사실 반영.
+
+### 재현 테스트로 발견한 실제 버그(중요)
+테스트를 실제로 돌리는 과정에서 **review bucket의 PR에 add_safe 변경이 조용히 섞여 들어가는 버그**를
+발견했다 — 두 bucket이 완전히 독립된 clone에서 각자 `planLocalFix`를 새로 돌리다 보니, review
+bucket의 clone에도 원본 저장소에 실재하는 add_safe 문제(sitemap 누락)가 **독립적으로 또 발견**되고,
+그 fix는 `approval_status='auto'`라 `applyLocalFixes`가 무조건 적용 대상으로 집어버렸다(내가 report용
+으로만 나눈 "이 bucket이 무엇을 신경 쓰는지" 구분은 실제 적용 로직에 전혀 반영되지 않고 있었음).
+- **근본 수정**: `fix-orchestrator/apply.ts`의 `applyLocalFixes`에 `onlyFixIds?: number[]` 옵션을
+  추가(하위호환 — 안 넘기면 기존과 완전히 동일하게 동작, 로컬 모드는 무변경). GitHub 모드의
+  `runFixBucket`이 이제 자기 bucket에 속한 fix id만 명시적으로 넘겨 적용을 제한한다.
+- 이 버그는 **재현 테스트가 먼저 실패해서** 잡혔다(추측이 아니라 `expect(result.review.applied)
+  .toHaveLength(1)`이 실제로 2로 나와 실패 → 원인 추적 → 수정 → 재실행 통과 확인).
+
+### 검증
+- 신규/전면 재작성 테스트 5개(safe/review 완전 분리 실증, review 4종 스택, 정책차단, **bucket별
+  독립 중복방지**(safe만 중복이어도 review는 독립적으로 정상 진행), fork 경로) — 전부 실제 로컬 git
+  브랜치 내용을 직접 `git show`로 열어 확인(safe 브랜치엔 gated 변경이 전혀 없음을 `git cat-file -e`
+  로도 재확인).
+- 전체 스위트 **67개 파일 475개 테스트 전부 통과**(기존 476 − 통합된 테스트 1개 + 재작성, 회귀 0).
+- typecheck 0에러 · build 0에러 · `npm audit` 워크스페이스 전체 0건 · `npm run package:plugin` 재생성 완료.
+
+**남은 것(정직하게 명시)**: 두 bucket 순차 실행이라 GitHub 모드 전체 소요시간이 늘어남(설계 결정,
+위 설명 참고) — 병렬화는 렌더 브릿지 동시실행 안전성 검증 후 별도 과제. title/meta 자동생성(대화
+승인형)은 다음 순서로 확정됐으나 이번 라운드에서 미착수. PRD 최우선 성공기준인 "실사용 재검증"도
+여전히 미해결.

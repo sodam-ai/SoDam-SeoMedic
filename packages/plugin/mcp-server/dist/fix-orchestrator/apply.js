@@ -29,8 +29,12 @@ export class FixApplyBlockedError extends Error {
  * git-clean을 요구하면 "직전 apply가 남긴 리뷰 대기 중인 변경"만으로 재실행(멱등 확인) 자체가
  * 막혀버린다(실제로 재현된 버그 — PRD의 "fix 2회 실행해도 멱등" 요구사항과 충돌했었음).
  */
-export async function applyLocalFixes(db, projectRoot, auditRunId) {
-    const fixes = findApplicableFixesByAuditRun(db, auditRunId);
+export async function applyLocalFixes(db, projectRoot, auditRunId, options = {}) {
+    let fixes = findApplicableFixesByAuditRun(db, auditRunId);
+    if (options.onlyFixIds) {
+        const allow = new Set(options.onlyFixIds);
+        fixes = fixes.filter((f) => allow.has(f.id));
+    }
     if (fixes.length === 0)
         return [];
     const gitStatus = await checkGitClean(projectRoot);

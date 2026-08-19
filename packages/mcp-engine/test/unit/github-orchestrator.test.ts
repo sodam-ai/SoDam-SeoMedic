@@ -40,6 +40,10 @@ function git(cwd: string, args: string[]): void {
  * 내 저장소"를 흉내낸다. 이 경로 자체를 FakeGithubApiClient.getCloneUrl()이 반환해, 실제 GitHub 없이
  * createSandboxClone이 여기서 clone하게 한다 — node_modules는 여기에도 없으므로(gitignore), sandbox에서
  * 실제로 npm install이 한 번 더 실행된다(실제 GitHub clone과 동일한 조건).
+ *
+ * 이 픽스처는 add_safe(R-SITEMAP-MISSING-URL, "/about" 페이지가 sitemap.ts에 없음) 1건과
+ * gated(R-AI-CRAWLER-POLICY, app/robots.ts 없음) 1건을 **동시에** 만든다 — 2026-08-20 위험도별 PR
+ * 분리 재설계 이후, safe bucket과 review bucket이 각각 1건씩 독립적으로 처리하는지 검증하는 데 쓰인다.
  */
 function makeFakeUpstreamRepo(): string {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "seomedic-gh-orch-upstream-"));
@@ -66,7 +70,8 @@ function makeFakeUpstreamRepo(): string {
  * 파일에 동시에 있는" 실무에서 흔한 시나리오를 검증하기 위한 전용 픽스처. 홈페이지 하나에 canonical
  * 누락(R-CANONICAL-MISSING)·noindex(R-NOINDEX-DETECTED)·OG 누락(R-OG-BASIC-MISSING) 3개를 동시에
  * 심는다 — title은 있어서 OG가 복사할 값이 있고, alternates.canonical은 없고, robots.index는 false.
- * sitemap.ts는 원본 그대로("/") 둬서 R-SITEMAP-MISSING-URL은 섞이지 않게 한다(홈페이지만 크롤되므로).
+ * sitemap.ts는 원본 그대로("/") 둬서 R-SITEMAP-MISSING-URL은 섞이지 않게 한다(홈페이지만 크롤되므로,
+ * safe bucket은 항상 비어있다 — gated만 4종 몰리는 review bucket 단독 테스트용).
  */
 function makeFakeUpstreamRepoWithStackedGatedFindings(): string {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "seomedic-gh-orch-stacked-gated-"));
@@ -110,88 +115,78 @@ function makeFakeClient(upstreamPath: string, overrides: Partial<GithubApiClient
 
 const REPO_REF: RepoRef = { owner: "test-user", repo: "repo" };
 
-describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케스트레이션 검증", () => {
-  it("정책 통과 → 내 repo 판별 → sandbox clone+npm install → plan → apply → PR 생성까지 실제로 동작한다", async () => {
+describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케스트레이션 검증(위험도별 PR 2개 분리)", () => {
+  it("add_safe와 gated가 동시에 있으면 safe/review 두 PR로 각각 독립 분리된다", async () => {
     process.env.SEOMEDIC_GITHUB_TOKEN = "fake-token-for-askpass-plumbing-only";
     const upstreamPath = makeFakeUpstreamRepo();
     const client = makeFakeClient(upstreamPath);
 
     const result = await runGithubFix(client, REPO_REF);
 
-    expect(result.autoFixes).toHaveLength(1);
-    expect(result.autoFixes[0].finding.rule_id).toBe("R-SITEMAP-MISSING-URL");
-    // 이 픽스처는 app/robots.ts가 없어 R-AI-CRAWLER-POLICY(gated)도 함께 발생한다 — 2026-08-20부터는
-    // gated 항목도 PR 자체가 승인 절차이므로 approved로 전이돼 함께 적용된다(더 이상 보고만 하고 버려지지 않음).
-    expect(result.gatedFixes).toHaveLength(1);
-    expect(result.gatedFixes[0].finding.rule_id).toBe("R-AI-CRAWLER-POLICY");
-    expect(result.applied).toHaveLength(2);
-    expect(result.applied.every((a) => a.outcome === "applied")).toBe(true);
-    expect(result.pr).not.toBeNull();
-    expect(result.pr!.number).toBe(1);
-    expect(result.duplicateSkipped).toBe(false);
-  }, 600_000);
+    expect(result.safe.branchName).toBe("seomedic/fix-safe");
+    expect(result.safe.autoFixes).toHaveLength(1);
+    expect(result.safe.autoFixes[0].finding.rule_id).toBe("R-SITEMAP-MISSING-URL");
+    expect(result.safe.gatedFixes).toHaveLength(0);
+    expect(result.safe.applied).toHaveLength(1);
+    expect(result.safe.applied[0].outcome).toBe("applied");
+    expect(result.safe.pr).not.toBeNull();
 
-  it("gated 항목(색인영향 변경)도 PR diff에 실제로 반영된다 — PR 자체가 승인 절차라는 재설계 검증", async () => {
-    process.env.SEOMEDIC_GITHUB_TOKEN = "fake-token-for-askpass-plumbing-only";
-    const upstreamPath = makeFakeUpstreamRepo();
-    const client = makeFakeClient(upstreamPath);
+    expect(result.review.branchName).toBe("seomedic/fix-review");
+    expect(result.review.autoFixes).toHaveLength(0);
+    expect(result.review.gatedFixes).toHaveLength(1);
+    expect(result.review.gatedFixes[0].finding.rule_id).toBe("R-AI-CRAWLER-POLICY");
+    expect(result.review.applied).toHaveLength(1);
+    expect(result.review.applied[0].outcome).toBe("applied");
+    expect(result.review.pr).not.toBeNull();
 
-    const result = await runGithubFix(client, REPO_REF);
+    // 실제 로컬 "업스트림" 저장소에 두 브랜치가 각자 독립적으로 만들어졌는지, 서로의 변경이 섞이지
+    // 않았는지 직접 확인한다(반환값만 믿지 않음).
+    const safeSitemap = execFileSync("git", ["show", "seomedic/fix-safe:app/sitemap.ts"], { cwd: upstreamPath, encoding: "utf-8" });
+    expect(safeSitemap).toContain("/about");
+    const safeRobotsExists = (() => {
+      try {
+        execFileSync("git", ["cat-file", "-e", "seomedic/fix-safe:app/robots.ts"], { cwd: upstreamPath, stdio: "pipe" });
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+    expect(safeRobotsExists).toBe(false); // safe 브랜치엔 gated(robots.ts)가 섞이면 안 됨
 
-    const aiCrawlerFix = result.gatedFixes.find((f) => f.finding.rule_id === "R-AI-CRAWLER-POLICY");
-    expect(aiCrawlerFix).toBeDefined();
-    // github 캐시 DB 안에서만 approved로 전이됐는지(사용자 로컬 승인 이력과 무관) 직접 확인.
-    expect(aiCrawlerFix!.fix.approval_status).toBe("pending"); // plan 시점 스냅샷은 그대로 pending(참고용)
+    const reviewRobots = execFileSync("git", ["show", "seomedic/fix-review:app/robots.ts"], { cwd: upstreamPath, encoding: "utf-8" });
+    expect(reviewRobots).toContain("GPTBot");
+  }, 900_000);
 
-    const appliedGated = result.applied.find((a) => a.fixId === aiCrawlerFix!.fix.id);
-    expect(appliedGated?.outcome).toBe("applied");
-
-    expect(result.pr).not.toBeNull();
-    // PR 본문에 gated 항목까지 포함됐는지(값 발명 없이 실제 diff로 들어갔는지)는 pushFixBranch가 실제로
-    // 민 로컬 "업스트림" 저장소(upstreamPath, FakeGithubApiClient.getCloneUrl 대상)의 브랜치를 직접
-    // 열어 확인한다 — 반환값만 믿지 않고 실제 git 상태로 검증(추측 금지).
-    const branchContent = execFileSync("git", ["show", "seomedic/fix-r-sitemap-missing-url:app/robots.ts"], {
-      cwd: upstreamPath,
-      encoding: "utf-8",
-    });
-    expect(branchContent).toContain("GPTBot");
-    expect(branchContent).toContain('userAgent: "*", allow: "/"');
-  }, 600_000);
-
-  it("gated 문제 여러 개가 같은 페이지·같은 파일에 겹쳐도 전부 안전하게 하나의 PR로 합쳐진다(순차 적용 충돌 없음 실증)", async () => {
+  it("gated 문제 여러 개가 같은 페이지·같은 파일에 겹쳐도 review PR 하나로 안전하게 합쳐진다(순차 적용 충돌 없음 실증)", async () => {
     process.env.SEOMEDIC_GITHUB_TOKEN = "fake-token-for-askpass-plumbing-only";
     const upstreamPath = makeFakeUpstreamRepoWithStackedGatedFindings();
     const client = makeFakeClient(upstreamPath);
 
     const result = await runGithubFix(client, REPO_REF);
 
+    // sitemap 갭이 없어(홈페이지만 있고 sitemap.ts에 "/" 이미 존재) safe bucket은 항상 비어있다.
+    expect(result.safe.autoFixes).toHaveLength(0);
+    expect(result.safe.pr).toBeNull();
+
     // app/robots.ts가 없는 기본 픽스처 그대로라 R-AI-CRAWLER-POLICY(별도 파일)까지 포함해 gated 4종이
-    // 동시에 발생한다 — "같은 파일 3개 + 다른 파일 1개"가 한 PR로 묶이는 더 어려운 조합까지 검증.
-    expect(result.autoFixes).toHaveLength(0); // sitemap 갭 없음(홈페이지만 있고 sitemap.ts에 "/" 이미 존재)
-    const gatedRuleIds = result.gatedFixes.map((f) => f.finding.rule_id).sort();
+    // review bucket 하나에 전부 몰린다 — "같은 파일 3개 + 다른 파일 1개"가 한 PR로 묶이는 조합 검증.
+    const gatedRuleIds = result.review.gatedFixes.map((f) => f.finding.rule_id).sort();
     expect(gatedRuleIds).toEqual(["R-AI-CRAWLER-POLICY", "R-CANONICAL-MISSING", "R-NOINDEX-DETECTED", "R-OG-BASIC-MISSING"].sort());
-
-    expect(result.applied).toHaveLength(4);
-    expect(result.applied.every((a) => a.outcome === "applied")).toBe(true);
-    expect(result.pr).not.toBeNull();
-
-    const branchName = execFileSync("git", ["for-each-ref", "--format=%(refname:short)", "refs/heads/seomedic/"], {
-      cwd: upstreamPath,
-      encoding: "utf-8",
-    }).trim();
-    expect(branchName).not.toBe("");
+    expect(result.review.applied).toHaveLength(4);
+    expect(result.review.applied.every((a) => a.outcome === "applied")).toBe(true);
+    expect(result.review.pr).not.toBeNull();
 
     // page.tsx 하나에 3개 fixer가 순서대로 파일을 다시 읽고 다시 쓰는데, 서로의 변경을 지우지 않고
     // 전부 누적 반영됐는지 실제 git 브랜치 내용으로 직접 확인한다(추측 금지 — 반환값만 믿지 않음).
-    const pageContent = execFileSync("git", ["show", `${branchName}:app/page.tsx`], { cwd: upstreamPath, encoding: "utf-8" });
+    const pageContent = execFileSync("git", ["show", "seomedic/fix-review:app/page.tsx"], { cwd: upstreamPath, encoding: "utf-8" });
     expect(pageContent).toContain('title: "SeoMedic 테스트 픽스처"'); // 원래 있던 값 보존
-    expect(pageContent).toContain("alternates: { canonical: \"/\" }"); // canonical 추가됨
+    expect(pageContent).toContain('alternates: { canonical: "/" }'); // canonical 추가됨
     expect(pageContent).toContain("index: true"); // noindex 교정됨(false→true)
     expect(pageContent).toContain('openGraph: { title: "SeoMedic 테스트 픽스처" }'); // OG 추가됨
 
-    const robotsContent = execFileSync("git", ["show", `${branchName}:app/robots.ts`], { cwd: upstreamPath, encoding: "utf-8" });
+    const robotsContent = execFileSync("git", ["show", "seomedic/fix-review:app/robots.ts"], { cwd: upstreamPath, encoding: "utf-8" });
     expect(robotsContent).toContain("GPTBot"); // 다른 파일(robots.ts) 신규 생성도 같은 PR에 함께 반영됨
-  }, 600_000);
+  }, 900_000);
 
   it("policy가 차단하면(archived) sandbox clone까지 가지 않고 즉시 실패한다", async () => {
     process.env.SEOMEDIC_GITHUB_TOKEN = "fake-token";
@@ -203,18 +198,25 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
     await expect(runGithubFix(client, REPO_REF)).rejects.toThrow(GithubFixBlockedError);
   }, 30_000);
 
-  it("이미 같은 브랜치로 열린 PR이 있으면(중복) 적용·PR생성 없이 건너뛴다", async () => {
+  it("safe 브랜치만 이미 열린 PR이 있으면(중복) safe는 건너뛰고 review는 독립적으로 정상 진행된다", async () => {
     process.env.SEOMEDIC_GITHUB_TOKEN = "fake-token";
     const upstreamPath = makeFakeUpstreamRepo();
     const client = makeFakeClient(upstreamPath, {
-      listOpenPrBranches: async () => ["seomedic/fix-r-sitemap-missing-url"],
+      listOpenPrBranches: async () => ["seomedic/fix-safe"], // review 브랜치는 중복 아님
     });
 
     const result = await runGithubFix(client, REPO_REF);
-    expect(result.duplicateSkipped).toBe(true);
-    expect(result.applied).toHaveLength(0);
-    expect(result.pr).toBeNull();
-  }, 600_000);
+
+    expect(result.safe.duplicateSkipped).toBe(true);
+    expect(result.safe.applied).toHaveLength(0);
+    expect(result.safe.pr).toBeNull();
+
+    // safe가 중복으로 건너뛰어도 review는 완전히 독립적으로(별도 clone) 정상 진행돼야 한다 —
+    // 두 bucket이 서로의 실패/스킵에 영향받지 않는 격리 실증.
+    expect(result.review.duplicateSkipped).toBe(false);
+    expect(result.review.applied).toHaveLength(1);
+    expect(result.review.pr).not.toBeNull();
+  }, 900_000);
 
   it("남의 repo면 fork 존재를 먼저 확인하고, 없으면 생성 후 폴링해 준비를 기다린다", async () => {
     process.env.SEOMEDIC_GITHUB_TOKEN = "fake-token";
@@ -236,5 +238,5 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
     const result = await runGithubFix(client, REPO_REF);
     expect(forkCheckCalls).toBeGreaterThan(0);
     expect(result.targetRef).toEqual({ owner: "someone-else", repo: "repo" });
-  }, 600_000);
+  }, 900_000);
 });
