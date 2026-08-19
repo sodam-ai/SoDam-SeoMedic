@@ -27,6 +27,13 @@ export const ALL_FIXERS = [
         // PRD 04:77 "표시에 영향=gated" 원칙 적용 — canonical 오버라이드 선례와 동일(04:71 표의 add_safe를 안 따름).
         description: "정적 metadata에 openGraph.title(렌더 title 복사)·openGraph.url(페이지 canonical 값 보존)을 추가 — 값 발명 없음, 항상 승인 필요",
     },
+    {
+        ruleId: "R-AI-CRAWLER-POLICY",
+        riskLevel: "gated",
+        // 04_PROJECT_SPEC "robots는 예외 없이 gated" 원칙 — app/robots.ts가 없을 때만 신규 파일 생성을 제안,
+        // 이미 있으면(우리가 만든 것이든 아니든) 절대 재구성하지 않고 report_only.
+        description: "app/robots.ts가 없을 때 AI 크롤러 정책(검색봇 허용/학습봇 차단) 신규 파일 생성을 제안 — 항상 승인 필요",
+    },
 ];
 function assertUniqueFixerRuleIds(fixers) {
     const seen = new Set();

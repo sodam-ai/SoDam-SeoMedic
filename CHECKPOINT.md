@@ -1028,3 +1028,63 @@ Windows/Unix 레이아웃 후보 확인 → 찾은 npm CLI 진입점을 `process
 설치 후 첫 세션**으로 최종 확인해야 한다(위 실사용 재검증 항목에 통합). Mac/Linux의
 `npm_execpath` 우선 확인 경로는 `npm-install.ts`가 이미 CI 3-OS로 검증한 로직을 그대로 재사용해
 이식 위험은 낮다고 판단하나, 이 파일 자체로 별도 3-OS 검증은 하지 않았다(정직하게 명시).
+
+---
+
+## ✅ Phase 2 "4-A" 구현 완료 — R-AI-CRAWLER-POLICY robots fixer (2026-08-19)
+
+`HUMAN_ACTION_CHECKLIST.md` "4-A"가 명시한 Phase 2 잔여 2건 중 외부 인증이 필요 없는 쪽(AI 크롤러
+정책)을 구현했다. PRD 재검토 후 이 항목을 강력 추천한 근거: 03_PHASES.md:99의 원래 Phase 2 스코프
+그대로이고, robots는 `04_PROJECT_SPEC.md` "예외 없이 gated" 원칙으로 이미 위험이 설계상 억제돼
+있으며, 외부 API 키·법무 승인·사람의 실기기 테스트 중 무엇도 필요 없어 지금 바로 코드로 검증 가능한
+유일한 신규 기능이었다.
+
+**중요한 선행 결정 확인**: `crawler/ai-crawler-finding.ts`에 이미 "중립 보고만 한다 — 정책 채택
+여부는 이 세션에서 사용자 확인을 받지 않은 별도 결정 사항이라 코드가 대신 판단하지 않는다"는 명시적
+코드 주석이 있었다. 이번 세션에서 사용자에게 PRD 제안 기본값(검색봇 허용/학습봇 차단)을 구체적으로
+제시하고 명시 승인("진행하기")을 받아 그 조건을 충족시켰다 — fixer 코드에도 이 사실을 남겼다.
+
+**구현 범위**(plan→apply→rollback 전체 생명주기):
+- `fixers/robots-ai-policy-fixer.ts`(신규) — `app/robots.ts`가 **없을 때만** AI 크롤러 정책
+  (학습봇 disallow, 그 외 전부 `*` allow에 위임) 신규 파일 생성을 제안. 이미 있으면(우리가 만든
+  것이든 아니든) 절대 재구성하지 않는다 — sitemap/canonical/og처럼 "기존 파일을 안전하게 편집"이
+  아니라 "존재 자체가 gated 경계"라는 점이 이 fixer만의 설계 차이.
+- `fixers/registry.ts` — `R-AI-CRAWLER-POLICY`를 `gated`로 등록.
+- `fix-orchestrator/scan.ts` — Phase 1.5 로컬 렌더 브릿지 전용 robots.txt 조회 함수를 추가.
+  **중대 발견**: 기존 `crawler/robots.ts`의 `loadAiCrawlerAccess`는 내부적으로 `safeFetch`(SSRF
+  가드)를 쓰는데, 이 가드가 **127.0.0.1(로컬 dev/build 서버)을 사설 IP로 차단**한다 — 그대로
+  재사용했다면 Phase 1.5 fix 모드에서 이 기능이 조용히 한 번도 발동 안 했을 것이다. scan.ts가
+  sitemap 조회에 이미 쓰던 것과 동일한 "로컬 브릿지 전용 fetch" 패턴(`fetchLocalBridgeHtml`)으로
+  fetch 경로만 분리하고, 판정 로직(`evaluateAiCrawlerAccess`)은 기존 것을 그대로 재사용했다.
+- `fix-orchestrator/plan.ts` — sitemap 완전성 검사와 동일한 방식(사이트 전역 판정이라 페이지 단위
+  규칙엔진 밖)으로 Finding을 만들고, App Router 루트(`app/` 또는 `src/app/`)를 판정해 새 파일
+  위치를 정하는 fixer 분기를 추가.
+- `fix-orchestrator/apply.ts` — 적용 분기 추가. **다른 세 fixer와 롤백 스켈레톤이 다르다**: 저것들은
+  "기존 파일 수정"이라 실패 시 `git checkout`으로 되돌릴 수 있지만, 이 fixer는 "신규 파일 생성"이라
+  대상이 git에 전혀 알려지지 않은 파일(untracked) — `git checkout`은 pathspec 오류로 실패하므로
+  build 실패 시 `fs.rmSync`로 직접 지운다.
+- `fix-orchestrator/rollback.ts` — 신규 파일 생성 fix는 `backup_path`가 정상적으로 null(백업할
+  원본 자체가 없음)이라, 기존 로직("backup_path 없으면 무조건 실패")이 그대로면 승인→적용된 이
+  fix만 수동 롤백이 항상 막힌다. `rule_id`로 엄격히 좁힌 분기를 추가해 "되돌리기=우리가 만든 파일
+  삭제"로 처리 — 다른 세 fixer의 기존 동작(백업 없으면 실패)은 전혀 건드리지 않았다.
+
+**검증(전부 실제 실행, 목업 아님)**:
+- 단위 테스트 8개 신규(`robots-ai-policy-fixer.test.ts`) — 신규 생성/멱등/타인 정책 불가침 확인.
+- 통합 테스트 4개 신규(`fix-orchestrator-robots-ai-policy-integration.test.ts`, 실제 `next build`
+  포함) — (a) 미승인 시 파일 미생성 (b) 승인→적용→build 통과→파일 생성→rollback으로 삭제 원복
+  (c) 거부 시 미생성 (d) 재실행해도 중복 fix 없음(멱등).
+- **회귀 발견·수정**: 전체 스위트 재실행 중 `fix-orchestrator-integration.test.ts`가 "이 픽스처는
+  fix가 정확히 1개(sitemap)"라고 하드코딩한 가정이 깨짐(robots.ts가 없는 같은 픽스처에 이제 새
+  fixer도 정당하게 트리거됨) — 기능을 죽이지 않고, rule_id로 정확한 fix를 찾도록 테스트를 고쳐
+  재검증(다른 통합 테스트들이 이미 쓰던 것과 동일한 패턴).
+- `npx tsc --noEmit` 통과, `npm run build` 통과, `npm run audit` 0건, `npm run package:plugin`으로
+  배포 번들 재생성 완료.
+- 전체 스위트 최종 재실행: **63개 파일 전부 통과**(신규 2개 포함, 기존 회귀 0건).
+
+**부수 조치**: 저장소 루트/픽스처 하위에서 이 프로젝트와 무관한 다른 로컬 도구의 실행 로그
+(`.active-agents*`·`.failure-tracker.jsonl`·`.sodam-re/`)가 untracked 상태로 방치돼 있었음을
+발견 — PUBLIC 저장소라 실수로 커밋되면 PRD의 "텔레메트리 0" 원칙과 충돌하므로 `.gitignore`에 추가.
+
+**남은 것**: 사람의 실사용 검증(위 3건에 통합) 전까지 "완전히 검증됐다"고 단정하지 않는다. 이 기능
+자체는 Next.js 앱 대상 로컬 fix 모드 한정이며, `/seo-audit`(Phase 1 라이브 URL 분석 전용 경로)는
+전혀 건드리지 않았다 — 그쪽은 이미 있던 `loadAiCrawlerAccess`(리포트 전용, fixer 없음) 그대로다.

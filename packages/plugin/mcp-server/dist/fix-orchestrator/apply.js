@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { checkGitClean, backupFiles, revertViaGitCheckout } from "../git-safety/git-guard.js";
 import { runNextBuildOnly } from "../render-bridge/server-launcher.js";
@@ -6,6 +7,8 @@ import { updateFindingStatus } from "../db/repositories/finding.js";
 import { planSitemapFix, writeSitemapFix } from "../fixers/sitemap-fixer.js";
 import { planCanonicalFix, writeCanonicalFix } from "../fixers/canonical-fixer.js";
 import { planOgFix, writeOgFix } from "../fixers/og-fixer.js";
+import { planRobotsAiPolicyFix, writeRobotsAiPolicyFix } from "../fixers/robots-ai-policy-fixer.js";
+import { AI_CRAWLER_POLICY_RULE_ID } from "../crawler/ai-crawler-finding.js";
 export class FixApplyBlockedError extends Error {
     reason;
     constructor(reason, message) {
@@ -58,6 +61,9 @@ async function applyOneFix(db, projectRoot, fix) {
     }
     if (fix.rule_id === "R-OG-BASIC-MISSING") {
         return applyOgFix(db, projectRoot, fix);
+    }
+    if (fix.rule_id === AI_CRAWLER_POLICY_RULE_ID) {
+        return applyAiCrawlerPolicyFix(db, projectRoot, fix);
     }
     return { fixId: fix.id, targetPath: fix.target_path, outcome: "structure_changed", detail: "적용 로직이 구현되지 않은 rule_id입니다" };
 }
@@ -176,6 +182,49 @@ async function applyOgFix(db, projectRoot, fix) {
         targetPath: fix.target_path,
         outcome: "applied",
         detail: `${fields} 추가 후 build 통과`,
+    };
+}
+/**
+ * 다른 세 applyXFix와 스켈레톤이 다르다 — 저것들은 "기존 파일 수정"이라 backupFiles가 항상 원본을
+ * 백업하고, 실패 시 revertViaGitCheckout(git이 알고 있는 파일이라 체크아웃 가능)으로 되돌린다.
+ * 이 fix는 "신규 파일 생성"이라 백업할 원본이 없고(backupFiles가 존재하지 않는 파일은 스킵함,
+ * git-guard.ts 참고), git에 전혀 알려지지 않은 파일이라 git checkout으로 되돌릴 수 없다(untracked
+ * pathspec 오류) — 실패 시 직접 fs.rmSync로 지운다.
+ */
+async function applyAiCrawlerPolicyFix(db, projectRoot, fix) {
+    const absPath = path.join(projectRoot, fix.target_path);
+    // apply 직전 재검증(TOCTOU + 멱등성) — plan 이후 파일이 생겼을 수 있다.
+    const recheck = planRobotsAiPolicyFix(absPath);
+    if (!recheck.applicable) {
+        if (recheck.alreadyApplied) {
+            markApplied(db, fix.id, new Date().toISOString(), fix.backup_path);
+            updateFindingStatus(db, fix.finding_id, "fixed");
+            return { fixId: fix.id, targetPath: fix.target_path, outcome: "already_applied", detail: "이미 적용되어 있습니다(멱등)" };
+        }
+        return { fixId: fix.id, targetPath: fix.target_path, outcome: "structure_changed", detail: recheck.reason };
+    }
+    const backupManifest = backupFiles(projectRoot, [fix.target_path], `fix-${fix.id}`);
+    const backupPath = backupManifest[0]?.backupPath ?? null; // 신규 파일이라 항상 null(백업할 원본 없음)
+    writeRobotsAiPolicyFix(absPath, recheck.updatedText);
+    try {
+        await runNextBuildOnly(projectRoot);
+    }
+    catch (err) {
+        fs.rmSync(absPath, { force: true }); // git checkout 불가(untracked) — 직접 제거
+        return {
+            fixId: fix.id,
+            targetPath: fix.target_path,
+            outcome: "build_failed",
+            detail: `적용 후 build 실패로 롤백됨: ${err.message}`,
+        };
+    }
+    markApplied(db, fix.id, new Date().toISOString(), backupPath);
+    updateFindingStatus(db, fix.finding_id, "fixed");
+    return {
+        fixId: fix.id,
+        targetPath: fix.target_path,
+        outcome: "applied",
+        detail: "AI 크롤러 정책 robots.ts 신규 생성 후 build 통과",
     };
 }
 //# sourceMappingURL=apply.js.map

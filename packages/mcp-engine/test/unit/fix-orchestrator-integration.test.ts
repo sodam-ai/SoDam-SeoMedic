@@ -64,8 +64,12 @@ describe("fix-orchestrator 통합 — 실제 Next.js 빌드+git", () => {
 
     try {
       const planResult = await planLocalFix(db, projectRoot);
-      expect(planResult.plannedFixes).toHaveLength(1);
-      const { fix, finding } = planResult.plannedFixes[0];
+      // 2026-08-19: robots.ts가 없는 이 픽스처는 R-AI-CRAWLER-POLICY(gated) fixer도 함께 트리거하므로
+      // (fixers/robots-ai-policy-fixer.ts) 더 이상 sitemap 1건만 있다고 단정할 수 없다 — rule_id로
+      // 특정해 찾는다(fix-orchestrator-og-integration.test.ts 등 다른 통합 테스트와 동일 패턴).
+      const sitemapFix = planResult.plannedFixes.find((p) => p.finding.rule_id === "R-SITEMAP-MISSING-URL");
+      expect(sitemapFix).toBeDefined();
+      const { fix, finding } = sitemapFix!;
       expect(finding.rule_id).toBe("R-SITEMAP-MISSING-URL");
       expect(fix.risk_level).toBe("add_safe");
       expect(fix.approval_status).toBe("auto");

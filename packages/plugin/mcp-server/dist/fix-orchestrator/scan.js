@@ -7,11 +7,35 @@ import { toLogicalPageUrl } from "../render-bridge/logical-url.js";
 import { fetchLocalBridgeHtml } from "../render-bridge/local-fetch.js";
 import { fetchSitemapUrls } from "../crawler/sitemap.js";
 import { findMissingSitemapPaths } from "../fixers/sitemap-finding.js";
+import { parseRobotsTxt } from "../crawler/robots.js";
+import { evaluateAiCrawlerAccess } from "../crawler/ai-crawler-policy.js";
 function localSitemapFetcher(expectedOrigin) {
     return async (url) => {
         const r = await fetchLocalBridgeHtml(url, expectedOrigin);
         return { status: r.status, bodyText: r.html };
     };
+}
+/**
+ * crawler/robots.ts의 loadAiCrawlerAccess와 같은 판정 로직(evaluateAiCrawlerAccess)을 쓰지만, fetch
+ * 경로만 로컬 브릿지 전용으로 분리한다 — loadAiCrawlerAccess 내부의 safeFetch는 127.0.0.1을 SSRF로
+ * 차단해 로컬 dev/build 서버(Phase 1.5)에 못 쓴다(localSitemapFetcher와 동일한 이유, 위 주석 참고).
+ * 조회 자체가 실패하면(네트워크 오류 등) null — 정책을 알 수 없으므로 추측하지 않는다(추측 금지 원칙).
+ */
+async function loadLocalAiCrawlerAccess(origin) {
+    const robotsUrl = new URL("/robots.txt", origin).toString();
+    let res;
+    try {
+        res = await fetchLocalBridgeHtml(robotsUrl, origin);
+    }
+    catch {
+        return null;
+    }
+    if (res.status === 404)
+        return evaluateAiCrawlerAccess(null, "absent", origin);
+    if (res.status !== 200)
+        return null;
+    const robot = parseRobotsTxt(robotsUrl, res.html);
+    return evaluateAiCrawlerAccess(robot, "found", origin);
 }
 /**
  * 로컬 렌더 브릿지(origin)를 대상으로 크롤+렌더+규칙평가를 수행한다(Phase 1 audit-orchestrator.ts의
@@ -75,6 +99,7 @@ export async function scanLocalFix(origin, opts = {}) {
     }
     const crawledOkUrls = pages.filter((p) => p.statusCode === 200).map((p) => p.realUrl);
     const sitemap = findMissingSitemapPaths(crawledOkUrls, sitemapUrls);
-    return { pages, allViolations, sitemap, truncated: crawlResult.truncated };
+    const aiCrawlerAccess = await loadLocalAiCrawlerAccess(origin);
+    return { pages, allViolations, sitemap, aiCrawlerAccess, truncated: crawlResult.truncated };
 }
 //# sourceMappingURL=scan.js.map

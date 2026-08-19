@@ -1,5 +1,6 @@
 import type { RuleViolation } from "../rules/types.js";
 import { type MissingSitemapResult } from "../fixers/sitemap-finding.js";
+import { type AiCrawlerAccessReport } from "../crawler/ai-crawler-policy.js";
 export interface ScannedPage {
     logicalUrl: string;
     realUrl: string;
@@ -17,6 +18,7 @@ export interface LocalFixScanResult {
     pages: ScannedPage[];
     allViolations: RuleViolation[];
     sitemap: MissingSitemapResult;
+    aiCrawlerAccess: AiCrawlerAccessReport | null;
     truncated: boolean;
 }
 /**

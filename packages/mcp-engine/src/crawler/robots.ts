@@ -12,6 +12,16 @@ interface ParsedRobots {
 }
 const robotsParser = robotsParserFactory as unknown as (url: string, robotstxt: string) => ParsedRobots;
 
+/**
+ * 위 robots-parser 타입 우회 래퍼를 다른 모듈에서도 재사용할 수 있도록 노출한다(fix-orchestrator/scan.ts가
+ * Phase 1.5 로컬 브릿지 전용 fetch 경로에서 이 파서만 필요 — safeFetch는 127.0.0.1을 SSRF로 차단해
+ * 이 파일의 fetchRobotsTxtRaw를 재사용할 수 없음, local-fetch.ts의 주석과 동일한 이유).
+ */
+export function parseRobotsTxt(url: string, robotstxt: string): ParsedRobots {
+  return robotsParser(url, robotstxt);
+}
+export type { ParsedRobots };
+
 const CRAWLER_UA = "SeoMedicBot";
 const MAX_ROBOTS_BYTES = 500 * 1024; // 500KB 상한(비정상적으로 거대한 robots.txt 방어)
 

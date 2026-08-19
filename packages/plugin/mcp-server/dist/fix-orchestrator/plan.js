@@ -12,6 +12,8 @@ import { findFixerDescriptor } from "../fixers/registry.js";
 import { planSitemapFix } from "../fixers/sitemap-fixer.js";
 import { planCanonicalFix } from "../fixers/canonical-fixer.js";
 import { planOgFix } from "../fixers/og-fixer.js";
+import { planRobotsAiPolicyFix } from "../fixers/robots-ai-policy-fixer.js";
+import { AI_CRAWLER_POLICY_RULE_ID, buildAiCrawlerPolicyViolation } from "../crawler/ai-crawler-finding.js";
 import { findPageFilePath } from "./page-file-resolver.js";
 import { scanLocalFix } from "./scan.js";
 const LOGICAL_ORIGIN = "http://local.seomedic.internal";
@@ -21,6 +23,10 @@ const SITEMAP_FILE_CANDIDATES = ["app/sitemap.ts", "app/sitemap.js", "src/app/si
 const CANONICAL_RULE_ID = "R-CANONICAL-MISSING";
 const CANONICAL_JS_ONLY_RULE_ID = "R-CANONICAL-JS-ONLY";
 const OG_RULE_ID = "R-OG-BASIC-MISSING";
+// page-file-resolver.ts APP_DIR_CANDIDATES와 동일 후보(App Router 루트 판정용) — robots.ts는 신규
+// "생성" 대상이라 기존 파일을 찾는 게 아니라 어느 app 디렉터리에 만들지 결정해야 해서 별도로 둔다.
+const ROBOTS_APP_DIR_CANDIDATES = ["app", "src/app"];
+const ROBOTS_LAYOUT_EXTENSIONS = ["tsx", "jsx", "js"];
 export class FixPlanBlockedError extends Error {
     reason;
     constructor(reason, message) {
@@ -101,6 +107,12 @@ export async function planLocalFix(db, projectRoot, options = {}) {
             recommendedValue: `누락 ${missingList.length}건: ${missingList.join(", ")}`,
         });
     }
+    if (scanResult.aiCrawlerAccess) {
+        // ai-crawler-finding.ts와 동일하게 origin은 LOGICAL_ORIGIN 고정값을 쓴다 — 실제 로컬 서버 origin은
+        // 실행마다 포트가 바뀌어, 그걸 그대로 쓰면 finding_key(hash(page_url+rule_id+rule_version))가 매번
+        // 달라져 회귀 비교가 절대 안 맞는다(위 sitemap 처리와 동일 이유).
+        allViolations.push(buildAiCrawlerPolicyViolation(LOGICAL_ORIGIN, scanResult.aiCrawlerAccess));
+    }
     insertFindings(db, auditRun.id, allViolations);
     finishAuditRun(db, auditRun.id, null);
     // finishAuditRun은 UPDATE만 하므로 auditRun 변수를 그대로 안 쓰고 재조회한다
@@ -141,6 +153,14 @@ export async function planLocalFix(db, projectRoot, options = {}) {
         }
         if (finding.rule_id === OG_RULE_ID) {
             const fix = planOgFixForFinding(db, projectRoot, finding, scanResult.pages);
+            if (fix)
+                plannedFixes.push({ fix, finding });
+            else
+                reportOnlyFindings.push(finding);
+            continue;
+        }
+        if (finding.rule_id === AI_CRAWLER_POLICY_RULE_ID) {
+            const fix = planAiCrawlerPolicyFixForFinding(db, projectRoot, finding, scanResult.aiCrawlerAccess);
             if (fix)
                 plannedFixes.push({ fix, finding });
             else
@@ -273,6 +293,47 @@ function planOgFixForFinding(db, projectRoot, finding, pages) {
         targetPath: pageRelPath,
         validation: "승인 후 next build 재검증을 통과해야 적용됩니다(openGraph.title·url 추가)",
         idempotencyMarker: JSON.stringify({ title: ogTitle, url: ogUrl }),
+    });
+}
+/**
+ * App Router 루트(app/ 또는 src/app/)를 layout 파일 존재로 판정해 robots.ts를 만들 위치를 정한다.
+ * (page-file-resolver.ts의 APP_DIR_CANDIDATES·next-detect/detect-nextjs.ts의 appRouterMarkers와
+ * 동일한 판정 방식을 여기서만 다시 쓴다 — og-fixer.ts가 canonical-fixer.ts 로직을 의도적으로 복제한
+ * 것과 같은 이유: 기존 Phase 1.5 완료 코드를 이번 작업 범위에서 건드리지 않기 위함.)
+ * 둘 다 없으면(App Router 루트를 못 찾음) null — 생성 대상 아님(report_only로 폴백).
+ */
+function resolveRobotsTargetPath(projectRoot) {
+    for (const dir of ROBOTS_APP_DIR_CANDIDATES) {
+        const hasLayout = ROBOTS_LAYOUT_EXTENSIONS.some((ext) => fs.existsSync(path.join(projectRoot, dir, `layout.${ext}`)));
+        if (hasLayout)
+            return path.join(dir, "robots.ts");
+    }
+    return null;
+}
+/**
+ * sitemap/canonical/og와 달리 "이미 있는 파일을 편집"이 아니라 "없을 때만 새로 만든다" — robots.ts가
+ * 이미 존재하면(report.robotsTxtFound=true) 우리가 만든 것이든 아니든 절대 재구성하지 않는다
+ * (robots-ai-policy-fixer.ts의 fail-closed 설계 그대로 따름).
+ */
+function planAiCrawlerPolicyFixForFinding(db, projectRoot, finding, report) {
+    if (!report || report.robotsTxtFound)
+        return null; // 이미 robots.txt가 있음(또는 조회 실패) — report_only
+    const targetPath = resolveRobotsTargetPath(projectRoot);
+    if (!targetPath)
+        return null; // App Router 루트를 못 찾음 — report_only
+    const absPath = path.join(projectRoot, targetPath);
+    const plan = planRobotsAiPolicyFix(absPath);
+    if (!plan.applicable)
+        return null; // 그 사이 파일이 생겼거나(경합) 이미 우리가 만든 파일 — report_only(멱등은 apply 시점에 재확인)
+    return insertFix(db, {
+        findingId: finding.id,
+        fixType: "file_edit",
+        riskLevel: "gated",
+        approvalStatus: "pending",
+        dryRunDiff: `새 파일: ${targetPath}\n+ AI 크롤러 정책 — 검색엔진/AI 검색봇 허용, AI 학습 전용 크롤러(GPTBot·ClaudeBot 등) 차단`,
+        targetPath,
+        validation: "승인 후 next build 재검증을 통과해야 적용됩니다(robots.ts 신규 생성)",
+        idempotencyMarker: null,
     });
 }
 //# sourceMappingURL=plan.js.map

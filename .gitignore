@@ -22,3 +22,11 @@ coverage/
 .todos-report.md/
 .plugin-config/
 .pair-programming-session.md
+# 2026-08-19: 저장소 루트/픽스처 하위에서 untracked 상태로 발견됨(다른 로컬 도구의 실행 로그로 추정,
+# 내용에 텔레메트리성 타임스탬프·오류 기록 포함) — 이 저장소는 PUBLIC이라 실수로 커밋되면 PRD가
+# 명시한 "텔레메트리 0" 원칙과 충돌한다. 위 항목들과 동일한 사유로 추적 제외.
+.active-agents
+.active-agents.lock
+.active-agents.tmp
+.failure-tracker.jsonl
+.sodam-re/
