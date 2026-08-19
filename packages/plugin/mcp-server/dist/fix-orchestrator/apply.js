@@ -7,6 +7,7 @@ import { updateFindingStatus } from "../db/repositories/finding.js";
 import { planSitemapFix, writeSitemapFix } from "../fixers/sitemap-fixer.js";
 import { planCanonicalFix, writeCanonicalFix } from "../fixers/canonical-fixer.js";
 import { planOgFix, writeOgFix } from "../fixers/og-fixer.js";
+import { planNoindexFix, writeNoindexFix } from "../fixers/noindex-fixer.js";
 import { planRobotsAiPolicyFix, writeRobotsAiPolicyFix } from "../fixers/robots-ai-policy-fixer.js";
 import { AI_CRAWLER_POLICY_RULE_ID } from "../crawler/ai-crawler-finding.js";
 export class FixApplyBlockedError extends Error {
@@ -61,6 +62,9 @@ async function applyOneFix(db, projectRoot, fix) {
     }
     if (fix.rule_id === "R-OG-BASIC-MISSING") {
         return applyOgFix(db, projectRoot, fix);
+    }
+    if (fix.rule_id === "R-NOINDEX-DETECTED") {
+        return applyNoindexFix(db, projectRoot, fix);
     }
     if (fix.rule_id === AI_CRAWLER_POLICY_RULE_ID) {
         return applyAiCrawlerPolicyFix(db, projectRoot, fix);
@@ -184,8 +188,48 @@ async function applyOgFix(db, projectRoot, fix) {
         detail: `${fields} 추가 후 build 통과`,
     };
 }
+/** applyCanonicalFix와 완전히 동일한 스켈레톤(백업→쓰기→build 재검증→실패시 롤백) — recheck에 추가
+ * 파라미터가 필요 없다(canonical의 pathname·og의 title/url과 달리, false→true 교정은 파일 안에서
+ * 이미 확정된 값만 본다). */
+async function applyNoindexFix(db, projectRoot, fix) {
+    const absPath = path.join(projectRoot, fix.target_path);
+    // apply 직전 재검증(TOCTOU + 멱등성) — plan 이후 파일 구조가 바뀌었을 수 있다.
+    const recheck = planNoindexFix(absPath);
+    if (!recheck.applicable) {
+        return { fixId: fix.id, targetPath: fix.target_path, outcome: "structure_changed", detail: recheck.reason };
+    }
+    if (recheck.updatedText === recheck.originalText) {
+        // 이미 반영돼 있음(재실행·수동 반영 등) — 멱등: 실패가 아니라 성공으로 간주
+        markApplied(db, fix.id, new Date().toISOString(), fix.backup_path);
+        updateFindingStatus(db, fix.finding_id, "fixed");
+        return { fixId: fix.id, targetPath: fix.target_path, outcome: "already_applied", detail: "이미 적용되어 있습니다(멱등)" };
+    }
+    const backupManifest = backupFiles(projectRoot, [fix.target_path], `fix-${fix.id}`);
+    const backupPath = backupManifest[0]?.backupPath ?? null;
+    writeNoindexFix(absPath, recheck.updatedText);
+    try {
+        await runNextBuildOnly(projectRoot);
+    }
+    catch (err) {
+        await revertViaGitCheckout(projectRoot, [fix.target_path]);
+        return {
+            fixId: fix.id,
+            targetPath: fix.target_path,
+            outcome: "build_failed",
+            detail: `적용 후 build 실패로 롤백됨: ${err.message}`,
+        };
+    }
+    markApplied(db, fix.id, new Date().toISOString(), backupPath);
+    updateFindingStatus(db, fix.finding_id, "fixed");
+    return {
+        fixId: fix.id,
+        targetPath: fix.target_path,
+        outcome: "applied",
+        detail: "robots.index를 false에서 true로 교정 후 build 통과",
+    };
+}
 /**
- * 다른 세 applyXFix와 스켈레톤이 다르다 — 저것들은 "기존 파일 수정"이라 backupFiles가 항상 원본을
+ * 다른 네 applyXFix와 스켈레톤이 다르다 — 저것들은 "기존 파일 수정"이라 backupFiles가 항상 원본을
  * 백업하고, 실패 시 revertViaGitCheckout(git이 알고 있는 파일이라 체크아웃 가능)으로 되돌린다.
  * 이 fix는 "신규 파일 생성"이라 백업할 원본이 없고(backupFiles가 존재하지 않는 파일은 스킵함,
  * git-guard.ts 참고), git에 전혀 알려지지 않은 파일이라 git checkout으로 되돌릴 수 없다(untracked

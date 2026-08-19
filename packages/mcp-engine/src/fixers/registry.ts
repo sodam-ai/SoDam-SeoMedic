@@ -51,6 +51,13 @@ export const ALL_FIXERS: FixerDescriptor[] = [
     // 이미 있으면(우리가 만든 것이든 아니든) 절대 재구성하지 않고 report_only.
     description: "app/robots.ts가 없을 때 AI 크롤러 정책(검색봇 허용/학습봇 차단) 신규 파일 생성을 제안 — 항상 승인 필요",
   },
+  {
+    ruleId: "R-NOINDEX-DETECTED",
+    riskLevel: "gated",
+    // 03_PHASES.md Phase 1.5 gated 목록에 명시된 항목("canonical/noindex/robots/...")인데 구현이
+    // 누락돼 있었음(2026-08-19 PRD 재대조로 발견). "색인 통제=gated" 원칙 그대로 적용.
+    description: "정적 metadata의 robots.index를 false→true로 교정(noindex 제거) — 값 발명 없음, 항상 승인 필요",
+  },
 ];
 
 function assertUniqueFixerRuleIds(fixers: FixerDescriptor[]): void {

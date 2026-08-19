@@ -12,6 +12,7 @@ import { findFixerDescriptor } from "../fixers/registry.js";
 import { planSitemapFix } from "../fixers/sitemap-fixer.js";
 import { planCanonicalFix } from "../fixers/canonical-fixer.js";
 import { planOgFix } from "../fixers/og-fixer.js";
+import { planNoindexFix } from "../fixers/noindex-fixer.js";
 import { planRobotsAiPolicyFix } from "../fixers/robots-ai-policy-fixer.js";
 import { AI_CRAWLER_POLICY_RULE_ID, buildAiCrawlerPolicyViolation } from "../crawler/ai-crawler-finding.js";
 import { findPageFilePath } from "./page-file-resolver.js";
@@ -28,6 +29,7 @@ const SITEMAP_FILE_CANDIDATES = ["app/sitemap.ts", "app/sitemap.js", "src/app/si
 const CANONICAL_RULE_ID = "R-CANONICAL-MISSING";
 const CANONICAL_JS_ONLY_RULE_ID = "R-CANONICAL-JS-ONLY";
 const OG_RULE_ID = "R-OG-BASIC-MISSING";
+const NOINDEX_RULE_ID = "R-NOINDEX-DETECTED";
 // page-file-resolver.ts APP_DIR_CANDIDATES와 동일 후보(App Router 루트 판정용) — robots.ts는 신규
 // "생성" 대상이라 기존 파일을 찾는 게 아니라 어느 app 디렉터리에 만들지 결정해야 해서 별도로 둔다.
 const ROBOTS_APP_DIR_CANDIDATES = ["app", "src/app"];
@@ -206,6 +208,13 @@ export async function planLocalFix(
       continue;
     }
 
+    if (finding.rule_id === NOINDEX_RULE_ID) {
+      const fix = planNoindexFixForFinding(db, projectRoot, finding);
+      if (fix) plannedFixes.push({ fix, finding });
+      else reportOnlyFindings.push(finding);
+      continue;
+    }
+
     if (finding.rule_id === AI_CRAWLER_POLICY_RULE_ID) {
       const fix = planAiCrawlerPolicyFixForFinding(db, projectRoot, finding, scanResult.aiCrawlerAccess);
       if (fix) plannedFixes.push({ fix, finding });
@@ -361,6 +370,33 @@ function planOgFixForFinding(
     targetPath: pageRelPath,
     validation: "승인 후 next build 재검증을 통과해야 적용됩니다(openGraph.title·url 추가)",
     idempotencyMarker: JSON.stringify({ title: ogTitle, url: ogUrl }),
+  });
+}
+
+/**
+ * noindex 값은 canonical과 달리 finding.page_url에서 재계산하지 않는다 — 이미 소스에 박혀 있는
+ * boolean 리터럴(false)을 true로 교정할 뿐이라 planNoindexFix(filePath)만으로 충분하다(추가 파라미터
+ * 불필요, robots-ai-policy-fixer.ts의 무파라미터 plan과 동일한 성격).
+ */
+function planNoindexFixForFinding(db: SeomedicDb, projectRoot: string, finding: FindingRecord): FixRecord | null {
+  const pathname = new URL(finding.page_url).pathname;
+
+  const pageRelPath = findPageFilePath(projectRoot, pathname);
+  if (!pageRelPath) return null; // 정적 페이지 파일을 못 찾음(동적 라우트 등) — report_only로 남김
+
+  const absPath = path.join(projectRoot, pageRelPath);
+  const plan = planNoindexFix(absPath);
+  if (!plan.applicable || plan.updatedText === plan.originalText) return null;
+
+  return insertFix(db, {
+    findingId: finding.id,
+    fixType: "file_edit",
+    riskLevel: "gated",
+    approvalStatus: "pending",
+    dryRunDiff: `파일: ${pageRelPath}\n- robots.index: false\n+ robots.index: true`,
+    targetPath: pageRelPath,
+    validation: "승인 후 next build 재검증을 통과해야 적용됩니다(robots.index를 false에서 true로 교정)",
+    idempotencyMarker: null,
   });
 }
 

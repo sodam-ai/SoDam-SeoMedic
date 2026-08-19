@@ -1178,3 +1178,56 @@ Phase 2(4-A+4-B) 코드 완료 선언 직후, 사용자 요청으로 지금까�
 
 **미실행(정직하게 명시)**: 실제 `PAGESPEED_API_KEY`로의 라이브 호출, Mac/Linux 실기기 실행 — 전부
 사람 전용으로 이미 추적 중.
+
+---
+
+## ✅ noindex 제거 gated fixer 신규 구현 — R-NOINDEX-DETECTED (2026-08-20)
+
+**배경**: 위 종합 검증 세션 직후, 사용자가 "PRD 재대조 → 다음 작업 방향 제안" 요청. `.PRD/03_PHASES.md`
+Phase 1.5 원문(line 70)이 gated 자동수정 대상으로 **"canonical/noindex/robots/sitemap/JSON-LD/
+title/meta/alt"** 7가지를 명시했는데, 실제 코드(`fixers/registry.ts`)를 직접 대조한 결과 canonical·
+sitemap·robots(신규파일)·OG는 구현됐지만 **noindex는 탐지(`R-NOINDEX-DETECTED`)만 되고 수정기가 아예
+없었다** — Phase 1.5가 "완료"로 표시된 이후 지금까지 한 번도 채워지지 않은 실제 갭. title/meta 자동
+생성은 "빈 값에 무슨 문구를 넣을지"가 SEO 카피라이팅 판단(값 발명 위험)이라 별도 제품 결정이 필요하다고
+보고 이번 스코프에서 제외 — noindex 제거만 진행(사용자 승인).
+
+**왜 안전한가(값 발명 없음 원칙 적용)**: title/meta와 달리 noindex 제거는 이미 소스에 박혀 있는
+`robots.index: false`라는 boolean 리터럴을 `true`로 뒤집는 것뿐이라 새 문구를 지어낼 필요가 전혀 없다.
+canonical-fixer.ts/og-fixer.ts와 완전히 동일한 정적분석(ts-morph) + fail-closed 원칙을 그대로 적용:
+- `robots` 필드 자체가 없음(레이아웃 등에서 상속됐을 수 있음) → report_only
+- `robots`가 문자열(`"noindex, nofollow"` 등)이거나 `index`가 변수·함수호출 → report_only
+- `robots`·`index` 어디든 스프레드가 섞임 → report_only
+- **`robots.googleBot`이 별도로 존재함** → report_only (⚠️ 설계 중 발견한 위험: Google은 googleBot
+  전용 메타태그를 일반 robots 태그보다 우선 적용하므로, top-level `index`만 고치면 "고쳤다"고 보고하지만
+  실제로는 Googlebot 기준 noindex가 그대로 남는 **거짓 성공**을 만들 수 있었다 — fail-closed로 제외)
+
+**구현**:
+- `fixers/noindex-fixer.ts`(신규) — `planNoindexFix(filePath)`/`writeNoindexFix(filePath, text)`.
+- `fixers/registry.ts` — `{ruleId: "R-NOINDEX-DETECTED", riskLevel: "gated"}` 등록.
+- `fix-orchestrator/plan.ts` — `planNoindexFixForFinding` 추가(canonical과 동일하게 `findPageFilePath`로
+  URL→소스파일 매핑, 추가 파라미터 불필요).
+- `fix-orchestrator/apply.ts` — `applyNoindexFix` 추가(canonical과 완전히 동일한 스켈레톤: TOCTOU
+  재검증→백업→쓰기→`next build`재검증→실패 시 `revertViaGitCheckout`). rollback.ts는 무변경(기존
+  backup_path 기반 범용 롤백이 그대로 적용됨 — R-AI-CRAWLER-POLICY 때와 달리 "기존 파일 수정"이라
+  특별 분기 불필요).
+
+**검증**:
+- 신규 유닛 테스트 12개(`noindex-fixer.test.ts`) — false→true 교정, follow 등 다른 필드 보존, 이미
+  true면 멱등, robots 부재/문자열/변수/스프레드/googleBot오버라이드/동적함수 전부 report_only 폴백,
+  파일 없음. 전부 통과.
+- 신규 통합 테스트 4개(`fix-orchestrator-noindex-integration.test.ts`, 실제 `next build` 사용,
+  격리된 임시 git repo) — (a) 미승인 시 apply가 절대 안 건드림 (b) 승인→적용→build 통과→
+  `index:true`로 실제 반영→rollback으로 `index:false` 원복 (c) 거부 시 안 건드림 (d) 재실행해도
+  중복 fix 안 만듦(멱등, 렌더된 페이지도 더 이상 noindex 아니라 finding 자체가 재발생 안 함). 전부 통과.
+- `fixer-registry.test.ts`에 회귀가드 1건 추가(R-NOINDEX-DETECTED가 실수로 add_safe로 완화되는 것 방지).
+- 전체 스위트 재실행: **67개 파일 474개 테스트 전부 통과**(기존 457 + 신규 17), 회귀 0건.
+- typecheck 0에러 · build 0에러 · `npm audit` 워크스페이스 전체 0건.
+- `npm run package:plugin` 재생성 후 `registry.js`/`plan.js`/`apply.js`에 `R-NOINDEX-DETECTED` 반영
+  확인, `noindex-fixer.js` 배송 폴더에 존재 확인.
+
+**남은 것(정직하게 명시)**: title/meta-description 자동생성 fixer는 이번에 의도적으로 보류(값 발명
+위험이 있는 별도 제품 결정 필요 — "영구히 report_only로 둘지, 사람이 매번 검수하는 흐름을 새로 설계할지"
+사용자 확인 필요). JSON-LD "생성"(검증은 이미 구현됨, `R-JSONLD-MISSING`은 여전히 탐지만 됨)도 이번
+스코프 밖. **PRD의 Phase 1 자체 최우선 성공기준인 "실사용 재검증"(새 세션에서 마켓 설치→`/seo-audit`
+실제 실행 확인)은 2026-07-18 이후 지금까지 한 번도 수행된 적이 없다 — 이 항목은 사람 전용이라 AI가
+대신할 수 없고, 이번 세션에서도 여전히 미해결로 남아있음을 다시 명시한다.**

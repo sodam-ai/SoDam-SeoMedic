@@ -23,4 +23,8 @@ describe("fixer registry — R-CANONICAL-MISSING는 항상 gated", () => {
   it("R-OG-BASIC-MISSING도 gated로 등록되어 있다(PRD 04:71 표의 add_safe를 따르지 않고 canonical과 동일한 표시-영향 오버라이드 적용)", () => {
     expect(findFixerDescriptor("R-OG-BASIC-MISSING")?.riskLevel).toBe("gated");
   });
+
+  it("R-NOINDEX-DETECTED도 gated로 등록되어 있다(색인 통제=예외 없이 gated)", () => {
+    expect(findFixerDescriptor("R-NOINDEX-DETECTED")?.riskLevel).toBe("gated");
+  });
 });
