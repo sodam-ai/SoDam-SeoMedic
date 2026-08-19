@@ -95,11 +95,42 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
 
     expect(result.autoFixes).toHaveLength(1);
     expect(result.autoFixes[0].finding.rule_id).toBe("R-SITEMAP-MISSING-URL");
-    expect(result.applied).toHaveLength(1);
-    expect(result.applied[0].outcome).toBe("applied");
+    // 이 픽스처는 app/robots.ts가 없어 R-AI-CRAWLER-POLICY(gated)도 함께 발생한다 — 2026-08-20부터는
+    // gated 항목도 PR 자체가 승인 절차이므로 approved로 전이돼 함께 적용된다(더 이상 보고만 하고 버려지지 않음).
+    expect(result.gatedFixes).toHaveLength(1);
+    expect(result.gatedFixes[0].finding.rule_id).toBe("R-AI-CRAWLER-POLICY");
+    expect(result.applied).toHaveLength(2);
+    expect(result.applied.every((a) => a.outcome === "applied")).toBe(true);
     expect(result.pr).not.toBeNull();
     expect(result.pr!.number).toBe(1);
     expect(result.duplicateSkipped).toBe(false);
+  }, 600_000);
+
+  it("gated 항목(색인영향 변경)도 PR diff에 실제로 반영된다 — PR 자체가 승인 절차라는 재설계 검증", async () => {
+    process.env.SEOMEDIC_GITHUB_TOKEN = "fake-token-for-askpass-plumbing-only";
+    const upstreamPath = makeFakeUpstreamRepo();
+    const client = makeFakeClient(upstreamPath);
+
+    const result = await runGithubFix(client, REPO_REF);
+
+    const aiCrawlerFix = result.gatedFixes.find((f) => f.finding.rule_id === "R-AI-CRAWLER-POLICY");
+    expect(aiCrawlerFix).toBeDefined();
+    // github 캐시 DB 안에서만 approved로 전이됐는지(사용자 로컬 승인 이력과 무관) 직접 확인.
+    expect(aiCrawlerFix!.fix.approval_status).toBe("pending"); // plan 시점 스냅샷은 그대로 pending(참고용)
+
+    const appliedGated = result.applied.find((a) => a.fixId === aiCrawlerFix!.fix.id);
+    expect(appliedGated?.outcome).toBe("applied");
+
+    expect(result.pr).not.toBeNull();
+    // PR 본문에 gated 항목까지 포함됐는지(값 발명 없이 실제 diff로 들어갔는지)는 pushFixBranch가 실제로
+    // 민 로컬 "업스트림" 저장소(upstreamPath, FakeGithubApiClient.getCloneUrl 대상)의 브랜치를 직접
+    // 열어 확인한다 — 반환값만 믿지 않고 실제 git 상태로 검증(추측 금지).
+    const branchContent = execFileSync("git", ["show", "seomedic/fix-r-sitemap-missing-url:app/robots.ts"], {
+      cwd: upstreamPath,
+      encoding: "utf-8",
+    });
+    expect(branchContent).toContain("GPTBot");
+    expect(branchContent).toContain('userAgent: "*", allow: "/"');
   }, 600_000);
 
   it("policy가 차단하면(archived) sandbox clone까지 가지 않고 즉시 실패한다", async () => {

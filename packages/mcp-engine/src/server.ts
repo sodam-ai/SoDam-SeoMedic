@@ -331,7 +331,7 @@ server.registerTool(
   {
     title: "GitHub 저장소 자동 수정(PR 제안) — 부분 검증",
     description:
-      "GitHub 저장소를 대상으로 add_safe 수정을 적용하고 PR을 생성합니다(제안, main 직접 push·자동 머지 없음). 본인 소유 저장소는 실제 GitHub에서 PR 생성까지 검증 완료(2026-07-04). fork(남의 저장소) 경로는 fork 생성·복제까지 실제 GitHub로 검증됐으나 ⚠️ 마지막 PR 생성 단계는 아직 미검증입니다. SEOMEDIC_GITHUB_TOKEN 환경변수가 필요합니다. 색인·표시에 영향을 주는(gated) 항목은 이 1회성 흐름에서 대화형 승인이 불가능해 자동 적용하지 않고 보고만 합니다.",
+      "GitHub 저장소를 대상으로 수정 사항을 브랜치에 반영해 PR을 생성합니다(제안, main 직접 push·자동 머지 없음 — PR 자체가 승인 절차이며, 병합 여부는 저장소 관리자가 직접 결정합니다). 본인 소유 저장소는 실제 GitHub에서 PR 생성까지 검증 완료(2026-07-04). fork(남의 저장소) 경로는 fork 생성·복제까지 실제 GitHub로 검증됐으나 ⚠️ 마지막 PR 생성 단계는 아직 미검증입니다. SEOMEDIC_GITHUB_TOKEN 환경변수가 필요합니다. 색인·표시에 영향을 주는(gated) 항목(canonical·OG·noindex·robots.ts 등)도 PR diff에 함께 포함되니, 병합 전 반드시 diff를 직접 검토하세요.",
     inputSchema: {
       repoUrl: z.string().describe("GitHub 저장소 주소(예: https://github.com/owner/repo 또는 owner/repo)"),
       maxRepoSizeKb: z.number().int().positive().optional().describe("clone 허용 최대 저장소 크기(KB), 기본 500MB"),
@@ -359,18 +359,37 @@ server.registerTool(
           "",
           "⚠️ main 브랜치에 직접 반영되지 않았고 자동 머지되지도 않았습니다 — 저장소 관리자가 diff를 검토한 뒤 직접 병합해야 합니다.",
         );
-      } else if (result.autoFixes.length === 0) {
-        lines.push("", "자동 적용 가능한(add_safe) 수정이 없습니다.");
+      } else if (result.autoFixes.length === 0 && result.gatedFixes.length === 0) {
+        lines.push("", "자동 적용 가능한 수정이 없습니다.");
       } else {
         lines.push("", "적용에 실패했습니다:", ...result.applied.map((a) => `- ${a.targetPath ?? "-"}: ${a.outcome} — ${a.detail}`));
       }
 
-      if (result.gatedFindings.length > 0) {
-        lines.push(
-          "",
-          `### 승인이 필요해 자동 적용하지 않은 항목(${result.gatedFindings.length}건)`,
-          ...result.gatedFindings.map((f) => `- ${f.rule_id} · ${f.page_url}`),
+      if (result.gatedFixes.length > 0) {
+        // result.applied는 auto/gated 구분 없이 이번에 시도된 전체 fix의 결과다 — fix.id로 대조해
+        // "실제로 PR diff에 들어간 gated 항목"과 "빌드 실패 등으로 못 들어간 gated 항목"을 정확히 나눈다
+        // (PR 생성 자체가 승인 절차가 된 이후로, "승인이 필요해 자동 적용하지 않음"이라는 예전 문구는
+        // 더 이상 사실이 아니게 됐다 — 2026-08-20).
+        const appliedIds = new Set(
+          result.applied.filter((a) => a.outcome === "applied" || a.outcome === "already_applied").map((a) => a.fixId),
         );
+        const includedInPr = result.gatedFixes.filter((f) => appliedIds.has(f.fix.id));
+        const notIncluded = result.gatedFixes.filter((f) => !appliedIds.has(f.fix.id));
+
+        if (includedInPr.length > 0) {
+          lines.push(
+            "",
+            `### PR에 포함된 승인 필요 항목(${includedInPr.length}건) — 병합 전 diff를 직접 검토해주세요`,
+            ...includedInPr.map((f) => `- ${f.finding.rule_id} · ${f.finding.page_url}`),
+          );
+        }
+        if (notIncluded.length > 0) {
+          lines.push(
+            "",
+            `### 적용하지 못한 항목(${notIncluded.length}건)`,
+            ...notIncluded.map((f) => `- ${f.finding.rule_id} · ${f.finding.page_url}`),
+          );
+        }
       }
       if (result.reportOnlyFindings.length > 0) {
         lines.push("", `### 자동 수정 불가(제안만, ${result.reportOnlyFindings.length}건)`);
