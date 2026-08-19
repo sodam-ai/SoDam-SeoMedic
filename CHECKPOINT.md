@@ -1088,3 +1088,62 @@ Windows/Unix 레이아웃 후보 확인 → 찾은 npm CLI 진입점을 `process
 **남은 것**: 사람의 실사용 검증(위 3건에 통합) 전까지 "완전히 검증됐다"고 단정하지 않는다. 이 기능
 자체는 Next.js 앱 대상 로컬 fix 모드 한정이며, `/seo-audit`(Phase 1 라이브 URL 분석 전용 경로)는
 전혀 건드리지 않았다 — 그쪽은 이미 있던 `loadAiCrawlerAccess`(리포트 전용, fixer 없음) 그대로다.
+
+---
+
+## ✅ Phase 2 "4-B" PSI(PageSpeed Insights) field 데이터 실연동 완료(2026-08-19)
+
+`HUMAN_ACTION_CHECKLIST.md` "4-B"가 명시한 Phase 2 마지막 잔여 항목 중, 속성 소유권이 필요 없는
+PSI부터 착수했다(문서 자신의 권고 그대로). 이걸로 **PRD가 정의한 Phase 2 기능 스코프(4-A+4-B)는
+코드 기준으로 전부 구현 완료**됐다 — 남은 건 전부 사람만 할 수 있는 검증뿐이다.
+
+**실연동 전 설계를 다시 판단한 근거(중요 — 최초 제안과 실제 구현이 달라진 지점)**: 처음엔 `Integration`
+DB 엔티티의 `auth_method` CHECK 제약(`'service_account'`만 허용)을 넓히는 마이그레이션이 필요하다고
+판단했으나, 실제로 코드를 짜면서 재검토한 결과 **그 판단 자체가 틀렸다는 걸 발견**했다: PSI는 프로젝트별
+소유권·서비스계정이 필요 없는 공개 API라(`HUMAN_ACTION_CHECKLIST.md` 4-B 표 — "속성 소유권 불필요")애초에
+`Integration` 엔티티(프로젝트 종속·`property_scope`로 소유권 강제)에 안 맞는다. `github/token.ts`의
+"env-only 바로 읽기" 패턴을 그대로 따르는 게 정확한 설계였다 — DB 스키마는 전혀 건드리지 않았다.
+(GSC/GA4는 실제 서비스계정+속성 소유권이 필요해 `Integration` 엔티티가 여전히 맞는 설계로 남는다 —
+이번 세션에서 손대지 않음, 사람의 인증 준비가 먼저 필요.)
+
+**API 계약 검증(실제 키 없이 최대한 확보 가능한 근거)**: Google 공식 문서(`developers.google.com`
+`v5/about`·`release_notes`)를 직접 fetch해 `loadingExperience` 필드가 폐기되지 않았음을 재확인했다
+— 도중에 "2025-10-18부로 PageSpeed에서 web vitals 제거"라는 검색 결과가 나와 즉시 작업을 멈추고
+원본을 대조했으나, Google 공식 페이지(현재 라이브) 어디에도 그런 폐기 공지가 없어 오검색/다른 제품
+("CrUX Dashboard", 별개 Looker Studio 템플릿)과의 혼동으로 결론짓고 재개했다 — 사실 확인 없이
+밀어붙이지도, 근거 없는 공포에 계획을 버리지도 않은 사례로 기록. `CUMULATIVE_LAYOUT_SHIFT_SCORE`의
+`percentile`이 CLS×100 정수임은 공식 문서 예시(percentile 20 + category "AVERAGE" = 실제 CLS
+0.20과 등급이 일치)로 교차 확인했으나 **실제 키로 최종 재검증은 못 했다** — 아래 "남은 것" 참고.
+
+**구현 범위**:
+- `integrations/psi-token.ts`(신규) — `PAGESPEED_API_KEY` env-only 로딩. `github/token.ts`와
+  달리 선택 기능이라 없으면 예외 대신 null.
+- `integrations/psi-client.ts`(신규) — Google PSI v5 실제 HTTP 클라이언트. `crawler/fetch-client.ts`의
+  기존 `safeFetch` 재사용(SSRF·타임아웃·크기제한 이미 검증된 코드 그대로). API 키가 에러 메시지에
+  노출되지 않도록 마스킹(M4). fetcher는 `crawler/sitemap.ts`의 `SitemapFetcher`와 동일한 DI
+  패턴으로 주입 가능 — 실제 Google 서버 호출(수십 초, 비결정적)은 CI에 부적합하다는 이 저장소의
+  기존 판단과 일관되게, 테스트는 canned 응답만 쓰고 실제 네트워크를 타지 않는다.
+- `orchestrator/audit-orchestrator.ts` — CWV(Lighthouse)와 동일한 샘플링 정책(진입 페이지에서만)으로
+  연결. `PAGESPEED_API_KEY` 미설정(대다수 사용자) 또는 호출 실패 시 조용히 건너뛰고 나머지 audit은
+  100% 기존과 동일하게 진행(선택 기능이 필수 흐름을 막지 않음).
+- `report/types.ts`·`report/markdown.ts`·`report/json.ts` — field 데이터 섹션을 lab(CWV)과 나란히,
+  각각 다른 라벨("field 데이터입니다 — lab 값과 다를 수 있습니다")로 명확히 구분해 노출(01_PRD
+  성공기준 "field 데이터가 리포트에 결합됨" + "lab≠field 명시" 둘 다 충족).
+- `integrations/field-data-merger.ts`의 `FieldDataSection` 타입을 `report/types.ts`로 이동(report↔
+  integrations 순환 타입 참조 방지) — 로직은 전혀 안 바꿨고 타입 위치만 옮김, 기존 5개 테스트 전부
+  그대로 통과 확인.
+
+**검증(전부 실제 실행, 목업 아님 — 단 실제 Google API 키 호출은 못 함, 아래 명시)**:
+- 신규 단위 테스트 15개(`psi-token.test.ts` 3개, `psi-client.test.ts` 9개, 나머지는 기존 파일에
+  자연히 포함) — CLS 스케일링·부분 metrics·CrUX 데이터 없음(null, 에러 아님)·비200 응답·네트워크
+  예외·JSON 파싱 실패·API 키 마스킹·URL 인코딩 전부 canned 응답으로 검증.
+- `npx tsc --noEmit`·`npm run build`·`npm run audit`(0건) 전부 통과.
+- 전체 스위트 재실행: **65개 파일 전부 통과**(기존 443 + 신규 12), 회귀 0건.
+- `npm run package:plugin`으로 배포 번들 재생성 완료.
+
+**남은 것(정직하게 명시)**:
+1. **실제 `PAGESPEED_API_KEY`로 진짜 Google 서버 호출을 아직 한 번도 안 해봤다** — 이건 계정·키가
+   있어야만 가능해 사람 전용이다(`HUMAN_ACTION_CHECKLIST.md` 4-B "PSI부터 부분 착수 가능"의 나머지 반쪽).
+   특히 `CUMULATIVE_LAYOUT_SHIFT_SCORE` ÷100 스케일링은 문서 근거로만 확인했고 실제 응답으로 재검증
+   전이다 — 만약 틀렸다면 CLS 수치만 영향받고(다른 필드·audit 나머지는 무관) 고치기 쉬운 국소 버그다.
+2. GA4/GSC는 이번 스코프에서 완전히 제외 — 사람의 서비스계정 발급·속성 접근권한 부여가 먼저 필요.

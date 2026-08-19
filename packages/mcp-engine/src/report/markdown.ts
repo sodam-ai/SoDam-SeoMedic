@@ -53,6 +53,19 @@ export function buildMarkdownReport(input: AuditReportInput): string {
       lines.push("");
     }
 
+    if (page.fieldData) {
+      lines.push("### Core Web Vitals (field — 실사용자 CrUX 데이터)");
+      lines.push("");
+      lines.push(`> ${page.fieldData.note}`);
+      lines.push("");
+      lines.push(`| 지표 | 값 |`);
+      lines.push(`|---|---|`);
+      lines.push(`| LCP | ${page.fieldData.lcpMs != null ? Math.round(page.fieldData.lcpMs) + "ms" : "데이터 없음"} |`);
+      lines.push(`| CLS | ${page.fieldData.clsUnitless != null ? page.fieldData.clsUnitless.toFixed(3) : "데이터 없음"} |`);
+      lines.push(`| INP | ${page.fieldData.inpMs != null ? Math.round(page.fieldData.inpMs) + "ms" : "데이터 없음"} |`);
+      lines.push("");
+    }
+
     const sorted = sortByImpact(page.violations);
     if (sorted.length === 0) {
       lines.push("위반 사항 없음.");

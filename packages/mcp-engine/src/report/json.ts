@@ -24,6 +24,15 @@ const PageSchema = z.object({
       note: z.string(),
     })
     .nullable(),
+  fieldData: z
+    .object({
+      lcpMs: z.number().nullable(),
+      clsUnitless: z.number().nullable(),
+      inpMs: z.number().nullable(),
+      isFieldData: z.literal(true),
+      note: z.string(),
+    })
+    .nullable(),
 });
 
 export const JsonReportSchema = z.object({
@@ -77,6 +86,15 @@ export function buildJsonReport(input: AuditReportInput): JsonReport {
             inpProxyTbtMs: page.cwv.inpProxyTbtMs,
             isLabData: true as const,
             note: CWV_NOTE,
+          }
+        : null,
+      fieldData: page.fieldData
+        ? {
+            lcpMs: page.fieldData.lcpMs,
+            clsUnitless: page.fieldData.clsUnitless,
+            inpMs: page.fieldData.inpMs,
+            isFieldData: true as const,
+            note: page.fieldData.note,
           }
         : null,
     })),

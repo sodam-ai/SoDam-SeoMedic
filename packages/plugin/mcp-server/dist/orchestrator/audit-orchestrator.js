@@ -5,6 +5,9 @@ import { launchGuardedBrowser, renderAndExtractSignals } from "../render/browser
 import { extractSignalsFromHtml } from "../render/dom-signals.js";
 import { evaluateAllRules } from "../rules/registry.js";
 import { measureCoreWebVitals } from "../cwv/lighthouse-runner.js";
+import { getPsiApiKey } from "../integrations/psi-token.js";
+import { createPsiClient } from "../integrations/psi-client.js";
+import { mergeFieldData } from "../integrations/field-data-merger.js";
 import { openSeomedicDb } from "../db/connection.js";
 import { findOrCreateProject } from "../db/repositories/project.js";
 import { startAuditRun, finishAuditRun, findAuditRunById } from "../db/repositories/audit-run.js";
@@ -33,6 +36,10 @@ export async function runAudit(options) {
     const browser = await launchGuardedBrowser();
     const pageReportInputs = [];
     const allViolations = [];
+    // PSI(PageSpeed Insights) field(CrUX) 데이터는 선택 기능이다 — PAGESPEED_API_KEY가 없으면(대다수
+    // 사용자) 조용히 건너뛰고 나머지 audit은 정상 진행한다(psi-token.ts가 예외 대신 null을 반환하는 이유).
+    const psiApiKey = getPsiApiKey();
+    const psiClient = psiApiKey ? createPsiClient(psiApiKey) : null;
     // AI 크롤러(GPTBot 등) 정책은 사이트 전역 판정이라 페이지 단위 RuleContext로 표현할 수 없다
     // (fix-orchestrator/plan.ts의 sitemap 완전성 검사와 동일한 이유). robots.txt를 "가상의 페이지"로
     // 취급해 리포트에 노출한다 — 실제로 HTTP 요청해 받은 진짜 상태 코드(200/404)를 그대로 쓴다.
@@ -68,6 +75,17 @@ export async function runAudit(options) {
                     // CWV 측정 실패해도 나머지 규칙 검사 결과는 유효하다
                 }
             }
+            // CWV(Lighthouse)와 동일한 샘플링 정책(진입 페이지만) — PSI도 서버사이드 계산 때문에 느리고
+            // (수십초) 요청 제한이 있어, 사이트모드(최대 200페이지) 전부에 걸면 비현실적이다.
+            let fieldData = null;
+            if (page.depth === 0 && psiClient) {
+                try {
+                    fieldData = await psiClient.fetchFieldData(page.finalUrl);
+                }
+                catch {
+                    // PSI 실패(키 무효·요청 제한 등)해도 나머지 audit은 유효하다 — 선택 기능
+                }
+            }
             const ctx = {
                 pageUrl: page.url,
                 statusCode: page.statusCode,
@@ -89,7 +107,7 @@ export async function runAudit(options) {
                 inpProxyTbtMs: cwv?.inpProxyTbtMs ?? null,
                 clsUnitless: cwv?.clsUnitless ?? null,
             });
-            pageReportInputs.push({ url: page.url, statusCode: page.statusCode, violations, cwv });
+            pageReportInputs.push(mergeFieldData({ url: page.url, statusCode: page.statusCode, violations, cwv }, fieldData));
         }
     }
     finally {

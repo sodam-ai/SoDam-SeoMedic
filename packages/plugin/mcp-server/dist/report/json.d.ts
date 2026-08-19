@@ -36,6 +36,13 @@ export declare const JsonReportSchema: z.ZodObject<{
             isLabData: z.ZodLiteral<true>;
             note: z.ZodString;
         }, z.core.$strip>>;
+        fieldData: z.ZodNullable<z.ZodObject<{
+            lcpMs: z.ZodNullable<z.ZodNumber>;
+            clsUnitless: z.ZodNullable<z.ZodNumber>;
+            inpMs: z.ZodNullable<z.ZodNumber>;
+            isFieldData: z.ZodLiteral<true>;
+            note: z.ZodString;
+        }, z.core.$strip>>;
     }, z.core.$strip>>;
 }, z.core.$strip>;
 export type JsonReport = z.infer<typeof JsonReportSchema>;

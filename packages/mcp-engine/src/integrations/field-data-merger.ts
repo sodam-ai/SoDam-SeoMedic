@@ -1,4 +1,4 @@
-import type { PageReportInput } from "../report/types.js";
+import type { PageReportInput, FieldDataSection } from "../report/types.js";
 import type { PsiFieldData } from "./types.js";
 
 /**
@@ -12,26 +12,18 @@ import type { PsiFieldData } from "./types.js";
  * fieldData가 null/undefined(CrUX 데이터 부족 등으로 조회 실패)면 원본 page를 그대로 반환한다 —
  * 빈 섹션을 억지로 만들지 않는다(fail-closed). 기존 필드는 절대 덮어쓰지 않는다는 점에서
  * canonical-fixer.ts의 "확실하지 않으면 아무것도 바꾸지 않는다" 원칙과 같은 방향이다.
+ *
+ * FieldDataSection은 report/types.ts로 옮겨졌다(PageReportInput 자신이 그 타입을 참조해야 해서 —
+ * 위 파일 상단 주석 참고). 반환 타입은 이제 별도 PageReportWithFieldData가 아니라 PageReportInput
+ * 자체다(fieldData가 이미 그 인터페이스의 선택 필드이므로 별도 확장 타입이 더 이상 필요 없음).
  */
-export interface FieldDataSection {
-  lcpMs: number | null;
-  clsUnitless: number | null;
-  inpMs: number | null;
-  isFieldData: true;
-  note: string;
-}
-
-export interface PageReportWithFieldData extends PageReportInput {
-  fieldData?: FieldDataSection;
-}
-
 const FIELD_DATA_NOTE =
   "field 데이터(CrUX, 실사용자 측정치)입니다 — 위 lab 값과 다를 수 있습니다(Google 검색 랭킹에는 field 데이터가 쓰입니다).";
 
 export function mergeFieldData(
   page: PageReportInput,
   fieldData: PsiFieldData | null | undefined,
-): PageReportWithFieldData {
+): PageReportInput {
   if (!fieldData) return { ...page };
 
   return {
