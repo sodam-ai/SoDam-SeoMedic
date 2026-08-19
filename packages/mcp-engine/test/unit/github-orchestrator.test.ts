@@ -61,6 +61,31 @@ function makeFakeUpstreamRepo(): string {
   return tempDir;
 }
 
+/**
+ * 2026-08-20 재검토(gated 항목이 PR에 반영되도록 바뀐 뒤) — "gated 문제 2개 이상이 같은 페이지·같은
+ * 파일에 동시에 있는" 실무에서 흔한 시나리오를 검증하기 위한 전용 픽스처. 홈페이지 하나에 canonical
+ * 누락(R-CANONICAL-MISSING)·noindex(R-NOINDEX-DETECTED)·OG 누락(R-OG-BASIC-MISSING) 3개를 동시에
+ * 심는다 — title은 있어서 OG가 복사할 값이 있고, alternates.canonical은 없고, robots.index는 false.
+ * sitemap.ts는 원본 그대로("/") 둬서 R-SITEMAP-MISSING-URL은 섞이지 않게 한다(홈페이지만 크롤되므로).
+ */
+function makeFakeUpstreamRepoWithStackedGatedFindings(): string {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "seomedic-gh-orch-stacked-gated-"));
+  cleanupDirs.push(tempDir);
+
+  fs.cpSync(FIXTURE_ROOT, tempDir, { recursive: true, filter: (src) => !src.includes(`${path.sep}.next`) });
+  fs.writeFileSync(path.join(tempDir, ".gitignore"), "node_modules/\n.next/\n.seomedic/\n");
+
+  fs.writeFileSync(
+    path.join(tempDir, "app", "page.tsx"),
+    `export const metadata = {\n  title: "SeoMedic 테스트 픽스처",\n  robots: {\n    index: false,\n  },\n};\n\nexport default function HomePage() {\n  return (\n    <div>\n      <h1>SeoMedic 테스트 픽스처</h1>\n    </div>\n  );\n}\n`,
+  );
+
+  git(tempDir, ["init", "-q"]);
+  git(tempDir, ["add", "-A"]);
+  git(tempDir, ["-c", "user.email=t@t.com", "-c", "user.name=t", "commit", "-q", "-m", "initial"]);
+  return tempDir;
+}
+
 const DEFAULT_META: RepoMeta = {
   isArchived: false,
   isDisabled: false,
@@ -131,6 +156,41 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
     });
     expect(branchContent).toContain("GPTBot");
     expect(branchContent).toContain('userAgent: "*", allow: "/"');
+  }, 600_000);
+
+  it("gated 문제 여러 개가 같은 페이지·같은 파일에 겹쳐도 전부 안전하게 하나의 PR로 합쳐진다(순차 적용 충돌 없음 실증)", async () => {
+    process.env.SEOMEDIC_GITHUB_TOKEN = "fake-token-for-askpass-plumbing-only";
+    const upstreamPath = makeFakeUpstreamRepoWithStackedGatedFindings();
+    const client = makeFakeClient(upstreamPath);
+
+    const result = await runGithubFix(client, REPO_REF);
+
+    // app/robots.ts가 없는 기본 픽스처 그대로라 R-AI-CRAWLER-POLICY(별도 파일)까지 포함해 gated 4종이
+    // 동시에 발생한다 — "같은 파일 3개 + 다른 파일 1개"가 한 PR로 묶이는 더 어려운 조합까지 검증.
+    expect(result.autoFixes).toHaveLength(0); // sitemap 갭 없음(홈페이지만 있고 sitemap.ts에 "/" 이미 존재)
+    const gatedRuleIds = result.gatedFixes.map((f) => f.finding.rule_id).sort();
+    expect(gatedRuleIds).toEqual(["R-AI-CRAWLER-POLICY", "R-CANONICAL-MISSING", "R-NOINDEX-DETECTED", "R-OG-BASIC-MISSING"].sort());
+
+    expect(result.applied).toHaveLength(4);
+    expect(result.applied.every((a) => a.outcome === "applied")).toBe(true);
+    expect(result.pr).not.toBeNull();
+
+    const branchName = execFileSync("git", ["for-each-ref", "--format=%(refname:short)", "refs/heads/seomedic/"], {
+      cwd: upstreamPath,
+      encoding: "utf-8",
+    }).trim();
+    expect(branchName).not.toBe("");
+
+    // page.tsx 하나에 3개 fixer가 순서대로 파일을 다시 읽고 다시 쓰는데, 서로의 변경을 지우지 않고
+    // 전부 누적 반영됐는지 실제 git 브랜치 내용으로 직접 확인한다(추측 금지 — 반환값만 믿지 않음).
+    const pageContent = execFileSync("git", ["show", `${branchName}:app/page.tsx`], { cwd: upstreamPath, encoding: "utf-8" });
+    expect(pageContent).toContain('title: "SeoMedic 테스트 픽스처"'); // 원래 있던 값 보존
+    expect(pageContent).toContain("alternates: { canonical: \"/\" }"); // canonical 추가됨
+    expect(pageContent).toContain("index: true"); // noindex 교정됨(false→true)
+    expect(pageContent).toContain('openGraph: { title: "SeoMedic 테스트 픽스처" }'); // OG 추가됨
+
+    const robotsContent = execFileSync("git", ["show", `${branchName}:app/robots.ts`], { cwd: upstreamPath, encoding: "utf-8" });
+    expect(robotsContent).toContain("GPTBot"); // 다른 파일(robots.ts) 신규 생성도 같은 PR에 함께 반영됨
   }, 600_000);
 
   it("policy가 차단하면(archived) sandbox clone까지 가지 않고 즉시 실패한다", async () => {
