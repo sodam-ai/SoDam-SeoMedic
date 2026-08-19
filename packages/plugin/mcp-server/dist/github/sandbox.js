@@ -10,6 +10,14 @@ const DEFAULT_CLONE_TIMEOUT_MS = 5 * 60_000;
 const ORPHAN_MAX_AGE_MS = 60 * 60_000; // 1시간 넘은 sandbox 잔해만 GC 대상(현재 실행 중인 것과 혼동 방지)
 const activeSandboxes = new Set();
 let exitHandlerRegistered = false;
+/**
+ * Windows에서 방금 종료한 자식 프로세스(next build/npm install 등)가 파일 핸들을 완전히 놓기 전에
+ * rmdir을 시도하면 `EBUSY: resource busy or locked`로 실패한다(실제로 CI windows-latest에서 재현된
+ * 문제 — gated fixer가 여러 개로 늘어나 sandbox 하나에서 next build를 여러 번 도는 시나리오가 생기며
+ * 처음 드러났다). Node 공식 문서가 바로 이 문제를 위해 제공하는 재시도 옵션을 그대로 쓴다(직접
+ * 재시도 루프를 짜지 않음 — 이미 검증된 표준 메커니즘).
+ */
+const RM_RETRY_OPTIONS = { recursive: true, force: true, maxRetries: 5, retryDelay: 300 };
 function registerExitCleanup() {
     if (exitHandlerRegistered)
         return;
@@ -17,7 +25,7 @@ function registerExitCleanup() {
     const cleanupAll = () => {
         for (const dir of activeSandboxes) {
             try {
-                fs.rmSync(dir, { recursive: true, force: true });
+                fs.rmSync(dir, RM_RETRY_OPTIONS);
             }
             catch {
                 // 프로세스 종료 경로라 실패해도 할 수 있는 게 없음 — 다음 기동 시 GC가 정리
@@ -56,7 +64,7 @@ export function gcOrphanedSandboxes() {
         try {
             const stat = fs.statSync(fullPath);
             if (now - stat.mtimeMs > ORPHAN_MAX_AGE_MS) {
-                fs.rmSync(fullPath, { recursive: true, force: true });
+                fs.rmSync(fullPath, RM_RETRY_OPTIONS);
             }
         }
         catch {
@@ -82,7 +90,9 @@ export async function createSandboxClone(opts) {
     activeSandboxes.add(tempDir);
     const cleanup = async () => {
         activeSandboxes.delete(tempDir);
-        fs.rmSync(tempDir, { recursive: true, force: true });
+        // 여긴 이미 async 컨텍스트라 동기 rmSync 대신 fs.promises.rm을 쓴다 — 재시도 대기(최대 5회×300ms)가
+        // 이벤트 루프를 막지 않는다(sync 버전은 재시도 사이 정말로 블로킹된다).
+        await fs.promises.rm(tempDir, RM_RETRY_OPTIONS);
     };
     try {
         await runGitCommand(["clone", "--depth", "1", opts.cloneUrl, tempDir], os.tmpdir(), opts.cloneTimeoutMs ?? DEFAULT_CLONE_TIMEOUT_MS, opts.env);

@@ -1377,3 +1377,36 @@ bucket의 clone에도 원본 저장소에 실재하는 add_safe 문제(sitemap �
 위 설명 참고) — 병렬화는 렌더 브릿지 동시실행 안전성 검증 후 별도 과제. title/meta 자동생성(대화
 승인형)은 다음 순서로 확정됐으나 이번 라운드에서 미착수. PRD 최우선 성공기준인 "실사용 재검증"도
 여전히 미해결.
+
+---
+
+## ✅ CI가 실제로 잡아낸 Windows 실결함 — sandbox 정리 EBUSY 레이스 수정(2026-08-20)
+
+바로 위 커밋(위험도별 PR 분리)을 push한 뒤 CI를 지켜보던 중, **직전 커밋(스트레스 테스트 추가)의
+CI가 windows-latest에서 4개 테스트 실패**로 끝난 것을 발견했다. 로컬(3-OS 전부 포함해 이번 세션
+내내 반복 실행)에서는 단 한 번도 재현되지 않았던 문제라, 추측하지 않고 실패 로그를 GitHub API로
+직접 받아 원인을 확인했다.
+
+**원인(로그로 직접 확인, 추측 아님)**: `Error: EBUSY: resource busy or locked, rmdir
+'...seomedic-github-sandbox-...'` — `github/sandbox.ts`의 `cleanup()`이 `fs.rmSync(tempDir,
+{recursive:true, force:true})`로 sandbox 임시폴더를 지우는데, Windows에서는 방금 종료한 자식
+프로세스(`next build` 등)가 파일 핸들을 완전히 놓기 전에 rmdir을 시도하면 이 오류가 난다 — 잘 알려진
+Windows/Node 레이스 컨디션이다. gated fixer가 여러 개로 늘면 sandbox 하나에서 `next build`를 여러
+번 도는 시나리오가 생겨(스트레스 테스트가 정확히 이 조건), 처음으로 CI 로그에 실제로 드러났다.
+4번째 실패("policy가 차단하면" 테스트가 30초 타임아웃)는 별도 버그가 아니라, 앞선 3개 실패로 러너가
+느려진 부수효과로 판단(정책 검사만 하고 끝나는 이 테스트가 원래 실패할 이유가 없는 로직이라서).
+
+**⚠️ 정직하게 명시**: 이 문제는 간헐적(flaky)이다 — 바로 다음 커밋(위험도별 PR 분리, sandbox 접근이
+오히려 2배로 늘었음)의 CI는 수정 없이도 3-OS 전부 통과했다. 재현이 안 됐다고 "문제 없음"으로
+넘기지 않고, 실패 로그로 원인이 명확한 이상 수정을 진행했다 — 간헐적 실패도 실제 버그다.
+
+**수정**: `fs.rmSync`/`fs.promises.rm` 호출에 Node 공식 문서가 이 정확한 문제(Windows에서 백신 등
+보안 소프트웨어가 파일을 일시적으로 잠글 수 있음)를 위해 제공하는 `maxRetries: 5, retryDelay: 300`
+옵션을 추가했다(직접 재시도 루프를 짜지 않고 이미 검증된 표준 메커니즘 사용). 프로덕션 `cleanup()`은
+이미 async 컨텍스트라 `fs.promises.rm`으로 바꿔 재시도 대기가 이벤트 루프를 막지 않게 했다. GC/종료
+핸들러의 나머지 두 곳(`gcOrphanedSandboxes`, 프로세스 종료 시그널 핸들러)도 동일하게 반영.
+
+**검증**: `github-sandbox.test.ts`·`github-orchestrator.test.ts` 재실행(10개 테스트 통과) + 전체
+스위트 재실행 **67개 파일 475개 테스트 전부 통과**(회귀 0). typecheck 0에러. 로컬에서 EBUSY 자체를
+재현하지 못해(Windows CI 러너와 로컬 환경의 타이밍 차이로 추정) 이 수정이 실제로 간헐적 실패를
+없애는지는 **다음 CI 실행들에서 계속 지켜봐야 확인 가능** — 근거 없이 "완전히 고쳤다"고 단정하지 않는다.
