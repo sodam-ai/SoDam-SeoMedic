@@ -110,4 +110,46 @@ describe("createPsiClient — Google PSI v5 응답 파싱(canned 응답, 실제 
     expect(capturedUrl).toContain(encodeURIComponent("https://example.com/some page?x=1"));
     expect(capturedUrl).toContain(`key=${TEST_API_KEY}`);
   });
+
+  it("URL-비안전 문자가 포함된 API 키도 마스킹된다(퍼센트인코딩된 형태로 에러 메시지에 남는 경우까지)", async () => {
+    const unsafeKey = "key with space+plus";
+    const throwingFetcher: PsiFetcher = async (url) => {
+      // safeFetch가 실패 시 자신이 실제로 요청한(퍼센트인코딩된) URL을 에러 메시지에 그대로 담는
+      // 상황을 재현한다 — encodeURIComponent(unsafeKey)가 원본 키와 다른 문자열이 되므로, 원본 키만
+      // split하는 마스킹은 이 경우를 놓칠 수 있다.
+      throw new Error(`network error requesting ${url}`);
+    };
+    const client = createPsiClient(unsafeKey, throwingFetcher);
+    try {
+      await client.fetchFieldData(TEST_URL);
+      expect.fail("에러가 던져지지 않음");
+    } catch (err) {
+      const message = (err as Error).message;
+      expect(message).not.toContain(unsafeKey);
+      expect(message).not.toContain(encodeURIComponent(unsafeKey));
+    }
+  });
+
+  it("percentile이 숫자가 아닌 타입(문자열 등)으로 오면 신뢰하지 않고 null로 처리한다(M5 입력 불신 검증)", async () => {
+    const client = createPsiClient(
+      TEST_API_KEY,
+      fakeFetcher({
+        status: 200,
+        body: {
+          loadingExperience: {
+            metrics: {
+              LARGEST_CONTENTFUL_PAINT_MS: { percentile: "2353" }, // API가 깨진 응답을 주는 상황 시뮬레이션
+              CUMULATIVE_LAYOUT_SHIFT_SCORE: { percentile: null },
+              INTERACTION_TO_NEXT_PAINT: { percentile: undefined },
+            },
+          },
+        },
+      }),
+    );
+
+    const result = await client.fetchFieldData(TEST_URL);
+    expect(result?.lcpMs).toBeNull();
+    expect(result?.clsUnitless).toBeNull();
+    expect(result?.inpMs).toBeNull();
+  });
 });
