@@ -204,7 +204,13 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
     });
 
     await expect(runGithubFix(client, REPO_REF)).rejects.toThrow(GithubFixBlockedError);
-  }, 30_000);
+  }, 120_000); // 2026-08-20 Windows CI 실측 실패로 30_000→120_000 상향: 이 테스트 자체는 실제 네트워크
+  // 호출 없이(makeFakeUpstreamRepo가 로컬 git만 씀) 즉시 실패해야 정상이지만, 같은 파일의 다른 무거운
+  // 테스트(각 500~900초)가 먼저 돌며 Windows CI 러너 자원을 다 써버린 뒤라 이 테스트 차례에 로컬 git
+  // 서브프로세스(makeFakeUpstreamRepo의 init/commit)조차 30초를 넘겨 실패했다(CI 로그로 확인 —
+  // 다른 4개 테스트는 전부 정상 통과, 이 테스트만 정확히 30000ms에서 타임아웃). 실제 로직이 느려진 게
+  // 아니라 CI 자원 경합이 원인이라고 판단해 시간 상한만 넉넉히 늘렸다(다른 무거운 테스트들의 300_000~
+  // 900_000과 비교하면 여전히 훨씬 짧게 유지 — 진짜 행(hang)이 나면 여전히 잡아낸다).
 
   it("safe 브랜치만 이미 열린 PR이 있으면(중복) safe는 건너뛰고 review는 독립적으로 정상 진행된다", async () => {
     process.env.SEOMEDIC_GITHUB_TOKEN = "fake-token";
