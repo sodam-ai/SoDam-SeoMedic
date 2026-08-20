@@ -1840,5 +1840,8 @@ install에도 그대로 쓰이는 프로덕션 상수라, 테스트 파일이 �
 - `npm audit --audit-level=high --workspace=packages/mcp-engine`: 0 vulnerabilities.
 - `claude plugin validate packages/plugin --strict` 통과 · `npm run package:plugin` 재생성 완료.
 - `plugin.json` **0.1.5→0.1.6**(`seomedic_fix_github` 경로에서 실제 도달 가능한 코드 변경).
-- 이 수정을 커밋·push한 뒤 CI를 다시 지켜보고, 이번엔 3-OS 전부 그린인지 실제로 확인할 예정(아래 결과
-  란은 CI 확인 후 갱신).
+- **커밋(`d721402`) push 후 CI 3-OS 전부 실제로 그린 확인 완료**(ubuntu 8m10s·macOS 10m19s·windows
+  27m43s, run `32404334322`) — windows가 이전보다 오래 걸리긴 했지만(늘어난 테스트 수 반영) 이번엔
+  타임아웃 없이 정상 완주했다. 같은 라운드 안에서 서로 다른 CI 전용 타임아웃 문제 2건(policy 30초
+  테스트, npm-install 300초)을 연달아 실측하고 둘 다 고친 뒤에야 3-OS 그린을 확인한 것까지 정직하게
+  기록한다 — "한 번에 안 됐다"를 감추지 않는다.
