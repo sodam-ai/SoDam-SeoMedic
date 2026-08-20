@@ -9,6 +9,7 @@ import { planCanonicalFix, writeCanonicalFix } from "../fixers/canonical-fixer.j
 import { planOgFix, writeOgFix } from "../fixers/og-fixer.js";
 import { planNoindexFix, writeNoindexFix } from "../fixers/noindex-fixer.js";
 import { planRobotsAiPolicyFix, writeRobotsAiPolicyFix } from "../fixers/robots-ai-policy-fixer.js";
+import { planJsonLdWebsiteFix, writeJsonLdWebsiteFix } from "../fixers/jsonld-website-fixer.js";
 import { AI_CRAWLER_POLICY_RULE_ID } from "../crawler/ai-crawler-finding.js";
 import type { SeomedicDb } from "../db/connection.js";
 
@@ -111,6 +112,9 @@ async function applyOneFix(db: SeomedicDb, projectRoot: string, fix: FixWithFind
   }
   if (fix.rule_id === AI_CRAWLER_POLICY_RULE_ID) {
     return applyAiCrawlerPolicyFix(db, projectRoot, fix);
+  }
+  if (fix.rule_id === "R-JSONLD-WEBSITE-MISSING") {
+    return applyJsonLdWebsiteFix(db, projectRoot, fix);
   }
 
   return { fixId: fix.id, targetPath: fix.target_path, outcome: "structure_changed", detail: "적용 로직이 구현되지 않은 rule_id입니다" };
@@ -338,5 +342,50 @@ async function applyAiCrawlerPolicyFix(db: SeomedicDb, projectRoot: string, fix:
     targetPath: fix.target_path,
     outcome: "applied",
     detail: "AI 크롤러 정책 robots.ts 신규 생성 후 build 통과",
+  };
+}
+
+/** applyNoindexFix와 완전히 동일한 스켈레톤(기존 파일 수정, 백업→쓰기→build 재검증→실패시 롤백) —
+ * idempotency_marker에 siteName 문자열을 그대로 담아 재검증 시 그대로 재사용한다. */
+async function applyJsonLdWebsiteFix(db: SeomedicDb, projectRoot: string, fix: FixWithFindingRecord): Promise<AppliedFixOutcome> {
+  const absPath = path.join(projectRoot, fix.target_path!);
+  const siteName = fix.idempotency_marker ?? "";
+
+  // apply 직전 재검증(TOCTOU + 멱등성) — plan 이후 파일 구조가 바뀌었을 수 있다.
+  const recheck = planJsonLdWebsiteFix(absPath, siteName);
+  if (!recheck.applicable) {
+    return { fixId: fix.id, targetPath: fix.target_path, outcome: "structure_changed", detail: recheck.reason };
+  }
+  if (recheck.updatedText === recheck.originalText) {
+    // 이미 반영돼 있음(재실행·수동 반영 등) — 멱등: 실패가 아니라 성공으로 간주
+    markApplied(db, fix.id, new Date().toISOString(), fix.backup_path);
+    updateFindingStatus(db, fix.finding_id, "fixed");
+    return { fixId: fix.id, targetPath: fix.target_path, outcome: "already_applied", detail: "이미 적용되어 있습니다(멱등)" };
+  }
+
+  const backupManifest = backupFiles(projectRoot, [fix.target_path!], `fix-${fix.id}`);
+  const backupPath = backupManifest[0]?.backupPath ?? null;
+
+  writeJsonLdWebsiteFix(absPath, recheck.updatedText!);
+
+  try {
+    await runNextBuildOnly(projectRoot);
+  } catch (err) {
+    await revertViaGitCheckout(projectRoot, [fix.target_path!]);
+    return {
+      fixId: fix.id,
+      targetPath: fix.target_path,
+      outcome: "build_failed",
+      detail: `적용 후 build 실패로 롤백됨: ${(err as Error).message}`,
+    };
+  }
+
+  markApplied(db, fix.id, new Date().toISOString(), backupPath);
+  updateFindingStatus(db, fix.finding_id, "fixed");
+  return {
+    fixId: fix.id,
+    targetPath: fix.target_path,
+    outcome: "applied",
+    detail: "루트 레이아웃에 WebSite JSON-LD 추가 후 build 통과",
   };
 }

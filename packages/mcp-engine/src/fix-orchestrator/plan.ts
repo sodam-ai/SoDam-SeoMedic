@@ -14,6 +14,7 @@ import { planCanonicalFix } from "../fixers/canonical-fixer.js";
 import { planOgFix } from "../fixers/og-fixer.js";
 import { planNoindexFix } from "../fixers/noindex-fixer.js";
 import { planRobotsAiPolicyFix } from "../fixers/robots-ai-policy-fixer.js";
+import { planJsonLdWebsiteFix } from "../fixers/jsonld-website-fixer.js";
 import { AI_CRAWLER_POLICY_RULE_ID, buildAiCrawlerPolicyViolation } from "../crawler/ai-crawler-finding.js";
 import { findPageFilePath } from "./page-file-resolver.js";
 import { scanLocalFix } from "./scan.js";
@@ -34,6 +35,12 @@ const NOINDEX_RULE_ID = "R-NOINDEX-DETECTED";
 // "생성" 대상이라 기존 파일을 찾는 게 아니라 어느 app 디렉터리에 만들지 결정해야 해서 별도로 둔다.
 const ROBOTS_APP_DIR_CANDIDATES = ["app", "src/app"];
 const ROBOTS_LAYOUT_EXTENSIONS = ["tsx", "jsx", "js"];
+const JSONLD_WEBSITE_RULE_ID = "R-JSONLD-WEBSITE-MISSING";
+const JSONLD_WEBSITE_RULE_VERSION = 1;
+// robots.ts와 동일한 후보 목록이지만 대상이 "만들 위치"가 아니라 "이미 있는 layout 파일 자체"라
+// 별도 상수로 둔다(og-fixer.ts가 canonical-fixer.ts 로직을 의도적으로 복제한 것과 같은 이유).
+const ROOT_LAYOUT_DIR_CANDIDATES = ["app", "src/app"];
+const ROOT_LAYOUT_EXTENSIONS = ["tsx", "jsx", "js"];
 
 export class FixPlanBlockedError extends Error {
   constructor(
@@ -156,6 +163,25 @@ export async function planLocalFix(
     });
   }
 
+  // JSON-LD도 sitemap·AI크롤러정책과 같은 "사이트 전체" 개념이다(페이지별 R-JSONLD-MISSING과 다름 —
+  // 그 규칙은 여전히 페이지마다 독립 평가됨, 여기서 건드리지 않는다). 크롤된 200 페이지가 **전부**
+  // R-JSONLD-MISSING이면(즉 어디에도 JSON-LD가 전혀 없으면) 사이트 전체 부재로 보고 fixer 대상
+  // finding을 하나만 만든다. 단 한 페이지라도 이미 JSON-LD가 있으면(수동으로 일부 넣어뒀을 수 있음)
+  // 안전하게 건너뛴다 — 사용자의 기존 의도적 작업과 충돌하지 않기 위한 보수적 트리거.
+  const okPages = scanResult.pages.filter((p) => p.statusCode === 200);
+  const allPagesMissingJsonLd = okPages.length > 0 && okPages.every((p) => p.violations.some((v) => v.ruleId === "R-JSONLD-MISSING"));
+  if (allPagesMissingJsonLd) {
+    allViolations.push({
+      ruleId: JSONLD_WEBSITE_RULE_ID,
+      ruleVersion: JSONLD_WEBSITE_RULE_VERSION,
+      category: "schema",
+      severity: "low", // 기존 R-JSONLD-MISSING과 동일 판단 — 부재는 "결함"이 아니라 "기회"라 낮은 심각도
+      pageUrl: `${LOGICAL_ORIGIN}/`,
+      currentValue: null,
+      recommendedValue: `사이트 전체 페이지 ${okPages.length}개 모두 구조화 데이터(JSON-LD) 없음 — 루트 레이아웃에 기본 WebSite 스키마 추가 권장`,
+    });
+  }
+
   if (scanResult.aiCrawlerAccess) {
     // ai-crawler-finding.ts와 동일하게 origin은 LOGICAL_ORIGIN 고정값을 쓴다 — 실제 로컬 서버 origin은
     // 실행마다 포트가 바뀌어, 그걸 그대로 쓰면 finding_key(hash(page_url+rule_id+rule_version))가 매번
@@ -217,6 +243,13 @@ export async function planLocalFix(
 
     if (finding.rule_id === AI_CRAWLER_POLICY_RULE_ID) {
       const fix = planAiCrawlerPolicyFixForFinding(db, projectRoot, finding, scanResult.aiCrawlerAccess);
+      if (fix) plannedFixes.push({ fix, finding });
+      else reportOnlyFindings.push(finding);
+      continue;
+    }
+
+    if (finding.rule_id === JSONLD_WEBSITE_RULE_ID) {
+      const fix = planJsonLdWebsiteFixForFinding(db, projectRoot, finding, scanResult.pages);
       if (fix) plannedFixes.push({ fix, finding });
       else reportOnlyFindings.push(finding);
       continue;
@@ -444,5 +477,62 @@ function planAiCrawlerPolicyFixForFinding(
     targetPath,
     validation: "승인 후 next build 재검증을 통과해야 적용됩니다(robots.ts 신규 생성)",
     idempotencyMarker: null,
+  });
+}
+
+/** App Router 루트(app/ 또는 src/app/)의 layout 파일 자체를 찾는다(robots.ts처럼 "만들 위치"가 아니라
+ * "이미 있는 파일" — 존재하지 않으면 App Router 프로젝트가 아니라는 뜻이라 애초에 planLocalFix
+ * 시작 단계의 detectNextjs에서 걸러졌을 상황이지만, 방어적으로 null 처리한다). */
+function resolveRootLayoutPath(projectRoot: string): string | null {
+  for (const dir of ROOT_LAYOUT_DIR_CANDIDATES) {
+    for (const ext of ROOT_LAYOUT_EXTENSIONS) {
+      const candidate = path.join(dir, `layout.${ext}`);
+      if (fs.existsSync(path.join(projectRoot, candidate))) return candidate;
+    }
+  }
+  return null;
+}
+
+/**
+ * siteName은 크롤된 페이지 중 **홈페이지(경로가 정확히 "/")**의 렌더된 title을 그대로 복사한다
+ * (og-fixer.ts와 동일 원칙 — 새로 계산·창작하지 않음). 홈페이지를 못 찾으면(사이트모드가 아니라
+ * 단일 페이지만 스캔했는데 그 페이지가 "/"가 아닌 경우 등) 첫 번째 크롤 페이지로 폴백한다 — 어느
+ * 쪽이든 "실제로 렌더된 값"이라는 성질은 동일하게 유지된다.
+ */
+function planJsonLdWebsiteFixForFinding(
+  db: SeomedicDb,
+  projectRoot: string,
+  finding: FindingRecord,
+  pages: ScannedPage[],
+): FixRecord | null {
+  const targetPath = resolveRootLayoutPath(projectRoot);
+  if (!targetPath) return null; // App Router 루트를 못 찾음 — report_only
+
+  const homePage = pages.find((p) => {
+    try {
+      return new URL(p.logicalUrl).pathname === "/";
+    } catch {
+      return false;
+    }
+  });
+  const entryPage = homePage ?? pages[0];
+  if (!entryPage) return null; // 크롤된 페이지 자체가 없음(있을 수 없는 방어적 상황) — report_only
+
+  const siteName = entryPage.renderedTitle;
+  if (!siteName) return null; // 복사할 값이 없음 — report_only(값 발명 금지, og-fixer.ts와 동일 원칙)
+
+  const absPath = path.join(projectRoot, targetPath);
+  const plan = planJsonLdWebsiteFix(absPath, siteName);
+  if (!plan.applicable || plan.updatedText === plan.originalText) return null;
+
+  return insertFix(db, {
+    findingId: finding.id,
+    fixType: "file_edit",
+    riskLevel: "gated",
+    approvalStatus: "pending",
+    dryRunDiff: `파일: ${targetPath}\n+ WebSite JSON-LD(name: ${JSON.stringify(siteName)})`,
+    targetPath,
+    validation: "승인 후 next build 재검증을 통과해야 적용됩니다(루트 레이아웃에 WebSite JSON-LD 추가)",
+    idempotencyMarker: siteName,
   });
 }

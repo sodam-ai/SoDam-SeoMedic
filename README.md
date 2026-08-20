@@ -270,7 +270,19 @@ JSON-LD(구조화 데이터)에 적어놓은 상품 이름이 실제로 그 페�
 이 프로젝트 역사상 처음으로 실사용자가 격리 테스트 환경이 아닌 **진짜 설치 경로**(`/plugin marketplace add` → `/plugin install`)로 검증하다가, SEO 진단 명령어가 세션에 전혀 로드되지 않는 문제를 발견했습니다. 원인 두 가지를 모두 코드 대조로 확인했습니다: (1) 플러그인 버전 번호가 저장소 역사상 한 번도 갱신되지 않아 설치 캐시가 예전 내용을 계속 서빙하고 있었음, (2) 소스 코드는 고쳐도 실제 배포 파일(번들)에 반영하는 재생성 단계가 수동이라 최근 수정 2건이 배포 파일에 빠져 있었음. 두 원인 모두 수정을 완료해 검토 대기 중(Pull Request)이며, 아직 이 저장소의 기본 브랜치에 병합되지는 않았습니다. 자세한 진행 상황은 `CHECKPOINT.md`의 "M9 이후 재발견" 항목을 참고하세요.
 </details>
 
-**앞으로 계획된 것(아직 시작 안 함)**: Google Search Console/Analytics **실연동**(Phase 2 — 현재는 인터페이스 골격과 가짜 클라이언트만 있으며 실제 계정 연동은 안 돼 있습니다, 사용자의 실제 Google 서비스계정 자격증명이 있어야 착수 가능), 네이버·Bing 지원(Phase 3). 이 문서는 실제로 구현·검증된 것만 다루며, 계획 단계 기능을 이미 되는 것처럼 설명하지 않습니다.
+<details>
+<summary><strong>✅ Phase 2 — Google Search Console·Analytics 4·PageSpeed Insights 실연동 (완료)</strong></summary>
+
+Google 서비스계정으로 실제 검색 성과(클릭수·노출수·평균 게재순위)와 방문자 통계(세션수·활성 사용자수), 실사용자 체감 속도 데이터(field CWV)를 가져와 리포트에 결합합니다. 셋 다 **선택 기능**이라 관련 환경변수를 설정하지 않으면 나머지 진단은 평소대로 진행됩니다(아래 "환경변수" 표 참고). PageSpeed Insights는 API 키 하나만 있으면 되고, Search Console·Analytics 4는 Google 서비스계정 발급이 먼저 필요합니다(`HUMAN_ACTION_CHECKLIST.md` 참고). Search Console·Analytics 4는 다른 자동 기능과 다르게 **연동에 실패하면 이유를 리포트에 그대로 보여줍니다** — 설정할 항목이 많아 실패 지점도 많기 때문에, 완전히 조용히 넘어가면 어디가 잘못됐는지 알 방법이 없기 때문입니다.
+</details>
+
+<details>
+<summary><strong>✅ Phase 2 — 구조화 데이터(JSON-LD) 기본 자동 생성 (완료)</strong></summary>
+
+사이트 전체에 구조화 데이터가 하나도 없으면(위 Stage 1 탐지 결과), 루트 레이아웃 파일에 최소한의 WebSite 정보(이미 페이지에 있는 실제 사이트 이름만 사용)를 자동으로 채워 넣도록 제안합니다. 승인이 필요한 변경이며, 새로운 문구를 지어내지 않고 이미 있는 값만 복사합니다(제목·설명 자동 생성은 여전히 하지 않습니다 — 위 Stage 4 설명과 같은 이유).
+</details>
+
+**앞으로 계획된 것(아직 시작 안 함)**: 네이버·Bing 지원(Phase 3). 이 문서는 실제로 구현·검증된 것만 다루며, 계획 단계 기능을 이미 되는 것처럼 설명하지 않습니다.
 
 ## 9. 보안·데이터 흐름
 
@@ -420,8 +432,12 @@ npm run audit   # 고위험 취약점만 점검(npm audit --audit-level=high)
 | 변수명 | 필수 여부 | 용도 |
 |---|---|---|
 | `SEOMEDIC_GITHUB_TOKEN` | 선택(GitHub 저장소 자동 수정 기능을 쓸 때만) | GitHub Personal Access Token. 코드 어디에도 하드코딩되지 않으며, 사용자 컴퓨터의 환경변수로만 읽습니다(5번 항목 참고) |
+| `PAGESPEED_API_KEY` | 선택(PageSpeed Insights 실사용자 속도 데이터를 리포트에 넣고 싶을 때만) | Google Cloud Console에서 발급하는 PageSpeed Insights API 키. 속성 소유권 불필요(공개 API) |
+| `GSC_SERVICE_ACCOUNT_PATH` | 선택(Search Console·Analytics 4 연동을 쓸 때만, 둘이 공용) | Google 서비스계정 JSON 키 파일의 **경로**(파일 내용 자체가 아님). 값이 코드·로그·에러 메시지에 그대로 노출되지 않습니다 |
+| `GSC_PROPERTY_SCOPE` | 선택(Search Console 연동을 쓸 때만) | 조회할 Search Console 속성(예: `sc-domain:example.com` 또는 `https://example.com/`) |
+| `GA4_PROPERTY_ID` | 선택(Analytics 4 연동을 쓸 때만) | GA4 속성 ID(숫자만, `properties/` 접두사 없이) |
 
-이 외의 환경변수는 이 프로젝트 코드에서 사용하지 않습니다(전체 소스 검색으로 확인).
+GSC·GA4는 관련 변수가 전부 있어야 활성화됩니다(하나만 있으면 미설정과 동일하게 취급 — 어중간한 설정이 조용히 잘못 작동하는 일을 막기 위함). 발급 절차는 `HUMAN_ACTION_CHECKLIST.md`를 참고하세요. 이 외의 환경변수는 이 프로젝트 코드에서 사용하지 않습니다(전체 소스 검색으로 확인, 2026-08-20 갱신).
 
 ### 운영 주의사항
 - `packages/plugin/mcp-server/dist/`는 `.gitignore`의 일반 규칙(`dist/` 제외)에서 **예외 처리되어 커밋 대상**입니다 — 실수로 이 예외를 지우면 마켓플레이스 설치가 깨집니다.

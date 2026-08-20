@@ -41,6 +41,16 @@ export const ALL_FIXERS = [
         // 누락돼 있었음(2026-08-19 PRD 재대조로 발견). "색인 통제=gated" 원칙 그대로 적용.
         description: "정적 metadata의 robots.index를 false→true로 교정(noindex 제거) — 값 발명 없음, 항상 승인 필요",
     },
+    {
+        ruleId: "R-JSONLD-WEBSITE-MISSING",
+        riskLevel: "gated",
+        // 03_PHASES.md Phase 2 "JSON-LD 생성·검증" 중 검증(R-JSONLD-MISSING 등)만 있고 생성이 누락돼
+        // 있었음(2026-08-20 PRD 재대조로 발견). robots.ts와 마찬가지로 "존재 자체가 gated 경계" —
+        // 루트 레이아웃에 site-wide JSON-LD가 전혀 없을 때만, 이미 렌더된 실제 title만으로 최소
+        // WebSite 스키마 추가를 제안. url 필드는 넣지 않는다(jsonld-website-fixer.ts 주석 참고 — 실제
+        // 배포 도메인을 알 방법이 없어 넣으면 오히려 잘못된 값 주입이 됨).
+        description: "루트 레이아웃에 site-wide JSON-LD(WebSite)가 전혀 없을 때 최소 스키마 추가를 제안(name만, 이미 렌더된 title 복사) — 항상 승인 필요",
+    },
 ];
 function assertUniqueFixerRuleIds(fixers) {
     const seen = new Set();

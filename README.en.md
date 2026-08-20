@@ -259,7 +259,19 @@ Checks whether the product name declared in a page's JSON-LD structured data act
 For the first time in this project's history, a real user testing via the **actual install path** (`/plugin marketplace add` → `/plugin install`), rather than an isolated test session, discovered that the SEO diagnostic commands never loaded into the session at all. Both root causes were confirmed by direct code comparison: (1) the plugin's version number had never been bumped in the repository's entire history, so the install cache kept serving old content; (2) even after fixing the source code, the manual step required to regenerate the actual deployed bundle had been skipped, so two recent fixes were missing from what gets installed. Both issues have been fixed and are awaiting review (Pull Request), not yet merged into this repository's default branch. See `CHECKPOINT.md` for current status.
 </details>
 
-**Planned, not yet started**: **real** Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet, and this can't start until the user provides real Google service-account credentials); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
+<details>
+<summary><strong>✅ Phase 2 — Real Google Search Console / Analytics 4 / PageSpeed Insights integration (Done)</strong></summary>
+
+Using a Google service account, pulls in real search performance (clicks, impressions, average position), visitor stats (sessions, active users), and real-user perceived speed data (field CWV), and merges them into the report. All three are **opt-in** — if the related environment variables aren't set, the rest of the audit runs exactly as before (see the "Environment variables" table below). PageSpeed Insights only needs an API key; Search Console and Analytics 4 require a Google service account to be issued first (see `HUMAN_ACTION_CHECKLIST.md`). Unlike other automatic features, Search Console/Analytics 4 **show the failure reason directly in the report** if the integration fails — since there are many more ways to misconfigure these than a single API key, staying silent would leave no way to tell what went wrong.
+</details>
+
+<details>
+<summary><strong>✅ Phase 2 — Basic structured-data (JSON-LD) auto-generation (Done)</strong></summary>
+
+When a site has no structured data anywhere (per the Stage 1 detection above), proposes adding a minimal WebSite entry to the root layout file, using only the site name that's already present on the page. This is an approval-required change and never invents new wording — it only copies an already-existing value (title/description auto-generation is still excluded, for the same reason as Stage 4 above).
+</details>
+
+**Planned, not yet started**: Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
 
 ## 9. Security & Data Flow
 
@@ -409,8 +421,12 @@ This project does not publish an npm package or a separate CLI executable (there
 | Variable | Required? | Purpose |
 |---|---|---|
 | `SEOMEDIC_GITHUB_TOKEN` | Optional (only for the GitHub-repository auto-fix feature) | GitHub Personal Access Token. Never hardcoded anywhere in the code — read only from an environment variable on your own computer (see section 5) |
+| `PAGESPEED_API_KEY` | Optional (only if you want PageSpeed Insights real-user speed data in the report) | PageSpeed Insights API key from Google Cloud Console. No property ownership required (public API) |
+| `GSC_SERVICE_ACCOUNT_PATH` | Optional (only for Search Console/Analytics 4 integration, shared by both) | The **path** to a Google service-account JSON key file (not the file contents themselves). The value is never exposed in code, logs, or error messages |
+| `GSC_PROPERTY_SCOPE` | Optional (only for Search Console integration) | The Search Console property to query (e.g. `sc-domain:example.com` or `https://example.com/`) |
+| `GA4_PROPERTY_ID` | Optional (only for Analytics 4 integration) | GA4 property ID (numeric only, no `properties/` prefix) |
 
-No other environment variables are used anywhere in this project's code (confirmed by a full source search).
+GSC and GA4 each activate only when *all* of their related variables are set (a partial setup is treated the same as no setup — this prevents a half-finished configuration from silently misbehaving). See `HUMAN_ACTION_CHECKLIST.md` for the issuance procedure. No other environment variables are used anywhere in this project's code (confirmed by a full source search, updated 2026-08-20).
 
 ### Operational notes
 - `packages/plugin/mcp-server/dist/` is explicitly **exempted** from the general `.gitignore` rule that excludes `dist/` — it must stay committed. Accidentally removing this exception breaks marketplace installs.

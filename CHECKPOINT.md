@@ -1593,3 +1593,92 @@ PSI 때는 client+토큰+orchestrator+report 4곳을 한 라운드에 다 했지
    환경변수 안내에 반영이 필요하다(이번 라운드는 코드만, 문서 갱신은 다음 과제로 남김).
 4. 두 호출이 순차 실행이라(GSC → GA4) 둘 다 설정된 경우 audit 전체 소요시간이 조금 늘어난다 — 각각
    1~3초 내외로 예상되나 실제 계정으로 측정 전이라 확정 아님.
+
+---
+
+## ✅ JSON-LD 생성 fixer(R-JSONLD-WEBSITE-MISSING, 루트 레이아웃 한정) + README 정합성 수정(2026-08-20)
+
+**배경**: PRD 재대조 후 "다음 Phase" 후보를 다시 검토하며, 지난 두 라운드에서 "위험해서 보류"라고만
+말해온 JSON-LD 생성을 이번엔 실제로 ts-morph 프로토타입을 짜서 **되는지 안 되는지 직접 실험**했다.
+
+### 착수 전 실험으로 확인한 것
+- canonical/OG/noindex 등 기존 fixer는 전부 `export const metadata` **객체 리터럴**을 편집하지만,
+  JSON-LD는 Next.js 메타데이터 API에 전용 필드가 없어(공식 문서 확인) 유일한 방법이 **JSX 렌더
+  트리**에 `<script type="application/ld+json">`을 직접 넣는 것뿐이다 — 이 프로젝트에서 JSX를
+  편집하는 첫 사례.
+- ts-morph의 `JsxElement`에는 canonical-fixer.ts가 쓰는 `addPropertyAssignment` 같은 편의 메서드가
+  없다(`insertJsxChild` 같은 것도 존재하지 않음, 실제 확인). 대신 `replaceWithText()`로 여는태그+
+  기존자식+새script+닫는태그를 재구성하는 방식이 안정적으로 동작함을 in-memory 프로토타입으로
+  실측 확인한 뒤에야 착수했다.
+- **범위를 "루트 레이아웃 파일 1곳, `<body>`가 정확히 1개일 때만"으로 좁혔다** — 임의 페이지가
+  아니라 App Router 규칙상 위치가 결정론적인 파일 하나뿐이고, 구조를 확신할 수 없으면(0개·2개 이상)
+  전부 fail-closed로 손대지 않는다.
+
+### 값 발명 금지 원칙 적용(추가로 발견한 함정)
+처음엔 "site name + url" 둘 다 넣을 계획이었으나, 실제로 짜면서 **url 필드는 뺐다** — 이 파이프라인
+어디에도 실제 배포 도메인이 없고(로컬 렌더 브릿지의 placeholder origin뿐), canonical-fixer.ts처럼
+Next.js의 metadataBase 상대경로 해석에 기댈 수도 없다(raw JSON-LD 문자열이라 그런 해석 메커니즘
+자체가 없음). 가짜 placeholder 주소를 사용자의 실제 JSON-LD에 박아 넣는 건 "값 발명"보다 나쁜
+"틀린 값 주입"이라 판단해 뺐다 — schema.org WebSite 타입은 `name`만으로도 유효하다.
+
+### 보안 hook이 잡아낸 실제 위험(무시하지 않고 수정)
+`dangerouslySetInnerHTML` 사용에 보안 경고가 떴다 — 일반적으로는 공식 문서가 권장하는 JSON-LD
+주입의 표준 패턴이라 안전하지만, 이번 경우엔 실제 위험이 있었다: siteName(이미 렌더된 title 복사값)
+자체가 대상 사이트의 기존 취약점으로 오염돼 `</script>`를 포함할 가능성을 배제할 수 없고, 그러면
+`JSON.stringify`의 일반 이스케이프로는 못 막는 HTML 파서 레벨의 조기 태그 종료(script breakout)가
+가능했다. `<`를 `<`로 이스케이프해(유효한 JSON은 유지하면서) 막았다 — 재현 테스트로 검증.
+
+### 사이트 전체 vs 페이지별 — 기존 R-JSONLD-MISSING과의 관계
+R-JSONLD-MISSING(페이지별 탐지, 기존)은 그대로 두고 건드리지 않았다. 대신 sitemap·AI크롤러정책과
+같은 "사이트 전체" 패턴을 따라 **크롤된 200 페이지가 전부 R-JSONLD-MISSING이면**(어디에도 JSON-LD가
+전혀 없으면) 새 rule(`R-JSONLD-WEBSITE-MISSING`)로 finding을 하나만 만든다. 단 한 페이지라도 이미
+JSON-LD가 있으면(수동으로 일부 넣어뒀을 수 있음) 건너뛴다 — 기존 의도적 작업과 충돌 방지. siteName은
+홈페이지("/")의 렌더된 title을 그대로 복사(og-fixer.ts와 동일 원칙), 없으면 report_only.
+
+### 구현
+- `fixers/jsonld-website-fixer.ts`(신규) — `planJsonLdWebsiteFix`/`writeJsonLdWebsiteFix`.
+- `fixers/registry.ts` — `R-JSONLD-WEBSITE-MISSING`을 gated로 등록.
+- `fix-orchestrator/plan.ts` — 사이트 전체 부재 판정 + 루트 레이아웃 경로 resolver + finding/fix 생성.
+- `fix-orchestrator/apply.ts` — `applyJsonLdWebsiteFix`(다른 4개의 "기존 파일 수정" fixer와 완전히
+  동일한 스켈레톤 — robots.ts의 "신규 생성" 특수 분기와 달리 표준 백업/롤백 그대로 재사용).
+
+### 검증(전부 실제 실행)
+- 단위 테스트 9개(`jsonld-website-fixer.test.ts`) — 정상 삽입·기존 내용 보존·url 미포함·멱등·
+  body 0개/2개 fail-closed·XSS 이스케이프까지 포함.
+- 통합 테스트 4개(`fix-orchestrator-jsonld-website-integration.test.ts`, 실제 `next build` 포함,
+  OG 테스트와 동일하게 title을 심은 격리 fixture 사용) — (a) 미승인 시 무변화 (b) 승인→적용→build
+  통과→layout.tsx 실제 반영(url 필드 없음·`{children}` 보존 확인)→rollback 원복 (c) 거부 시 무변화
+  (d) 재실행해도 중복 없음(멱등) + **R-JSONLD-MISSING이 다음 감사에서 더 이상 발화하지 않음까지 확인**
+  (layout이 모든 페이지를 감싸므로 사이트 전체가 자연히 해소되는 emergent correctness).
+- `fixer-registry.test.ts`에 회귀가드 1건 추가.
+- **실제 회귀 발견·수정**: 전체 스위트 재실행 중 `github-orchestrator.test.ts`의 "gated 여러 개가
+  겹치는" 스트레스 테스트가 깨졌다 — 그 테스트가 쓰는 픽스처(홈페이지에 canonical 없음·noindex·OG
+  없음·robots.ts 없음을 의도적으로 심어둔 것)가 JSON-LD도 원래 없었으므로, 새 rule이 정당하게
+  5번째 gated finding으로 잡히는데 테스트는 "정확히 4종"으로 하드코딩돼 있었다(2026-08-19 robots.ts
+  fixer 추가 때 겪은 것과 동일 클래스 — 기능 확장이 다른 파일의 하드코딩된 가정을 깨는 패턴이 이번이
+  세 번째). 실제 버그가 아니라 의도한 동작 변화라 기대값을 4→5로 갱신하고, layout.tsx에 JSON-LD가
+  실제로 같은 PR에 반영됐는지 확인하는 assertion도 새로 추가했다(기존 page.tsx·robots.ts 검증과
+  동일한 엄격도).
+- typecheck 0에러 · build 0에러 · 전체 스위트 재실행(수정 후): **74개 파일 530개 테스트 전부 통과**
+  (기존 516 + 신규 13(단위9+통합4) + 회귀 수정 1건, 넷 실패 0). `npm audit --audit-level=high`: 0건.
+- `plugin.json` **0.1.3→0.1.4**(이번에도 실제 도달 가능한 코드 변경) + `claude plugin validate
+  --strict` 통과 + `npm run package:plugin` 재생성 완료.
+
+### README.md/README.en.md 정합성 수정(함께 발견·수정)
+GSC_PROPERTY_SCOPE 문서 반영을 하려고 README를 열었다가, **README가 이미 사실과 다른 내용을 담고
+있었다**는 걸 발견했다(위 항목 3의 "다음 과제"가 예상보다 컸음) — "Google Search Console/Analytics
+실연동은 아직 시작 안 함, 인터페이스 골격과 가짜 클라이언트만 있음"이라고 적혀 있었는데, 실제로는
+이미 완전히 구현·배선까지 끝난 상태였다(2026-07-15 "AI 크롤러 정책 README 자기모순"과 같은 클래스의
+결함 — 기능은 완성됐는데 문서 반영이 누락됨). 환경변수 표의 "SEOMEDIC_GITHUB_TOKEN 외엔 없음" 문구도
+마찬가지로 사실이 아니게 됨. 둘 다 README.md·README.en.md 양쪽에서 수정했고, Phase 2 완료 목록에
+GSC/GA4/PSI·JSON-LD 생성 항목을 새로 추가했다. **README.html/README.en.html(정적 HTML 미러)은
+자동 생성 스크립트가 없어(직접 확인) 이번엔 갱신하지 못했다 — 다음 과제로 명시.**
+
+### CI 관찰 — Windows `github-orchestrator.test.ts` 타임아웃 2회 연속 재발(수정 안 함, 관찰만)
+이번 라운드 직전 커밋(GSC/GA4 배선, `4680bec`)의 Windows CI가 또 같은 자리(`github/npm-install.ts:79`
+의 `npm install` 5분 타임아웃, `github-orchestrator.test.ts`의 safe/review 분리 테스트)에서 실패했다
+— plugin.json 버전업 라운드에 이어 **2번째 재발**. 재실행으로 통과했지만(플레이키 확인), 같은 자리가
+두 번 연속 걸린 건 "운이 나빴다"보다 "이 테스트가 2회 연속 실제 npm install(safe+review 각 sandbox
+마다 하나씩)을 하는 구조상 Windows CI에서 5분이 종종 빠듯하다"는 신호에 가깝다. 이번 라운드 범위 밖
+(내가 만진 코드와 무관)이라 손대지 않았지만, **3번째 발생 시엔 원인으로 보고 타임아웃 상향 등 실제
+수정을 권장** — 근거 없이 "완전히 안전하다"고 단정하지 않는다.

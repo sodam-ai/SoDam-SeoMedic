@@ -168,11 +168,15 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
     expect(result.safe.autoFixes).toHaveLength(0);
     expect(result.safe.pr).toBeNull();
 
-    // app/robots.ts가 없는 기본 픽스처 그대로라 R-AI-CRAWLER-POLICY(별도 파일)까지 포함해 gated 4종이
-    // review bucket 하나에 전부 몰린다 — "같은 파일 3개 + 다른 파일 1개"가 한 PR로 묶이는 조합 검증.
+    // app/robots.ts가 없고 사이트 전체에 JSON-LD도 전혀 없는 기본 픽스처 그대로라, R-AI-CRAWLER-POLICY
+    // ·R-JSONLD-WEBSITE-MISSING(둘 다 별도 파일)까지 포함해 gated 5종이 review bucket 하나에 전부
+    // 몰린다 — "같은 파일 3개 + 다른 파일 2개"가 한 PR로 묶이는 조합 검증
+    // (2026-08-20: R-JSONLD-WEBSITE-MISSING 신설로 4→5, 회귀 아님 — 의도한 동작 변화).
     const gatedRuleIds = result.review.gatedFixes.map((f) => f.finding.rule_id).sort();
-    expect(gatedRuleIds).toEqual(["R-AI-CRAWLER-POLICY", "R-CANONICAL-MISSING", "R-NOINDEX-DETECTED", "R-OG-BASIC-MISSING"].sort());
-    expect(result.review.applied).toHaveLength(4);
+    expect(gatedRuleIds).toEqual(
+      ["R-AI-CRAWLER-POLICY", "R-CANONICAL-MISSING", "R-JSONLD-WEBSITE-MISSING", "R-NOINDEX-DETECTED", "R-OG-BASIC-MISSING"].sort(),
+    );
+    expect(result.review.applied).toHaveLength(5);
     expect(result.review.applied.every((a) => a.outcome === "applied")).toBe(true);
     expect(result.review.pr).not.toBeNull();
 
@@ -186,6 +190,10 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
 
     const robotsContent = execFileSync("git", ["show", "seomedic/fix-review:app/robots.ts"], { cwd: upstreamPath, encoding: "utf-8" });
     expect(robotsContent).toContain("GPTBot"); // 다른 파일(robots.ts) 신규 생성도 같은 PR에 함께 반영됨
+
+    const layoutContent = execFileSync("git", ["show", "seomedic/fix-review:app/layout.tsx"], { cwd: upstreamPath, encoding: "utf-8" });
+    expect(layoutContent).toContain("application/ld+json"); // 또 다른 파일(layout.tsx) 수정도 같은 PR에 함께 반영됨
+    expect(layoutContent).toContain("SeoMedic 테스트 픽스처");
   }, 900_000);
 
   it("policy가 차단하면(archived) sandbox clone까지 가지 않고 즉시 실패한다", async () => {
