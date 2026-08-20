@@ -1461,3 +1461,78 @@ EBUSY 수정) 있었다. 이건 위 "M9 이후 재발견" 절이 근본원인 #1
 
 **남은 것**: 위 done-when 충족 여부 확인은 **사람 전용**이라 AI가 대신할 수 없다. 이번 세션은 그
 직전 단계(버전 재범프 + 체크리스트 최신화)까지만 처리했다.
+
+---
+
+## ✅ GSC/GA4 실 client 구현(1차) — 인증·REST 호출 레이어만, orchestrator/report 배선은 의도적 보류(2026-08-20)
+
+**배경**: 사용자 요청으로 PRD를 다시 전수 대조해 "다음 Phase" 후보를 재검토했다. 처음엔 title/meta
+자동수정·alt 생성·JSON-LD **생성**(탐지는 이미 있음)·GSC/GA4 실연동 4가지를 후보로 제시했으나, 실제
+착수 전 코드를 직접 열어보고 위험도를 재평가한 결과가 최초 판단과 달랐다 — 아래에 정직하게 기록한다.
+
+### 착수 전 재평가로 JSON-LD 생성 fixer를 이번 라운드에서 제외한 이유
+canonical/OG/noindex/robots.ts 등 지금까지의 모든 gated fixer는 전부 **`export const metadata` 객체
+리터럴을 ts-morph AST로 편집**하는 동일한 패턴이었다. JSON-LD는 다르다 — Next.js 메타데이터 API에는
+JSON-LD 전용 필드가 없어, 공식 권장 방식은 페이지의 **JSX 렌더 트리에 `<script type="application/
+ld+json">`을 직접 삽입**하는 것뿐이다. 임의의 `page.tsx` 구조에서 삽입 위치를 일반적으로 안전하게
+찾는 문제는 지금까지 이 프로젝트가 풀어온 "metadata 객체 편집"과 근본적으로 다른, 더 어려운 문제다.
+title/meta가 "값 발명 위험"으로 보류된 것과 같은 이유로, 이것도 설계를 더 좁힌 뒤(예: 임의 페이지가
+아니라 루트 layout 1곳에만 site-wide Organization/WebSite 스크립트를 넣는 등) 별도 라운드에서
+다루는 게 맞다고 판단해 이번엔 손대지 않았다.
+
+### GSC/GA4 실 client — 이번에 완료한 것
+`integrations/types.ts`의 `GscClient`/`Ga4Client` 포트(2026-08-19 이전 세션이 이미 설계·
+`fake-clients.ts`로 검증까지 마쳐 둔 인터페이스, 실 구현만 비어 있던 자리)를 실제로 채웠다:
+
+- **`integrations/google-auth-token.ts`**(신규) — 서비스계정 JWT→OAuth2 액세스 토큰 교환은 손으로
+  짜지 않고 Google 공식 `google-auth-library`(Apache-2.0, 신규 의존성)로 위임한다. `keyFile`을 항상
+  명시적으로 넘겨 GoogleAuth의 Application Default Credentials 자동탐색(그 경로 중 하나가 **GCP
+  메타데이터 서버 169.254.169.254** — 이 프로젝트의 SSRF 방어(M1)가 우리 자신의 크롤러에서 명시적으로
+  차단하는 그 주소)을 원천 차단.
+- **`integrations/gsc-client.ts`**(신규) — Search Console `searchAnalytics.query`(공식 문서
+  `developers.google.com/webmaster-tools/v1/searchanalytics/query`를 이번에 직접 fetch해 엔드포인트·
+  요청/응답 스키마 확인, 추측 없음). `dimensions: []`로 호출하면 기간 전체 집계 행 1개만 반환됨을
+  확인해 별도 합산 로직 없이 그대로 사용.
+- **`integrations/ga4-client.ts`**(신규) — GA4 Data API `runReport`(공식 문서 직접 fetch로 확인).
+  응답의 `metricValues`가 전부 **문자열**로 온다는 점(공식 응답 예시로 확인)을 반영해 타입 검증 후
+  파싱(M5). `propertyId`는 PRD 환경변수 표(`GA4_PROPERTY_ID`)와 일치하게 "properties/" 접두사 없는
+  순수 ID를 받고, 클라이언트가 REST 경로에 접두사를 붙인다 — 이 판단은 테스트를 먼저 잘못 짜서
+  실패한 뒤(접두사가 중복 삽입됨) 발견·수정했다(재현 테스트로 잡힘, 추측이 아니라 실패가 알려줌).
+- **`crawler/fetch-client.ts`**(확장, 기존 파일) — `safeFetch`가 지금까지 GET 전용이었는데(PSI까지는
+  충분했음), GSC/GA4는 POST+JSON body+Authorization 헤더가 필요해 `SafeFetchOptions`에
+  `method`/`headers`/`body`를 추가했다(전부 optional, 기본값 GET 유지 — 기존 호출부 전부 무변화,
+  하위호환). SSRF 가드·리다이렉트 재검증·크기상한은 GET과 동일하게 그대로 적용된다.
+- 둘 다 **DI 이중 계층**(fetcher + tokenProvider)으로 설계해 실제 서비스계정·네트워크 없이 canned
+  토큰·canned 응답만으로 전부 테스트했다(psi-client.ts와 동일 원칙 — Google 서버 호출은 느리고
+  비결정적이라 CI 부적합).
+
+### 왜 이번 라운드에서 audit-orchestrator/report 배선까지 안 했는가(의도적 축소)
+PSI 때는 client+토큰+orchestrator+report 4곳을 한 라운드에 다 했지만, 이번엔 client+토큰 레이어까지만
+멈췄다. 이유: (1) GSC/GA4는 PSI(단순 API 키 GET)와 달리 OAuth 인증·신규 의존성·2개 API를 한 번에
+새로 들여오는 라운드라 이미 위험 표면이 넓다. (2) report.ts/audit-orchestrator.ts는 **모든** audit
+실행이 거치는 공유 코드라, 검증 안 된 새 배선을 서둘러 얹으면 회귀 위험이 이 client 코드 자체보다
+오히려 report 쪽에 더 클 수 있다. (3) `HUMAN_ACTION_CHECKLIST.md`가 애초에 GSC/GA4를 "새 세션 인터뷰
+권장"으로 분류해 뒀다 — 실제 리포트 문구·기본 조회 기간(28일로 정했으나 사람이 다르게 원할 수 있음)
+같은 결정은 사람과 함께 정하는 게 안전하다고 판단해, 가장 불확실성이 컸던 "인증이 실제로 되는가"
+부분부터 먼저 증명하고 멈췄다("작업을 작게 쪼갤수록 결과물이 좋아진다" 원칙 적용).
+
+### 검증(전부 실제 실행)
+- typecheck 0에러 · build 0에러.
+- 전체 스위트 재실행: **70개 파일 497개 테스트 전부 통과**(기존 475 + 신규 22, 회귀 0).
+- `npm audit --audit-level=high`(mcp-engine 워크스페이스): **0 vulnerabilities**.
+- `license-checker --summary`(저장소 루트, 전체 재스캔): GPL/AGPL 등 카피레프트 **0건**(신규
+  `google-auth-library`+전이 의존성 6개 전부 Apache-2.0/MIT/BSD — 확인 완료, M9-1/L2 재통과).
+- `npm run package:plugin` 재생성 완료, 배포 번들에 신규 파일 3개 + `google-auth-library` 의존성
+  반영 확인.
+
+### 남은 것(정직하게 명시)
+1. **audit-orchestrator.ts/report.ts 배선 미완료** — 지금은 `GscClient`/`Ga4Client` 실제 구현이
+   존재할 뿐, 아무 데서도 호출되지 않는다(PSI처럼 audit 결과에 자동으로 섞이지 않음). 다음 라운드
+   과제로 명시.
+2. **실제 서비스계정 키로 단 한 번도 호출해 본 적 없다** — GSC 응답의 "가장 최근 1~2일 데이터
+   불완전 가능성"·GA4 `metricValues` 문자열 파싱 둘 다 공식 문서 근거로만 구현했고 실제 응답으로
+   재검증 전이다(PSI의 CLS 스케일링과 같은 성격의 미확인 사항). 사람의 서비스계정 발급이 먼저
+   필요(`HUMAN_ACTION_CHECKLIST.md` 4-B 표).
+3. plugin.json 버전은 이번엔 올리지 않았다 — 아무 사용자 경로에서도 이 새 코드가 아직 실행되지
+   않아(도달 불가) 마켓 캐시 이슈와 무관하다고 판단(위 EBUSY 수정 라운드와의 차이점).
+4. title/meta·alt·JSON-LD 생성은 여전히 미착수 — 전부 "값 발명 위험" 계열이라 별도 설계 승인 필요.

@@ -12,6 +12,7 @@
     "better-sqlite3": "^12.11.1",
     "commander": "^15.0.0",
     "fast-xml-parser": "^5.9.3",
+    "google-auth-library": "^11.0.2",
     "lighthouse": "^13.4.0",
     "linkedom": "^0.18.12",
     "playwright": "^1.61.1",

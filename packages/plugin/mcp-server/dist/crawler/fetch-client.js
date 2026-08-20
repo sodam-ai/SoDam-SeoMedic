@@ -55,10 +55,12 @@ export async function safeFetch(rawUrl, options = {}) {
             let res;
             try {
                 res = await undiciFetch(currentUrl, {
+                    method: options.method ?? "GET",
+                    body: options.body,
                     redirect: "manual",
                     signal: controller.signal,
                     dispatcher: agent,
-                    headers: { "user-agent": USER_AGENT },
+                    headers: { ...options.headers, "user-agent": USER_AGENT },
                 });
             }
             finally {

@@ -15,6 +15,13 @@ export interface SafeFetchResult {
 export interface SafeFetchOptions {
     timeoutMs?: number;
     maxBytes?: number;
+    /** 기본 GET. GSC/GA4 client(POST+JSON body+Authorization 헤더)를 위해 추가 — 기존 호출부는
+     * 전부 생략하므로 동작 변화 없음(하위호환). */
+    method?: string;
+    /** user-agent는 항상 고정값을 쓴다(아래 병합 순서상 여기 덮어써도 무시됨) — 식별 가능한 UA
+     * 유지가 크롤 정책(04_PROJECT_SPEC "식별 가능한 UA")의 일부이기 때문. */
+    headers?: Record<string, string>;
+    body?: string;
 }
 export declare function safeFetch(rawUrl: string, options?: SafeFetchOptions): Promise<SafeFetchResult>;
 /**
