@@ -68,6 +68,16 @@ export const ALL_FIXERS: FixerDescriptor[] = [
     // 배포 도메인을 알 방법이 없어 넣으면 오히려 잘못된 값 주입이 됨).
     description: "루트 레이아웃에 site-wide JSON-LD(WebSite)가 전혀 없을 때 최소 스키마 추가를 제안(name만, 이미 렌더된 title 복사) — 항상 승인 필요",
   },
+  {
+    ruleId: "R-TITLE-MISSING",
+    riskLevel: "gated",
+    // 03_PHASES.md:70 Phase 1.5 gated 목록의 "title" 항목 — canonical/OG/noindex/JSON-LD는 이미
+    // 구현됐고 title만 발견(rules/definitions/content-structure.ts)만 있고 수정기가 없었음
+    // (2026-08-21 PRD 재대조로 발견, CHECKPOINT.md에 이미 "다음 순서"로 두 차례 명시돼 있던 항목).
+    // 값을 새로 짓지 않는다 — 같은 페이지의 렌더된 h1 텍스트를 그대로 복사(og-fixer.ts와 동일 원칙).
+    // 1차 범위: metadata export가 이미 존재할 때만(신규 export 블록 생성은 이번 라운드에서 손대지 않음).
+    description: "정적 metadata에 title을 추가 — 같은 페이지의 h1 텍스트를 그대로 복사(값 발명 없음), 항상 승인 필요",
+  },
 ];
 
 function assertUniqueFixerRuleIds(fixers: FixerDescriptor[]): void {

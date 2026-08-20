@@ -1682,3 +1682,101 @@ GSC/GA4/PSI·JSON-LD 생성 항목을 새로 추가했다. **README.html/README.
 마다 하나씩)을 하는 구조상 Windows CI에서 5분이 종종 빠듯하다"는 신호에 가깝다. 이번 라운드 범위 밖
 (내가 만진 코드와 무관)이라 손대지 않았지만, **3번째 발생 시엔 원인으로 보고 타임아웃 상향 등 실제
 수정을 권장** — 근거 없이 "완전히 안전하다"고 단정하지 않는다.
+
+---
+
+## ✅ title 자동 채우기 fixer(R-TITLE-MISSING, h1 텍스트 복사·1차 범위) 신규 구현(2026-08-21)
+
+**배경**: 사용자 요청으로 PRD 5문서·CHECKPOINT.md 전체를 처음부터 다시 전수 재대조했다. `03_PHASES.md:70`
+(Phase 1.5)이 명시한 gated 목록 `canonical/noindex/robots/sitemap/JSON-LD/title/meta/alt` 7개 중
+6개는 이미 구현돼 있었는데, title만 탐지(`rules/definitions/content-structure.ts`)만 있고 실제
+fixer가 없었다 — 이 사실 자체는 새로 발견한 게 아니라, CHECKPOINT.md에 이미 두 차례("GSC/GA4 실
+client 구현" 라운드, "JSON-LD 생성 fixer" 라운드) "다음 순서로 확정"이라고 명시돼 있었는데 매번
+"이번엔 더 쉬운 것부터"로 미뤄진 항목이었다. 이번 라운드에서 그 약속을 실제로 이행했다.
+
+### 왜 alt·meta description은 이번에도 제외했는가(범위 판단)
+`04_PROJECT_SPEC.md:92-103`의 safe/gated 경계표를 다시 정확히 읽었다 — title·meta는 그냥 "gated"로만
+표시돼 있지만, **alt만 "gated/제안만"으로 별도 표시**돼 있다(alt는 비전 없이 생성 시 이미지 내용
+환각 위험이 있어 fixer 자체를 만들지 않는 게 원래 설계 의도라는 뜻 — 지금 코드도 정확히 그렇게 돼
+있었다). meta description은 PRD에 아예 탐지 규칙조차 없었다(`rules/definitions/`에 R-META-DESC류가
+전무함을 grep으로 확인) — title처럼 "이미 페이지에 있는 값을 그대로 복사"할 단일 필드가 없고, 본문
+텍스트 중 어느 부분을 발췌할지 결정하는 문제라 title과는 질적으로 다른 위험(발췌 위치 선정)이 새로
+생긴다. 이번 라운드는 title만으로 좁히고, meta description은 README에 "발췌 방식 설계 필요"로 명시해
+다음 라운드 과제로 남겼다 — canonical→OG→robots→noindex→JSON-LD로 이어져 온 이 프로젝트의 기존
+관례(매 라운드 범위를 의도적으로 좁히고 어려운 부분은 이유와 함께 명시적으로 미룸)를 그대로 따른 것.
+
+### 값 발명 금지 원칙을 이번엔 어디에 적용했는가
+canonical/OG/JSON-LD가 전부 "이미 아는 필드 값을 다른 곳에 복사"였다면, 이번엔 "같은 페이지에 이미
+존재하는 **다른** 텍스트(h1)를 복사"라는 한 단계 다른 적용이다 — 새 문구를 짓는 게 아니라 사용자가
+이미 화면에 써 놓은 실제 글자를 그대로 가져다 쓸 뿐이라는 점에서 원칙은 동일하게 유지된다. h1이 없는
+페이지는 복사할 원본이 없으므로 report_only로 폴백한다(fail-closed, 다른 모든 fixer와 동일 원칙).
+
+### 1차 범위를 의도적으로 좁힌 지점(다음 라운드 과제로 명시)
+canonical/OG/noindex fixer가 전부 공유하는 `findStaticMetadataObject` 전제(`export const metadata`가
+**이미 정적 object literal로 존재**해야 함)를 title fixer도 그대로 재사용했다 — `metadata` export
+자체가 파일에 전혀 없는 경우(App Router에서 title이 완전히 없는 페이지라면 오히려 이쪽이 더 흔할 수
+있음)는 "새 export 블록을 처음부터 생성"이라는 이 프로젝트가 아직 풀지 않은 더 큰 문제라 이번엔
+손대지 않고 report_only로 남겼다. 즉 이번 fixer는 "metadata는 있는데 title만 빠진" 페이지에서만
+실제로 동작한다 — README에 이 한계를 명시했다.
+
+### 구현
+- `fixers/title-fixer.ts`(신규) — `planTitleFix`/`writeTitleFix`. noindex-fixer.ts의
+  `findStaticMetadataObject`/`hasSpreadElement`를 의도적으로 복제(이 저장소 기존 관례). 이미 title이
+  존재하면(빈 문자열 포함) `add-safe-guard.ts`의 `assertFieldAbsent`로 감지해 절대 덮어쓰지 않는다.
+- `fix-orchestrator/scan.ts` — `ScannedPage`에 `renderedH1Text` 필드 추가(기존 `renderedTitle`·
+  `renderedCanonical`과 동일 패턴, `dom-signals.ts`의 `h1Text`는 이미 있었고 threading만 빠져 있었음).
+- `fixers/registry.ts` — `R-TITLE-MISSING`을 gated로 등록.
+- `fix-orchestrator/plan.ts` — `planTitleFixForFinding`(og-fixer.ts와 동일 패턴, `scanResult.pages`에서
+  렌더된 h1 값을 가져와 그대로 복사) + 디스패치 분기.
+- `fix-orchestrator/apply.ts` — `applyTitleFix`(applyNoindexFix와 완전히 동일한 스켈레톤 — 기존 파일
+  수정이라 백업/build 재검증/실패시 git checkout 롤백).
+
+### 검증(전부 실제 실행)
+- typecheck 0에러 · build 0에러.
+- 단위 테스트 9개(`title-fixer.test.ts`) — h1 복사·필드 보존·이미 존재(빈 문자열 포함) 멱등·h1 없음
+  fail-closed·metadata 부재/동적/스프레드 fail-closed·파일 없음까지 포함.
+- 통합 테스트 4개(`fix-orchestrator-title-integration.test.ts`, 실제 `next build` 포함, noindex 테스트와
+  동일 패턴) — (a) 미승인 시 무변화 (b) 승인→적용→build 통과→title이 h1 텍스트로 채워짐(다른 필드
+  보존·JSX 무변화 확인)→rollback 원복 (c) 거부 시 무변화 (d) 재실행해도 중복 없음(멱등) + R-TITLE-MISSING이
+  다음 감사에서 더 이상 발화하지 않음까지 확인.
+- `fixer-registry.test.ts`에 회귀가드 1건 추가.
+- 기존 `fix-orchestrator-js-only-canonical-integration.test.ts`가 `ScannedPage` 리터럴을 4곳에서 직접
+  만들고 있어(신규 필수 필드 추가로 인한 타입 에러) `renderedH1Text: null`을 4곳 전부에 추가.
+- **전체 스위트를 총 3회 실행**했다(이례적으로 많이 돈 이유를 정직하게 기록): 1차 545/546(1건 실패,
+  `server-integration.test.ts` EPERM+90초 타임아웃) → 그 파일만 단독 재실행하니 통과(51초) → 2차
+  전체 재실행 544/546(이번엔 다른 2건 실패 — 내 신규 `fix-orchestrator-title-integration.test.ts`의
+  (a)가 git commit 실패, 그리고 무관한 기존 파일 `github-sandbox.test.ts`가 30초 타임아웃) → 그 두
+  파일만 단독 재실행하니 9/9 전부 통과(180초) → 3차 전체 재실행 **76개 파일 546개 테스트 전부 통과**
+  (완전 그린). 매번 다른 파일이 실패했고 전부 단독 실행 시엔 항상 통과한다는 점, 그리고 실패한 파일들이
+  하나같이 실제 git/npm/파일시스템 하위 프로세스를 쓰는 무거운 통합 테스트라는 공통점으로 미뤄, 이번
+  세션이 이미 두 차례(`server-integration`류 Windows 임시폴더 EPERM, `github-orchestrator`의 npm
+  install 5분 타임아웃) 관찰해 온 것과 **같은 종류**(76개 파일 동시 실행 시 이 Windows 개발 PC의
+  자원 경합)로 판단했다 — 내가 만든 코드의 결함이라는 근거는 없었다(신규 테스트도 단독으로는 항상
+  통과, 무관한 기존 파일도 함께 실패). 다만 짐작만으로 "안전하다"고 넘기지 않고 3차 실행으로 실제
+  완전한 그린을 직접 확인한 뒤 이 사실을 기록한다.
+- `npm audit --audit-level=high --workspace=packages/mcp-engine`: 0 vulnerabilities.
+- `claude plugin validate packages/plugin --strict` 통과 · `npm run package:plugin` 재생성 완료.
+- `plugin.json` **0.1.4→0.1.5**(실제 도달 가능한 코드 변경 — `seomedic_fix_plan`/`seomedic_fix_apply`
+  경로에서 title fix가 실제로 계획·적용됨).
+
+### README.md/README.en.md 갱신
+기존 "Phase 2 Stage 4" 두 항목(한국어판은 중복 서술 2곳)이 "제목·이미지 설명은... 탐지만 하고
+자동으로 고쳐주지는 않습니다"라고 title을 명시적으로 예로 들고 있어, 이번 변경으로 그 문장이 부분적
+으로 사실이 아니게 됐다(2026-08-20 GSC/GA4와 같은 클래스의 README 정합성 문제 — 이번엔 손대기 전에
+미리 잡음). 기존 항목 본문은 그대로 두고(과거 시점 기록 보존, JSON-LD 라운드와 동일한 방식) 짧은
+경고 문구만 추가해 아래 새 항목을 가리키게 했다. "Phase 1.5 — 페이지 제목(title) 자동 채우기" 항목을
+새로 추가하고, 1차 범위 제한(metadata 부재 시 미지원)과 meta description 제외 이유를 명시했다.
+"앞으로 계획된 것" 줄에 "메타 설명 자동 채우기(발췌 방식 설계 필요)"를 추가했다. README.html/
+README.en.html(정적 HTML 미러)은 여전히 자동 생성 도구가 없어 갱신하지 못했다(기존에 이미 명시된
+동일한 한계, 이번 라운드에서 새로 생긴 문제 아님).
+
+### 남은 것(정직하게 명시)
+1. **metadata export 자체가 없는 페이지는 여전히 제안만** — 위 "1차 범위" 참고. 실사용 커버리지가
+   생각보다 낮을 수 있다(title이 완전히 없는 페이지는 metadata export 자체가 없는 경우가 더 흔할
+   가능성). 실사용 검증(아래 4)에서 이 fixer가 실제로 몇 번이나 "적용 가능"으로 잡히는지 관찰 필요.
+2. **meta description 자동 채우기는 여전히 미착수** — 발췌 위치 선정이라는 새로운 종류의 설계 문제라
+   별도 라운드 필요(README에 명시).
+3. Windows CI `github-orchestrator.test.ts` npm install 타임아웃은 이번 라운드에서 재발하지 않았다
+   (관찰 계속, 누적 2회 그대로 유지).
+4. PRD 최우선 성공기준인 "마켓 플러그인 실사용 재검증"은 여전히 미해결 — 이번 라운드도 이 항목을
+   진행하지 못했다(사람 전용).

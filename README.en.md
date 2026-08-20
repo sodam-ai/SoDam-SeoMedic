@@ -238,7 +238,7 @@ We added a new automated check that confirms the build and all tests pass on Win
 <details>
 <summary><strong>✅ Phase 2 Stage 4 — Content-structure detection (title/H1/image alt text) + Core Web Vitals completed (Done)</strong></summary>
 
-Automatically detects pages with a missing `<title>`, a missing (or duplicated) H1 heading, or images missing alt text (the description used by screen readers and search engines to understand an image). At the same time, the last missing Core Web Vitals (speed) threshold rule — TBT (a responsiveness metric used as a lab-measurable proxy for real INP, which requires an actual user interaction to measure) — was added, completing all three speed metrics (LCP, CLS, TBT). **Detection only — no auto-fix** (these are pure "present or missing" checks rather than value generation, so we judged that a human filling them in is more appropriate than an automated guess).
+Automatically detects pages with a missing `<title>`, a missing (or duplicated) H1 heading, or images missing alt text (the description used by screen readers and search engines to understand an image). At the same time, the last missing Core Web Vitals (speed) threshold rule — TBT (a responsiveness metric used as a lab-measurable proxy for real INP, which requires an actual user interaction to measure) — was added, completing all three speed metrics (LCP, CLS, TBT). **Detection only — no auto-fix** (these are pure "present or missing" checks rather than value generation, so we judged that a human filling them in is more appropriate than an automated guess). ⚠️ The page title is now a partial exception — see "Page title auto-fill" below.
 </details>
 
 <details>
@@ -271,7 +271,13 @@ Using a Google service account, pulls in real search performance (clicks, impres
 When a site has no structured data anywhere (per the Stage 1 detection above), proposes adding a minimal WebSite entry to the root layout file, using only the site name that's already present on the page. This is an approval-required change and never invents new wording — it only copies an already-existing value (title/description auto-generation is still excluded, for the same reason as Stage 4 above).
 </details>
 
-**Planned, not yet started**: Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
+<details>
+<summary><strong>✅ Phase 1.5 — Page title auto-fill (Done)</strong></summary>
+
+When a page has no `<title>` at all, proposes filling it in by copying the page's own existing `<h1>` heading text verbatim. This is an approval-required change and never invents new wording (this was previously held back for exactly that risk — see the Stage 4 note above). Scope is deliberately narrow for now: it only works when the page already has some other metadata configuration (e.g., social-share settings) and is just missing `title` — pages with no metadata configuration at all are still proposal-only (left for a future round). Auto-filling `<meta name="description">` was not included this round, since deciding which excerpt of the page to use requires more careful design.
+</details>
+
+**Planned, not yet started**: Auto-filling `<meta name="description">` (needs an excerpt-selection design), Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
 
 ## 9. Security & Data Flow
 

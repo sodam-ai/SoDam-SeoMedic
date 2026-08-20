@@ -15,6 +15,7 @@ import { planOgFix } from "../fixers/og-fixer.js";
 import { planNoindexFix } from "../fixers/noindex-fixer.js";
 import { planRobotsAiPolicyFix } from "../fixers/robots-ai-policy-fixer.js";
 import { planJsonLdWebsiteFix } from "../fixers/jsonld-website-fixer.js";
+import { planTitleFix } from "../fixers/title-fixer.js";
 import { AI_CRAWLER_POLICY_RULE_ID, buildAiCrawlerPolicyViolation } from "../crawler/ai-crawler-finding.js";
 import { findPageFilePath } from "./page-file-resolver.js";
 import { scanLocalFix } from "./scan.js";
@@ -41,6 +42,7 @@ const JSONLD_WEBSITE_RULE_VERSION = 1;
 // 별도 상수로 둔다(og-fixer.ts가 canonical-fixer.ts 로직을 의도적으로 복제한 것과 같은 이유).
 const ROOT_LAYOUT_DIR_CANDIDATES = ["app", "src/app"];
 const ROOT_LAYOUT_EXTENSIONS = ["tsx", "jsx", "js"];
+const TITLE_RULE_ID = "R-TITLE-MISSING";
 
 export class FixPlanBlockedError extends Error {
   constructor(
@@ -250,6 +252,13 @@ export async function planLocalFix(
 
     if (finding.rule_id === JSONLD_WEBSITE_RULE_ID) {
       const fix = planJsonLdWebsiteFixForFinding(db, projectRoot, finding, scanResult.pages);
+      if (fix) plannedFixes.push({ fix, finding });
+      else reportOnlyFindings.push(finding);
+      continue;
+    }
+
+    if (finding.rule_id === TITLE_RULE_ID) {
+      const fix = planTitleFixForFinding(db, projectRoot, finding, scanResult.pages);
       if (fix) plannedFixes.push({ fix, finding });
       else reportOnlyFindings.push(finding);
       continue;
@@ -534,5 +543,36 @@ function planJsonLdWebsiteFixForFinding(
     targetPath,
     validation: "승인 후 next build 재검증을 통과해야 적용됩니다(루트 레이아웃에 WebSite JSON-LD 추가)",
     idempotencyMarker: siteName,
+  });
+}
+
+/**
+ * title 소스 값은 og-fixer.ts와 동일 이유로 finding.page_url만으로 못 구한다 — scanResult.pages에서
+ * 렌더된 실제 h1 텍스트를 가져와 그대로 복사한다(새로 계산·창작하지 않음).
+ */
+function planTitleFixForFinding(db: SeomedicDb, projectRoot: string, finding: FindingRecord, pages: ScannedPage[]): FixRecord | null {
+  const page = pages.find((p) => p.logicalUrl === finding.page_url);
+  if (!page) return null; // 방어적 fail-closed(있어선 안 되는 상황)
+
+  const h1Title = page.renderedH1Text;
+  if (!h1Title) return null; // 복사할 값이 없음 — report_only로 남김
+
+  const pathname = new URL(finding.page_url).pathname;
+  const pageRelPath = findPageFilePath(projectRoot, pathname);
+  if (!pageRelPath) return null; // 정적 페이지 파일을 못 찾음(동적 라우트 등) — report_only로 남김
+
+  const absPath = path.join(projectRoot, pageRelPath);
+  const plan = planTitleFix(absPath, h1Title);
+  if (!plan.applicable || plan.updatedText === plan.originalText) return null;
+
+  return insertFix(db, {
+    findingId: finding.id,
+    fixType: "file_edit",
+    riskLevel: "gated",
+    approvalStatus: "pending",
+    dryRunDiff: `파일: ${pageRelPath}\n+ title: ${JSON.stringify(h1Title)}(같은 페이지 h1 텍스트 복사)`,
+    targetPath: pageRelPath,
+    validation: "승인 후 next build 재검증을 통과해야 적용됩니다(title을 h1 텍스트로 채움)",
+    idempotencyMarker: h1Title,
   });
 }

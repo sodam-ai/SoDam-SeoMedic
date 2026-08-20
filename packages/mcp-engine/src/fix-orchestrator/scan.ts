@@ -23,6 +23,9 @@ export interface ScannedPage {
   /** 렌더링된 DOM의 title 값(R-OG-BASIC-MISSING fixer가 openGraph.title로 복사할 소스 — 동일하게
    * 렌더 실패 시 rawSignals로 폴백된다). */
   renderedTitle: string | null;
+  /** 렌더링된 DOM의 첫 h1 텍스트(R-TITLE-MISSING fixer가 metadata.title로 복사할 소스 — 동일하게
+   * 렌더 실패 시 rawSignals로 폴백된다). */
+  renderedH1Text: string | null;
 }
 
 export interface LocalFixScanResult {
@@ -112,6 +115,7 @@ export async function scanLocalFix(
         violations,
         renderedCanonical: renderedSignals.canonical,
         renderedTitle: renderedSignals.title,
+        renderedH1Text: renderedSignals.h1Text,
       });
     }
   } finally {

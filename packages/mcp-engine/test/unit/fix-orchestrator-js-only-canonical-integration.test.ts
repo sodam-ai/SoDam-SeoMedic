@@ -101,6 +101,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
           violations: [],
           renderedCanonical: "/archive",
           renderedTitle: null,
+          renderedH1Text: null,
         },
       ];
 
@@ -146,6 +147,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
           violations: [],
           renderedCanonical: null,
           renderedTitle: null,
+          renderedH1Text: null,
         },
       ];
       const fix = planJsOnlyCanonicalFixForFinding(db, projectRoot, finding, pages);
@@ -170,6 +172,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
           violations: [],
           renderedCanonical: "/somewhere-else",
           renderedTitle: null,
+          renderedH1Text: null,
         },
       ];
       const fix = planJsOnlyCanonicalFixForFinding(db, projectRoot, finding, pages);
@@ -194,6 +197,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
           violations: [],
           renderedCanonical: "/archive", // 자기 경로("/")와 다른 값 — 보존 여부가 이 테스트의 핵심
           renderedTitle: null,
+          renderedH1Text: null,
         },
       ];
       const fix = planJsOnlyCanonicalFixForFinding(db, projectRoot, finding, pages);
