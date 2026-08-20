@@ -90,4 +90,50 @@ describe("runAudit — 실제 크롤+렌더+CWV+DB 저장 전체 파이프라인
       result2.db.close();
     }
   }, 90_000);
+
+  describe("GSC/GA4 배선 — env var 기반 선택 기능", () => {
+    const GSC_GA4_ENV_KEYS = ["GSC_SERVICE_ACCOUNT_PATH", "GSC_PROPERTY_SCOPE", "GA4_PROPERTY_ID"] as const;
+    const savedEnv: Record<string, string | undefined> = {};
+
+    afterEach(() => {
+      for (const key of GSC_GA4_ENV_KEYS) {
+        if (savedEnv[key] === undefined) delete process.env[key];
+        else process.env[key] = savedEnv[key];
+      }
+    });
+
+    it("env var 미설정 시 gsc/ga4/*Error 전부 undefined(기존 동작 무변화, 하위 호환)", async () => {
+      for (const key of GSC_GA4_ENV_KEYS) delete process.env[key];
+      const projectRoot = makeTempProject();
+      const result = await runAudit({ url: "https://example.com/", projectRoot, siteMode: false });
+      try {
+        expect(result.reportInput.gsc).toBeUndefined();
+        expect(result.reportInput.gscError).toBeUndefined();
+        expect(result.reportInput.ga4).toBeUndefined();
+        expect(result.reportInput.ga4Error).toBeUndefined();
+      } finally {
+        result.db.close();
+      }
+    }, 60_000);
+
+    it("설정은 됐지만 인증 실패(존재하지 않는 키 파일)하면 침묵하지 않고 gscError/ga4Error에 사유가 남는다(PSI와 다른 지점 — 실제 end-to-end 배선 검증)", async () => {
+      for (const key of GSC_GA4_ENV_KEYS) savedEnv[key] = process.env[key];
+      process.env.GSC_SERVICE_ACCOUNT_PATH = "/definitely/does/not/exist/key.json";
+      process.env.GSC_PROPERTY_SCOPE = "sc-domain:my-site.com";
+      process.env.GA4_PROPERTY_ID = "123456789";
+
+      const projectRoot = makeTempProject();
+      const result = await runAudit({ url: "https://example.com/", projectRoot, siteMode: false });
+      try {
+        expect(result.reportInput.gsc).toBeUndefined();
+        expect(result.reportInput.gscError).toBeDefined();
+        expect(result.reportInput.gscError).toContain("인증 실패");
+        expect(result.reportInput.ga4).toBeUndefined();
+        expect(result.reportInput.ga4Error).toBeDefined();
+        expect(result.reportInput.ga4Error).toContain("인증 실패");
+      } finally {
+        result.db.close();
+      }
+    }, 60_000);
+  });
 });

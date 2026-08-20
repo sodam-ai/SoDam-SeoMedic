@@ -1536,3 +1536,60 @@ PSI 때는 client+토큰+orchestrator+report 4곳을 한 라운드에 다 했지
 3. plugin.json 버전은 이번엔 올리지 않았다 — 아무 사용자 경로에서도 이 새 코드가 아직 실행되지
    않아(도달 불가) 마켓 캐시 이슈와 무관하다고 판단(위 EBUSY 수정 라운드와의 차이점).
 4. title/meta·alt·JSON-LD 생성은 여전히 미착수 — 전부 "값 발명 위험" 계열이라 별도 설계 승인 필요.
+
+---
+
+## ✅ GSC/GA4를 audit-orchestrator/report에 실제 배선(2026-08-20, 위 client 구현의 다음 라운드)
+
+**배경**: 위 라운드가 "다음 과제"로 명시해 둔 orchestrator/report 배선을 진행하기 전, 착수 전 재검토
+과정에서 **PSI 패턴을 그대로 베끼면 안 되는 이유**를 발견했다 — PSI는 실패를 완전히 침묵 처리하는데
+(`audit-orchestrator.ts` 67~70행 주석에 이미 그렇게 명시돼 있음), GSC/GA4는 설정 실패 지점이 PSI(API
+키 하나)보다 훨씬 많다(서비스계정 발급·권한 부여·속성 지정 등 최소 3곳). 완전 침묵이면 비개발자
+사용자가 정성껏 설정했는데도 왜 안 되는지 알 방법이 전혀 없다 — 그래서 이번엔 **의도적으로 PSI와
+다르게** 설계했다.
+
+**추가로 착수 전 발견한 것 — 설정 방식 자체가 없었음**: `Integration` DB 엔티티(`property_scope`
+필드)가 이미 설계돼 있지만, 이걸 채워주는 사용자 대면 경로(MCP 도구 인자든 뭐든)가 코드 어디에도
+없었다(`insertIntegration` 호출부가 테스트 밖에 전혀 없음을 grep으로 확인). 지금 그 위에 새 입력
+설계를 얹기보다, PSI가 이미 증명한 "env-only, Integration DB 안 거침" 패턴을 그대로 따르기로 했다.
+
+### 구현
+- **`integrations/gsc-token.ts`**(신규) — `GSC_SERVICE_ACCOUNT_PATH` + `GSC_PROPERTY_SCOPE`(신규 env
+  var — PRD 표에 없던 걸 추가. PRD 이탈이 아니라 PRD가 못 채운 빈틈을 PRD 자신의 기존 패턴으로 메운
+  것) 둘 다 있어야 활성. 하나만 있으면(부분 설정) 미설정과 동일하게 취급(fail-closed).
+- **`integrations/ga4-token.ts`**(신규) — `GSC_SERVICE_ACCOUNT_PATH`(GSC와 서비스계정 공유, PRD 표에
+  GA4 전용 경로가 따로 없음) + `GA4_PROPERTY_ID`.
+- **`orchestrator/audit-orchestrator.ts`** — 크롤 루프 밖에서 audit 실행당 **딱 한 번**만 호출(GSC/GA4는
+  페이지별이 아니라 사이트 전체 요약값이라 PSI의 페이지별 fieldData와 다른 지점). 성공하면
+  `reportInput.gsc`/`ga4`에, 실패하면(설정은 됐는데 인증/호출 실패) **PSI와 다르게** 침묵하지 않고
+  `reportInput.gscError`/`ga4Error`에 사유를 남긴다. 에러 메시지는 gsc-client.ts/ga4-client.ts가 이미
+  Bearer 토큰을 마스킹해 반환하므로 그대로 리포트에 노출해도 안전하다(M4).
+- **`report/types.ts`/`markdown.ts`/`json.ts`** — `AuditReportInput`에 `gsc?`/`gscError?`/`ga4?`/
+  `ga4Error?` 추가(전부 optional — 기존 리포트 입력 전부 하위호환). 마크다운은 요약 바로 다음(페이지별
+  섹션보다 앞)에 "검색 성과"/"방문자 통계" 표를 넣고, 실패 시엔 표 대신 경고문 한 줄만. 둘 다 미설정이면
+  아무 것도 안 보여준다(선택 기능이 리포트를 어지럽히지 않음, YAGNI). JSON 스키마도 동일하게 확장.
+
+### 검증(전부 실제 실행)
+- typecheck 0에러 · build 0에러.
+- **실제 end-to-end 배선 테스트**(`audit-orchestrator.test.ts`, 실제 example.com 크롤 포함) — 존재하지
+  않는 키 파일 경로를 env var로 주입해 실제로 `runAudit()`을 끝까지 실행한 뒤, `reportInput.gscError`/
+  `ga4Error`에 "인증 실패"가 실제로 담기는지 확인(가짜 client 주입이 아니라 진짜 `google-auth-library`
+  실패 경로를 그대로 통과시킴 — 이 프로젝트가 선호하는 "실제 실행" 검증 방식).
+- `report.test.ts`에 gsc/ga4 정상·미설정·실패 3가지 케이스를 markdown·json 양쪽에 신규 추가.
+- `gsc-token.test.ts`/`ga4-token.test.ts` 신규(부분 설정=미설정 취급 fail-closed 검증).
+- 전체 스위트 재실행: **72개 파일 516개 테스트 전부 통과**(기존 497 + 신규 19, 회귀 0).
+- `npm audit --audit-level=high`: 0건.
+- `plugin.json` 버전 **0.1.2→0.1.3**(이번엔 실제로 도달 가능한 코드 변경이라 필요 — 지난 라운드의
+  "배선 안 해서 버전 안 올림" 판단과 정합적으로 대비됨) + `claude plugin validate --strict` 통과 +
+  `npm run package:plugin` 재생성 완료.
+
+### 남은 것(정직하게 명시)
+1. **실제 서비스계정 키로 단 한 번도 안 돌려봤다** — env var 3개를 실제로 채워 넣고 진짜 리포트에
+   숫자가 나오는지, 실패 경고문이 실제로 도움이 되는 문구인지는 사람 전용 검증(`HUMAN_ACTION_
+   CHECKLIST.md` 4-B).
+2. GSC 결과의 "가장 최근 데이터 불완전 가능성"·GA4 `metricValues` 문자열 파싱은 여전히 공식 문서
+   근거로만 구현(지난 라운드에서 이미 명시한 한계, 변동 없음).
+3. `GSC_PROPERTY_SCOPE`는 PRD 문서 자체에는 없는 신규 env var라 `HUMAN_ACTION_CHECKLIST.md`·README의
+   환경변수 안내에 반영이 필요하다(이번 라운드는 코드만, 문서 갱신은 다음 과제로 남김).
+4. 두 호출이 순차 실행이라(GSC → GA4) 둘 다 설정된 경우 audit 전체 소요시간이 조금 늘어난다 — 각각
+   1~3초 내외로 예상되나 실제 계정으로 측정 전이라 확정 아님.

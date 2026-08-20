@@ -31,6 +31,21 @@ const PageSchema = z.object({
     })
         .nullable(),
 });
+const GscSchema = z
+    .object({
+    propertyScope: z.string(),
+    clicks: z.number(),
+    impressions: z.number(),
+    position: z.number(),
+})
+    .nullable();
+const Ga4Schema = z
+    .object({
+    propertyId: z.string(),
+    sessions: z.number(),
+    activeUsers: z.number(),
+})
+    .nullable();
 export const JsonReportSchema = z.object({
     target: z.string(),
     generatedAt: z.string(),
@@ -40,6 +55,12 @@ export const JsonReportSchema = z.object({
         totalViolations: z.number(),
         bySeverity: z.record(z.string(), z.number()),
     }),
+    // 선택 기능(env var 미설정 시 gsc/ga4=null) — gsc*Error는 실패 사유를 그대로 노출한다(마스킹은
+    // gsc-client.ts/ga4-client.ts가 이미 처리, report/markdown.ts와 동일한 판단).
+    gsc: GscSchema,
+    gscError: z.string().nullable(),
+    ga4: Ga4Schema,
+    ga4Error: z.string().nullable(),
     pages: z.array(PageSchema),
 });
 const CWV_NOTE = "lab 값(Lighthouse 3회 측정 중앙값)입니다 — Google 검색 랭킹에 실제로 쓰이는 field(CrUX) 데이터와 다를 수 있습니다.";
@@ -59,6 +80,10 @@ export function buildJsonReport(input) {
             totalViolations: summary.totalViolations,
             bySeverity: summary.bySeverity,
         },
+        gsc: input.gsc ?? null,
+        gscError: input.gscError ?? null,
+        ga4: input.ga4 ?? null,
+        ga4Error: input.ga4Error ?? null,
         pages: input.pages.map((page) => ({
             url: page.url,
             statusCode: page.statusCode,

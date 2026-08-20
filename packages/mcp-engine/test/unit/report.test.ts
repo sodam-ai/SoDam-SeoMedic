@@ -89,6 +89,43 @@ describe("buildJsonReport", () => {
     expect(report.overallScore).toBeUndefined();
     expect(report.score).toBeUndefined();
   });
+
+  it("gsc/ga4 미설정 시(undefined) null로 채워지고 스키마를 통과한다(선택 기능 기본값)", () => {
+    const input: AuditReportInput = { target: "https://example.com", generatedAt: GENERATED_AT, pages: [] };
+    const report = buildJsonReport(input);
+    expect(report.gsc).toBeNull();
+    expect(report.gscError).toBeNull();
+    expect(report.ga4).toBeNull();
+    expect(report.ga4Error).toBeNull();
+    expect(() => JsonReportSchema.parse(report)).not.toThrow();
+  });
+
+  it("gsc/ga4 요약값이 있으면 그대로 담기고 스키마를 통과한다", () => {
+    const input: AuditReportInput = {
+      target: "https://example.com",
+      generatedAt: GENERATED_AT,
+      pages: [],
+      gsc: { propertyScope: "sc-domain:example.com", clicks: 1234, impressions: 56789, position: 8.4 },
+      ga4: { propertyId: "123456789", sessions: 4321, activeUsers: 2100 },
+    };
+    const report = buildJsonReport(input);
+    expect(report.gsc).toEqual({ propertyScope: "sc-domain:example.com", clicks: 1234, impressions: 56789, position: 8.4 });
+    expect(report.ga4).toEqual({ propertyId: "123456789", sessions: 4321, activeUsers: 2100 });
+    expect(() => JsonReportSchema.parse(report)).not.toThrow();
+  });
+
+  it("gscError/ga4Error가 있으면(연동 실패) 그대로 노출한다(PSI와 달리 침묵하지 않음)", () => {
+    const input: AuditReportInput = {
+      target: "https://example.com",
+      generatedAt: GENERATED_AT,
+      pages: [],
+      gscError: "GSC 인증 실패: 서비스계정 인증 실패(/fake/key.json): ENOENT",
+      ga4Error: "GA4 API가 상태 403을 반환했습니다",
+    };
+    const report = buildJsonReport(input);
+    expect(report.gscError).toContain("인증 실패");
+    expect(report.ga4Error).toContain("403");
+  });
 });
 
 describe("buildMarkdownReport", () => {
@@ -148,6 +185,66 @@ describe("buildMarkdownReport", () => {
     };
     const md = buildMarkdownReport(input);
     expect(md).toContain("a \\| b");
+  });
+
+  it("gsc/ga4 미설정 시 관련 섹션·경고 문구를 전혀 포함하지 않는다(선택 기능이 리포트를 어지럽히지 않음)", () => {
+    const input: AuditReportInput = { target: "https://example.com", generatedAt: GENERATED_AT, pages: [] };
+    const md = buildMarkdownReport(input);
+    expect(md).not.toContain("Search Console");
+    expect(md).not.toContain("Analytics 4");
+  });
+
+  it("gsc 요약값이 있으면 검색 성과 섹션에 클릭수·노출수·평균순위를 표로 보여준다", () => {
+    const input: AuditReportInput = {
+      target: "https://example.com",
+      generatedAt: GENERATED_AT,
+      pages: [],
+      gsc: { propertyScope: "sc-domain:example.com", clicks: 1234, impressions: 56789, position: 8.4 },
+    };
+    const md = buildMarkdownReport(input);
+    expect(md).toContain("검색 성과");
+    expect(md).toContain("1234");
+    expect(md).toContain("56789");
+    expect(md).toContain("8.4");
+  });
+
+  it("ga4 요약값이 있으면 방문자 통계 섹션에 세션수·활성 사용자수를 표로 보여준다", () => {
+    const input: AuditReportInput = {
+      target: "https://example.com",
+      generatedAt: GENERATED_AT,
+      pages: [],
+      ga4: { propertyId: "123456789", sessions: 4321, activeUsers: 2100 },
+    };
+    const md = buildMarkdownReport(input);
+    expect(md).toContain("방문자 통계");
+    expect(md).toContain("4321");
+    expect(md).toContain("2100");
+  });
+
+  it("gscError가 있으면(연동 실패) 표 대신 실패 사유 경고문을 보여준다(PSI와 달리 침묵하지 않음)", () => {
+    const input: AuditReportInput = {
+      target: "https://example.com",
+      generatedAt: GENERATED_AT,
+      pages: [],
+      gscError: "GSC 인증 실패: 서비스계정 인증 실패(/fake/key.json): ENOENT",
+    };
+    const md = buildMarkdownReport(input);
+    expect(md).toContain("Google Search Console 연동을 시도했지만 실패했습니다");
+    expect(md).toContain("ENOENT");
+    expect(md).not.toContain("검색 성과");
+  });
+
+  it("ga4Error가 있으면(연동 실패) 표 대신 실패 사유 경고문을 보여준다", () => {
+    const input: AuditReportInput = {
+      target: "https://example.com",
+      generatedAt: GENERATED_AT,
+      pages: [],
+      ga4Error: "GA4 API가 상태 403을 반환했습니다",
+    };
+    const md = buildMarkdownReport(input);
+    expect(md).toContain("Google Analytics 4 연동을 시도했지만 실패했습니다");
+    expect(md).toContain("403");
+    expect(md).not.toContain("방문자 통계");
   });
 
   it("여러 위반이 임팩트 순으로 표에 나열된다", () => {

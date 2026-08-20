@@ -8,6 +8,10 @@ import { measureCoreWebVitals } from "../cwv/lighthouse-runner.js";
 import { getPsiApiKey } from "../integrations/psi-token.js";
 import { createPsiClient } from "../integrations/psi-client.js";
 import { mergeFieldData } from "../integrations/field-data-merger.js";
+import { getGscConfig } from "../integrations/gsc-token.js";
+import { createGscClient } from "../integrations/gsc-client.js";
+import { getGa4Config } from "../integrations/ga4-token.js";
+import { createGa4Client } from "../integrations/ga4-client.js";
 import { openSeomedicDb } from "../db/connection.js";
 import { findOrCreateProject } from "../db/repositories/project.js";
 import { startAuditRun, finishAuditRun, findAuditRunById } from "../db/repositories/audit-run.js";
@@ -113,6 +117,36 @@ export async function runAudit(options) {
     finally {
         await browser.close();
     }
+    // GSC/GA4는 페이지별이 아니라 audit 실행 1회당 요약값 1개(사이트 전체 성과)라 크롤 루프 밖에서
+    // 딱 한 번만 호출한다(PSI의 페이지별 fieldData와 다른 지점). 선택 기능 — env var 미설정 시 비활성.
+    //
+    // ⚠️ PSI(위 67~70행)와 의도적으로 다르게 처리한다: PSI는 실패를 완전히 침묵 처리하지만, GSC/GA4는
+    // 설정 실패 지점이 훨씬 많다(서비스계정 자체·권한 부여·속성 지정 등 최소 3곳). 완전 침묵이면
+    // 비개발자 사용자가 정성껏 설정했는데도 원인을 알 방법이 전혀 없다 — 그래서 실패 사유를
+    // *Error로 남겨 리포트에 노출한다(에러 메시지 자체는 gsc-client.ts/ga4-client.ts가 이미
+    // 토큰값을 마스킹해 반환하므로 그대로 노출해도 안전하다).
+    let gsc;
+    let gscError;
+    const gscConfig = getGscConfig();
+    if (gscConfig) {
+        try {
+            gsc = await createGscClient(gscConfig.keyFilePath).fetchSearchAnalyticsSummary(gscConfig.propertyScope);
+        }
+        catch (err) {
+            gscError = err.message;
+        }
+    }
+    let ga4;
+    let ga4Error;
+    const ga4Config = getGa4Config();
+    if (ga4Config) {
+        try {
+            ga4 = await createGa4Client(ga4Config.keyFilePath).fetchKeyMetrics(ga4Config.propertyId);
+        }
+        catch (err) {
+            ga4Error = err.message;
+        }
+    }
     const findings = insertFindings(db, auditRun.id, allViolations);
     finishAuditRun(db, auditRun.id, null); // overall_score는 리포트 계층에서 라벨로만 계산(DB엔 저장 안 해도 됨)
     // finishAuditRun은 UPDATE만 하고 갱신된 레코드를 반환하지 않으므로, 여기서 다시 조회해야 한다
@@ -122,6 +156,10 @@ export async function runAudit(options) {
         target: options.url,
         generatedAt: new Date().toISOString(),
         pages: pageReportInputs,
+        gsc,
+        gscError,
+        ga4,
+        ga4Error,
     };
     return {
         db,

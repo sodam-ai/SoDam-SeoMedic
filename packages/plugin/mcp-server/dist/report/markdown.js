@@ -28,6 +28,35 @@ export function buildMarkdownReport(input) {
         lines.push(`> ⚠️ 진단한 페이지가 0개입니다 — "양호"는 위반이 없다는 뜻이 아니라 확인할 페이지 자체를 찾지 못했다는 뜻입니다. URL 철자와 사이트 접속 가능 여부를 확인해주세요.`);
         lines.push("");
     }
+    // 사이트 전체 요약값이라 페이지별 섹션보다 앞, summary 바로 다음에 둔다. 설정 안 했으면(gsc·gscError
+    // 둘 다 undefined) 아무것도 안 보여준다 — 선택 기능이 안내문으로 리포트를 어지럽히지 않게(YAGNI).
+    if (input.gsc) {
+        lines.push("## 검색 성과 (Google Search Console, 최근 28일)");
+        lines.push("");
+        lines.push(`| 지표 | 값 |`);
+        lines.push(`|---|---|`);
+        lines.push(`| 클릭수 | ${input.gsc.clicks} |`);
+        lines.push(`| 노출수 | ${input.gsc.impressions} |`);
+        lines.push(`| 평균 게재순위 | ${input.gsc.position.toFixed(1)} |`);
+        lines.push("");
+    }
+    else if (input.gscError) {
+        lines.push(`> ⚠️ Google Search Console 연동을 시도했지만 실패했습니다: ${input.gscError}`);
+        lines.push("");
+    }
+    if (input.ga4) {
+        lines.push("## 방문자 통계 (Google Analytics 4, 최근 28일)");
+        lines.push("");
+        lines.push(`| 지표 | 값 |`);
+        lines.push(`|---|---|`);
+        lines.push(`| 세션수 | ${input.ga4.sessions} |`);
+        lines.push(`| 활성 사용자수 | ${input.ga4.activeUsers} |`);
+        lines.push("");
+    }
+    else if (input.ga4Error) {
+        lines.push(`> ⚠️ Google Analytics 4 연동을 시도했지만 실패했습니다: ${input.ga4Error}`);
+        lines.push("");
+    }
     for (const page of input.pages) {
         lines.push(`## ${page.url}`);
         lines.push("");

@@ -107,16 +107,29 @@
 나타나는지 확인. 특히 CLS 수치(코드가 API의 `percentile`값을 100으로 나눠 계산 — 공식 문서 예시로만
 확인, 실제 응답 미검증)가 상식적인 범위(보통 0~1 사이)로 나오는지 눈으로 한 번 봐주면 가장 좋다.
 
-**GSC/GA4 결과**(2026-08-20 갱신): 실제 REST client 코드(`integrations/gsc-client.ts`·`ga4-client.ts`)는
-완료했다 — 서비스계정 인증(Google 공식 `google-auth-library`)·API 호출·응답 파싱까지 canned
-테스트로 검증됐다. **다만 리포트/audit-orchestrator에는 아직 배선하지 않았다**(PSI처럼 audit 결과에
-자동으로 섞이지 않음) — 신뢰도가 특히 낮은 두 결정(리포트에 어떻게 노출할지, 기본 조회 기간 28일이
-적절한지)은 사람과 함께 정하는 게 안전하다고 판단해 의도적으로 남겨뒀다. 상세는 `CHECKPOINT.md`
-"GSC/GA4 실 client 구현(1차)" 섹션 참고.
+**GSC/GA4 결과**(2026-08-20 갱신 — 배선까지 완료): 실제 REST client(`integrations/gsc-client.ts`·
+`ga4-client.ts`)에 이어 `audit-orchestrator.ts`/리포트(markdown·json) 배선까지 코드 기준으로 전부
+완료했다. `/seo-audit` 실행 시 아래 3개 env var가 설정돼 있으면 자동으로 "검색 성과"/"방문자 통계"
+섹션이 리포트에 나타난다. **PSI와 다르게 설계한 지점**: PSI는 실패를 완전히 침묵 처리하지만, GSC/GA4는
+설정 실패 지점이 더 많아(서비스계정·권한·속성 지정 등) 인증/호출이 실패하면 리포트에 실패 사유를
+그대로 보여준다(예: "Google Search Console 연동을 시도했지만 실패했습니다: ..."). 상세는
+`CHECKPOINT.md` "GSC/GA4를 audit-orchestrator/report에 실제 배선" 섹션 참고.
 
-**아래 외부 인증 준비가 여전히 먼저 필요하다** — 준비가 끝나면 실제 키로 이 client들을 처음 호출해
-공식 문서 근거로만 구현한 두 가지(GSC 최근 데이터 불완전 가능성·GA4 `metricValues` 파싱)를 재검증하고,
-바로 이어서 orchestrator/report 배선까지 진행할 수 있다.
+**필요한 env var 3개**(PSI의 `PAGESPEED_API_KEY` 표에 없던 것 — 이번에 코드 구현 중 추가):
+| 변수명 | 설명 |
+|---|---|
+| `GSC_SERVICE_ACCOUNT_PATH` | 서비스계정 JSON 파일 경로(GSC·GA4 공용) |
+| `GSC_PROPERTY_SCOPE` | 조회할 Search Console 속성(예: `sc-domain:example.com` 또는 `https://example.com/`) |
+| `GA4_PROPERTY_ID` | GA4 속성 ID(숫자만, `properties/` 접두사 없이) |
+
+셋 중 하나라도 비면(GSC는 앞의 2개, GA4는 1·3번) 해당 기능은 자동으로 비활성화되고 나머지 audit은
+평소대로 진행된다 — 부분 설정을 미설정과 동일하게 취급하도록 만들어 실수로 반쪽짜리 설정이 조용히
+잘못 작동하는 일이 없다.
+
+**아래 외부 인증 준비가 여전히 먼저 필요하다** — 준비가 끝나면 위 3개 env var를 채운 뒤 `/seo-audit
+https://실제소유사이트.com` 1회 실행 → 리포트에 "검색 성과"/"방문자 통계" 섹션이 실제로 나타나는지,
+숫자가 상식적인지 확인. 이 기회에 공식 문서 근거로만 구현한 두 가지(GSC 최근 데이터 불완전 가능성·
+GA4 `metricValues` 파싱)도 함께 재검증됨.
 
 ⚠️ 아래는 Google API의 안정적인 표준 절차(서비스계정 방식)를 기준으로 정리한 것이지, 실시간으로
 Google Cloud Console 화면을 열어 확인한 것은 아니다 — 메뉴 이름·위치는 구글 쪽에서 종종 바뀌므로,

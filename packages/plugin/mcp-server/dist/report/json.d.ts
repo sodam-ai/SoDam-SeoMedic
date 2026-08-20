@@ -13,6 +13,19 @@ export declare const JsonReportSchema: z.ZodObject<{
         totalViolations: z.ZodNumber;
         bySeverity: z.ZodRecord<z.ZodString, z.ZodNumber>;
     }, z.core.$strip>;
+    gsc: z.ZodNullable<z.ZodObject<{
+        propertyScope: z.ZodString;
+        clicks: z.ZodNumber;
+        impressions: z.ZodNumber;
+        position: z.ZodNumber;
+    }, z.core.$strip>>;
+    gscError: z.ZodNullable<z.ZodString>;
+    ga4: z.ZodNullable<z.ZodObject<{
+        propertyId: z.ZodString;
+        sessions: z.ZodNumber;
+        activeUsers: z.ZodNumber;
+    }, z.core.$strip>>;
+    ga4Error: z.ZodNullable<z.ZodString>;
     pages: z.ZodArray<z.ZodObject<{
         url: z.ZodString;
         statusCode: z.ZodNumber;
