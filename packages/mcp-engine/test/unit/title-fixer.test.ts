@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { Project, SyntaxKind } from "ts-morph";
 import { planTitleFix, writeTitleFix } from "../../src/fixers/title-fixer.js";
 
 const cleanupDirs: string[] = [];
@@ -164,5 +165,83 @@ describe("planTitleFix — 파일 없음", () => {
   it("page.tsx 자체가 없으면 applicable=false", () => {
     const plan = planTitleFix("/no/such/path/page.tsx", "회사 소개");
     expect(plan.applicable).toBe(false);
+  });
+});
+
+/**
+ * updatedText를 실제로 다시 ts-morph로 파싱해 title 프로퍼티의 리터럴 값을 추출한다 — 결과 문자열을
+ * 육안으로 대조하는 대신, "AST 왕복(round-trip)"으로 원본 h1 값이 정확히, 변형 없이 그대로 들어갔는지
+ * 기계적으로 검증한다(따옴표·백슬래시·백틱 등 이스케이프가 깨지면 이 파싱 자체가 실패하거나 값이
+ * 달라져 즉시 드러남).
+ */
+function extractWrittenTitle(updatedText: string): string {
+  const project = new Project({ useInMemoryFileSystem: true });
+  const sourceFile = project.createSourceFile("page.tsx", updatedText);
+  const metadataDecl = sourceFile.getVariableDeclarationOrThrow("metadata");
+  const objLit = metadataDecl.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+  const titleProp = objLit.getPropertyOrThrow("title").asKindOrThrow(SyntaxKind.PropertyAssignment);
+  const initializer = titleProp.getInitializerIfKindOrThrow(SyntaxKind.StringLiteral);
+  return initializer.getLiteralValue();
+}
+
+describe("planTitleFix — 악의적/경계 입력값(h1 텍스트)도 안전하게 처리", () => {
+  it("큰따옴표·백슬래시가 섞인 h1도 값이 정확히 보존되고 파일이 깨지지 않는다", () => {
+    const filePath = writeFixtureFile(METADATA_NO_TITLE);
+    const h1 = `그는 "안녕\\하세요"라고 말했다`;
+    const plan = planTitleFix(filePath, h1);
+    expect(plan.applicable).toBe(true);
+    expect(extractWrittenTitle(plan.updatedText!)).toBe(h1);
+  });
+
+  it("백틱(템플릿 리터럴 문자)이 섞인 h1도 일반 문자열로 안전하게 처리된다", () => {
+    const filePath = writeFixtureFile(METADATA_NO_TITLE);
+    const h1 = "가격은 `${price}`원 입니다";
+    const plan = planTitleFix(filePath, h1);
+    expect(plan.applicable).toBe(true);
+    expect(extractWrittenTitle(plan.updatedText!)).toBe(h1);
+  });
+
+  it("</script> 문자열이 섞인 h1도(스크립트 태그 컨텍스트가 아니므로) 값 그대로 보존된다", () => {
+    // jsonld-website-fixer.ts와 달리 이 fixer는 dangerouslySetInnerHTML로 <script>에 주입하는 게
+    // 아니라 일반 TS 문자열 리터럴(metadata.title)에 넣으므로 HTML 파서 조기종료 위험 자체가 없다 —
+    // 그래도 실제로 값이 안전하게 보존되는지 직접 확인한다(추측 금지).
+    const filePath = writeFixtureFile(METADATA_NO_TITLE);
+    const h1 = "안내: </script><script>alert(1)</script> 종료 시간 안내";
+    const plan = planTitleFix(filePath, h1);
+    expect(plan.applicable).toBe(true);
+    expect(extractWrittenTitle(plan.updatedText!)).toBe(h1);
+  });
+
+  it("줄바꿈(U+2028 포함)이 섞인 h1도 값이 보존되고 유효한 TS로 재파싱된다", () => {
+    const filePath = writeFixtureFile(METADATA_NO_TITLE);
+    const h1 = "첫째 줄\n둘째 줄 셋째 줄";
+    const plan = planTitleFix(filePath, h1);
+    expect(plan.applicable).toBe(true);
+    expect(extractWrittenTitle(plan.updatedText!)).toBe(h1);
+  });
+
+  it("매우 긴 h1(2000자)도 안전하게 처리된다", () => {
+    const filePath = writeFixtureFile(METADATA_NO_TITLE);
+    const h1 = "가".repeat(2000);
+    const plan = planTitleFix(filePath, h1);
+    expect(plan.applicable).toBe(true);
+    expect(extractWrittenTitle(plan.updatedText!)).toBe(h1);
+  });
+
+  it("이모지 등 멀티바이트 유니코드가 섞인 h1도 값이 정확히 보존된다", () => {
+    const filePath = writeFixtureFile(METADATA_NO_TITLE);
+    const h1 = "환영합니다 🎉🚀 최고의 서비스";
+    const plan = planTitleFix(filePath, h1);
+    expect(plan.applicable).toBe(true);
+    expect(extractWrittenTitle(plan.updatedText!)).toBe(h1);
+  });
+
+  it("writeTitleFix로 실제 디스크에 쓴 뒤 다시 읽어도 악의적 입력 값이 동일하게 보존된다(round-trip)", () => {
+    const filePath = writeFixtureFile(METADATA_NO_TITLE);
+    const h1 = `"인용" \`백틱\` </script> 혼합 테스트`;
+    const plan = planTitleFix(filePath, h1);
+    writeTitleFix(filePath, plan.updatedText!);
+    const onDisk = fs.readFileSync(filePath, "utf-8");
+    expect(extractWrittenTitle(onDisk)).toBe(h1);
   });
 });
