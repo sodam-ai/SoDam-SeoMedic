@@ -3,7 +3,14 @@ import fs from "node:fs";
 import path from "node:path";
 export class NpmInstallError extends Error {
 }
-const DEFAULT_TIMEOUT_MS = 5 * 60_000;
+// 2026-08-20 5분→8분 상향: Windows CI에서 이 정확한 타임아웃(`npm-install.ts:79`)이 세 번째로
+// 재발했다(github-orchestrator.test.ts가 safe/review 두 sandbox 각각 실제 npm install을 돌리는
+// 구조라 CI 자원 경합에 특히 취약 — CHECKPOINT.md에 이미 "3번째 발생 시엔 실제 수정" 원칙이 명시돼
+// 있었음). 로컬(이 개발 PC)에서는 같은 실제 npm install이 항상 300초에 크게 못 미쳐 끝나는 것으로
+// 반복 확인됐으므로(실제 행(hang)이 아님), 진짜 멈춤은 여전히 잡아내면서 CI 자원 경합만 흡수할 만큼만
+// 늘렸다. 이 값은 GitHub 저장소 자동수정(실사용자 경로)에도 그대로 적용되므로, 느린 실제 저장소를 더
+// 참을성 있게 기다려주는 방향(더 관대해질 뿐 덜 안전해지지 않음)이라 안전한 변경이다.
+const DEFAULT_TIMEOUT_MS = 8 * 60_000;
 /**
  * npm은 항상 Node.js 설치본에 함께 번들되므로, process.execPath 기준 상대경로로 그 JS 진입점을
  * 안정적으로 찾을 수 있다(next를 대상 프로젝트의 node_modules에서 resolve하는 것과 같은 원리 —
