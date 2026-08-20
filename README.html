@@ -63,11 +63,10 @@
   th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
   th { background: #f8fafc; font-weight: 600; }
   tr:nth-child(even) td { background: #fafafa; }
-  ul { padding-left: 1.4em; }
+  ul, ol { padding-left: 1.4em; }
   li { margin: 0.3em 0; }
+  li > ol, li > ul { margin-top: 0.4em; }
   hr { border: none; border-top: 1px solid #e5e7eb; margin: 2em 0; }
-  .ol-item { padding-left: 0.2em; }
-  .ol-item-nested { padding-left: 1.6em; }
   details {
     border: 1px solid #e2e8f0;
     border-radius: 8px;
@@ -92,28 +91,29 @@
 <h1 id="seomedic">SeoMedic</h1>
 <blockquote>
 <p>어느 프로젝트에서나 설치해 쓰는 Claude Code 플러그인. 웹사이트 URL 하나만 있으면 검색엔진(SEO)·AI 검색(GEO) 노출 상태를 진단해줍니다.</p>
-<p></p>
 <p><strong>지금 버전이 할 수 있는 것: 진단 + 회귀(원복) 감지 + 로컬 Next.js 프로젝트 승인 기반 자동 수정 + GitHub 저장소 대상 자동 수정 제안(Pull Request, 실험적).</strong> 이 문서는 "지금 실제로 되는 것"만 정직하게 설명하며, 아직 검증이 끝나지 않은 부분은 숨기지 않고 그대로 표시합니다.</p>
 </blockquote>
-<p>이 문서가 처음이신 분: <strong>컴퓨터·터미널·AI 도구가 처음이어도</strong> 아래 순서대로만 따라 하면 됩니다. 낯선 단어는 "쉬운말(원문)" 형태로 풀어 씁니다. 이 문서와 영문판(<strong><a href="./README.en.md" target="_blank" rel="noopener noreferrer">README.en.md</a></strong>)의 내용은 완전히 동일합니다 — 필요한 언어로 읽으시면 됩니다.</p>
-<hr>
+<p>이 문서가 처음이신 분: <strong>컴퓨터·터미널·AI 도구가 처음이어도</strong> 아래 순서대로만 따라 하면 됩니다. 낯선 단어는 "쉬운말(원문)" 형태로 풀어 씁니다. 이 문서와 영문판(<strong><a href="./README.en.html">README.en.md</a></strong>)의 내용은 완전히 동일합니다 — 필요한 언어로 읽으시면 됩니다.</p>
+<hr />
 <h2 id="목차">목차</h2>
-<p class="ol-item"><strong>1.</strong> <a href="#1-한눈-소개">한눈 소개</a></p>
-<p class="ol-item"><strong>2.</strong> <a href="#2-사전-준비물필요-프로그램">사전 준비물·필요 프로그램</a></p>
-<p class="ol-item"><strong>3.</strong> <a href="#3-다운로드설치">다운로드·설치</a></p>
-<p class="ol-item"><strong>4.</strong> <a href="#4-빠른-시작5분">빠른 시작(5분)</a></p>
-<p class="ol-item"><strong>5.</strong> <a href="#5-실행사용작동-방법">실행·사용·작동 방법</a></p>
-<p class="ol-item"><strong>6.</strong> <a href="#6-명령어-레퍼런스">명령어 레퍼런스</a></p>
-<p class="ol-item"><strong>7.</strong> <a href="#7-워크플로우">워크플로우</a></p>
-<p class="ol-item"><strong>8.</strong> <a href="#8-업데이트-내용-요약">업데이트 내용 요약</a></p>
-<p class="ol-item"><strong>9.</strong> <a href="#9-보안데이터-흐름">보안·데이터 흐름</a></p>
-<p class="ol-item"><strong>10.</strong> <a href="#10-아키텍처쉽게">아키텍처(쉽게)</a></p>
-<p class="ol-item"><strong>11.</strong> <a href="#11-파일문서-위치">파일·문서 위치</a></p>
-<p class="ol-item"><strong>12.</strong> <a href="#12-문제오류-대처">문제/오류 대처</a></p>
-<p class="ol-item"><strong>13.</strong> <a href="#13-faq">FAQ</a></p>
-<p class="ol-item"><strong>14.</strong> <a href="#14-법률저작권라이선스상업적-용도">법률·저작권·라이선스·상업적 용도</a></p>
-<p class="ol-item"><strong>15.</strong> <a href="#15-개발자기여자-가이드">개발자·기여자 가이드</a></p>
-<hr>
+<ol type="1">
+<li><a href="#1-한눈-소개">한눈 소개</a></li>
+<li><a href="#2-사전-준비물필요-프로그램">사전 준비물·필요 프로그램</a></li>
+<li><a href="#3-다운로드설치">다운로드·설치</a></li>
+<li><a href="#4-빠른-시작5분">빠른 시작(5분)</a></li>
+<li><a href="#5-실행사용작동-방법">실행·사용·작동 방법</a></li>
+<li><a href="#6-명령어-레퍼런스">명령어 레퍼런스</a></li>
+<li><a href="#7-워크플로우">워크플로우</a></li>
+<li><a href="#8-업데이트-내용-요약">업데이트 내용 요약</a></li>
+<li><a href="#9-보안데이터-흐름">보안·데이터 흐름</a></li>
+<li><a href="#10-아키텍처쉽게">아키텍처(쉽게)</a></li>
+<li><a href="#11-파일문서-위치">파일·문서 위치</a></li>
+<li><a href="#12-문제오류-대처">문제/오류 대처</a></li>
+<li><a href="#13-faq">FAQ</a></li>
+<li><a href="#14-법률저작권라이선스상업적-용도">법률·저작권·라이선스·상업적 용도</a></li>
+<li><a href="#15-개발자기여자-가이드">개발자·기여자 가이드</a></li>
+</ol>
+<hr />
 <h2 id="1-한눈-소개">1. 한눈 소개</h2>
 <p>SeoMedic은 "내 사이트(또는 권한이 있는 사이트)가 구글 검색과 AI 검색(ChatGPT/Perplexity 같은 답변형 검색)에 잘 노출될 수 있는 상태인지"를 자동으로 점검해주는 도구입니다.</p>
 <p>비유하자면: <strong>건강검진 같은 도구</strong>입니다. 사람 몸을 검사해 "여기가 안 좋으니 이렇게 고치세요"라고 알려주듯이, 웹페이지를 검사해 "이 부분이 검색엔진에 잘 안 보이니 이렇게 고치세요"라고 리포트를 만들어줍니다. 그리고 <strong>Next.js로 만든 사이트</strong>라면, 사용자 승인을 거쳐 실제로 코드까지 고쳐줄 수 있습니다(로컬 폴더 또는 GitHub 저장소 대상).</p>
@@ -126,15 +126,53 @@
 </ul>
 <h2 id="2-사전-준비물필요-프로그램">2. 사전 준비물·필요 프로그램</h2>
 <table>
-<thead><tr><th>준비물</th><th>왜 필요한가</th><th>확인 명령(복붙)</th><th>없으면 설치</th></tr></thead>
+<thead>
+<tr>
+<th>준비물</th>
+<th>왜 필요한가</th>
+<th>확인 명령(복붙)</th>
+<th>없으면 설치</th>
+</tr>
+</thead>
 <tbody>
-<tr><td><strong>Node.js 22 이상</strong></td><td>SeoMedic의 진단 엔진이 Node.js로 만들어져 있습니다</td><td><code>node -v</code></td><td>https://nodejs.org (LTS 버전 다운로드)</td></tr>
-<tr><td><strong>Claude Code</strong></td><td>이 플러그인이 설치되는 프로그램 자체입니다</td><td><code>claude --version</code></td><td>https://claude.com/claude-code</td></tr>
-<tr><td><strong>git</strong></td><td>마켓플레이스 등록·업데이트, 로컬 수정 기능(<code>/seo-fix</code>)에 사용</td><td><code>git --version</code></td><td>https://git-scm.com</td></tr>
-<tr><td><strong>인터넷 연결</strong></td><td>페이지 진단(크롤)과 최초 설치에 필요</td><td>-</td><td>-</td></tr>
-<tr><td><strong>디스크 여유 공간 500MB 이상</strong></td><td>브라우저 엔진(Chromium) 자동 설치 때문</td><td>-</td><td>-</td></tr>
-<tr><td>(선택) <strong>GitHub 계정 + Personal Access Token</strong></td><td>GitHub 저장소 대상 자동 수정 제안 기능을 쓸 때만 필요</td><td>-</td><td>아래 5번 "GitHub 저장소 절차" 참고</td></tr>
-</tbody></table>
+<tr>
+<td><strong>Node.js 22 이상</strong></td>
+<td>SeoMedic의 진단 엔진이 Node.js로 만들어져 있습니다</td>
+<td><code>node -v</code></td>
+<td><a href="https://nodejs.org">https://nodejs.org</a> (LTS 버전 다운로드)</td>
+</tr>
+<tr>
+<td><strong>Claude Code</strong></td>
+<td>이 플러그인이 설치되는 프로그램 자체입니다</td>
+<td><code>claude --version</code></td>
+<td><a href="https://claude.com/claude-code">https://claude.com/claude-code</a></td>
+</tr>
+<tr>
+<td><strong>git</strong></td>
+<td>마켓플레이스 등록·업데이트, 로컬 수정 기능(<code>/seo-fix</code>)에 사용</td>
+<td><code>git --version</code></td>
+<td><a href="https://git-scm.com">https://git-scm.com</a></td>
+</tr>
+<tr>
+<td><strong>인터넷 연결</strong></td>
+<td>페이지 진단(크롤)과 최초 설치에 필요</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td><strong>디스크 여유 공간 500MB 이상</strong></td>
+<td>브라우저 엔진(Chromium) 자동 설치 때문</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>(선택) <strong>GitHub 계정 + Personal Access Token</strong></td>
+<td>GitHub 저장소 대상 자동 수정 제안 기능을 쓸 때만 필요</td>
+<td>-</td>
+<td>아래 5번 "GitHub 저장소 절차" 참고</td>
+</tr>
+</tbody>
+</table>
 <blockquote>
 <p>"명령 실행"이 처음이신 분: Windows는 <code>PowerShell</code>(시작 메뉴에서 검색), Mac/Linux는 <code>터미널(Terminal)</code>을 여신 뒤 위 명령을 그대로 입력하고 Enter를 누르시면 됩니다.</p>
 </blockquote>
@@ -152,7 +190,9 @@
 <p>설치가 잘 됐는지 확인:</p>
 <pre><code>/plugin list</code></pre>
 <p>목록에 <code>seomedic</code>이 "enabled" 상태로 보이면 성공입니다.</p>
-<p>⚠️ <strong>2026-08-10 기준 알려진 문제</strong>: 지금 이 저장소를 설치하면 일부 환경에서 <code>/reload-plugins</code> 실행 시 "2 errors during load"가 뜨고 <code>/seo-audit</code> 등 명령어가 아예 안 보일 수 있습니다. 원인은 전부 파악됐고 수정도 완료돼 있으나, 아직 이 저장소의 <code>master</code>(기본) 브랜치에 <strong>병합되기 전</strong> 상태입니다(자세한 내용은 8번 항목과 <code>CHECKPOINT.md</code>의 "M9 이후 재발견" 참고). 이 문제를 겪으신다면 저장소 관리자에게 문의해주세요.</p>
+<blockquote>
+<p><strong>참고</strong>: 과거(2026-08-10 무렵) 일부 환경에서 <code>/reload-plugins</code> 실행 시 "2 errors during load"가 뜨고 <code>/seo-audit</code> 등 명령어가 안 보이던 문제가 있었습니다. 원인 2가지(플러그인 버전 번호 미갱신으로 인한 설치 캐시 문제, 빌드 산출물 재생성 누락) 모두 확인해 수정했고, 이 저장소의 <code>master</code>(기본) 브랜치에 이미 반영돼 있습니다(경위는 <code>CHECKPOINT.md</code>의 "M9 이후 재발견" 항목 참고). 지금 새로 설치하신다면 이 문제를 겪지 않습니다.</p>
+</blockquote>
 <h2 id="4-빠른-시작5분">4. 빠른 시작(5분)</h2>
 <p>Claude Code 대화창에 아래처럼 입력하세요(원하는 사이트 주소로 바꾸세요):</p>
 <pre><code>/seo-audit https://example.com</code></pre>
@@ -162,57 +202,84 @@
 <li>문제가 하나도 없으면 "위반 사항 없음"이라고 나옵니다.</li>
 </ul>
 <h2 id="5-실행사용작동-방법">5. 실행·사용·작동 방법</h2>
-<h3 id="seo-audit-진단하기"><code>/seo-audit</code> — 진단하기</h3>
+<h3 id="seo-audit--진단하기"><code>/seo-audit</code> — 진단하기</h3>
 <pre><code>/seo-audit https://내사이트.com</code></pre>
 <p>페이지를 실제로 열어보고(크롤+렌더링) 검색엔진 관점에서 문제가 있는지 확인합니다. <strong>어떤 파일도 수정하지 않습니다.</strong> 진단하려는 사이트가 본인 소유이거나 진단 권한이 있는지 먼저 확인해달라고 물어봅니다.</p>
 <h3 id="베이스라인-저장하기-회귀-비교의-기준점">베이스라인 저장하기 (회귀 비교의 기준점)</h3>
 <p>audit을 실행해 결과를 확인한 뒤, "이 상태를 기준으로 저장해줘"라고 요청하면 <code>seomedic_save_baseline</code>이 호출됩니다. <strong>자동으로 저장되지 않습니다</strong> — 실수로 잘못된 상태가 기준이 되는 걸 막기 위해 항상 명시적으로 요청해야 합니다.</p>
-<h3 id="seo-check-회귀원복-확인하기"><code>/seo-check</code> — 회귀(원복) 확인하기</h3>
+<h3 id="seo-check--회귀원복-확인하기"><code>/seo-check</code> — 회귀(원복) 확인하기</h3>
 <pre><code>/seo-check https://내사이트.com</code></pre>
 <p>저장해둔 베이스라인과 지금 상태를 비교해 "예전엔 없던 문제가 다시 생겼는지" 알려줍니다. 베이스라인이 없으면 먼저 진단→저장을 안내합니다.</p>
-<h3 id="seo-fix-로컬-nextjs-프로젝트-자동-수정하기"><code>/seo-fix</code> — 로컬 Next.js 프로젝트 자동 수정하기</h3>
+<h3 id="seo-fix--로컬-nextjs-프로젝트-자동-수정하기"><code>/seo-fix</code> — 로컬 Next.js 프로젝트 자동 수정하기</h3>
 <pre><code>/seo-fix ./내-nextjs-프로젝트-폴더</code></pre>
 <p><strong>Next.js 프로젝트 폴더만</strong> 지원합니다(다른 프레임워크는 아직 미지원). 동작 순서:</p>
-<p class="ol-item"><strong>1.</strong> <strong>계획(dry-run)</strong>: 로컬에서 잠깐 서버를 띄워 진단하고, 아직 어떤 파일도 고치지 않은 채 "이렇게 고칠 수 있어요"라는 계획만 보여줍니다.</p>
+<ol type="1">
+<li><strong>계획(dry-run)</strong>: 로컬에서 잠깐 서버를 띄워 진단하고, 아직 어떤 파일도 고치지 않은 채 "이렇게 고칠 수 있어요"라는 계획만 보여줍니다.
 <ul>
 <li><strong>"없는 것 추가"</strong>(예: sitemap에 빠진 페이지 추가)는 자동으로 계획됩니다.</li>
 <li><strong>검색 결과 표시에 영향을 주는 변경</strong>(canonical·robots·sitemap 구조 등)은 반드시 <strong>승인</strong>해야만 적용됩니다 — diff(변경 내용)를 먼저 보여드리고, 승인/거부 의사를 여쭤봅니다.</li>
-</ul>
-<p class="ol-item"><strong>2.</strong> <strong>적용</strong>: 승인이 끝나면 실제로 파일에 반영하고, 곧바로 <code>next build</code>를 다시 돌려 빌드가 여전히 통과하는지 확인합니다. <strong>빌드가 실패하면 자동으로 원래 상태로 되돌립니다.</strong></p>
-<p class="ol-item"><strong>3.</strong> <strong>되돌리기(필요시)</strong>: 적용된 수정이 마음에 안 들면 "되돌려줘"라고 요청하면 됩니다.</p>
+</ul></li>
+<li><strong>적용</strong>: 승인이 끝나면 실제로 파일에 반영하고, 곧바로 <code>next build</code>를 다시 돌려 빌드가 여전히 통과하는지 확인합니다. <strong>빌드가 실패하면 자동으로 원래 상태로 되돌립니다.</strong></li>
+<li><strong>되돌리기(필요시)</strong>: 적용된 수정이 마음에 안 들면 "되돌려줘"라고 요청하면 됩니다.</li>
+</ol>
 <p>⚠️ <strong>git 저장소여야 하고, 커밋되지 않은 변경사항이 없는(clean) 상태여야 합니다</strong> — 안전하게 되돌릴 수 있는 지점이 없으면 아예 수정을 시작하지 않습니다. 그리고 <strong>자동 수정도 실제 파일 변경입니다</strong> — 적용 후에도 커밋·배포 전에 diff를 한 번 더 검토하세요("safe하니까 무해하다"고 자동으로 가정하지 않습니다).</p>
-<h3 id="seo-fix-github-저장소-대상-자동-수정-제안pull-request-실험적"><code>/seo-fix</code> — GitHub 저장소 대상 자동 수정 제안(Pull Request) — ⚠️ 실험적</h3>
+<h3 id="seo-fix--github-저장소-대상-자동-수정-제안pull-request--warning-실험적"><code>/seo-fix</code> — GitHub 저장소 대상 자동 수정 제안(Pull Request) — ⚠️ 실험적</h3>
 <pre><code>/seo-fix https://github.com/소유자/저장소</code></pre>
-<p>로컬 폴더 대신 <strong>GitHub 저장소 주소</strong>를 넣으면, 그 저장소를 임시로 복제(clone)해 같은 진단·수정 로직을 실행한 뒤, 결과를 <strong>새 브랜치 + Pull Request(변경 제안)</strong>로 제출합니다. 자세한 단계는 아래를 참고하세요.</p>
-<p class="ol-item"><strong>1.</strong> <strong>GitHub Personal Access Token(개인용 접근 토큰) 준비</strong></p>
+<p>로컬 폴더 대신 <strong>GitHub 저장소 주소</strong>를 넣으면, 그 저장소를 임시로 복제(clone)해 같은 진단·수정 로직을 실행한 뒤, 결과를 <strong>새 브랜치 + Pull Request(변경 제안)</strong> 형태로 제출합니다. 자세한 단계는 아래를 참고하세요.</p>
+<ol type="1">
+<li><strong>GitHub Personal Access Token(개인용 접근 토큰) 준비</strong>
 <ul>
 <li><code>https://github.com/settings/personal-access-tokens/new</code> 접속 → 로그인</li>
 <li><strong>Repository access</strong>: "Only select repositories" 선택 → 대상 저장소 선택</li>
 <li><strong>Repository permissions</strong>: <code>Contents</code> → Read and write, <code>Pull requests</code> → Read and write 로 설정 (반드시 이 두 가지를 각각 명시적으로 추가해야 합니다 — 저장소만 선택하고 권한을 안 넣으면 작동하지 않습니다)</li>
 <li><strong>Generate token</strong> 클릭 → 표시되는 토큰 값을 복사(한 번만 보여줍니다)</li>
-</ul>
-<p class="ol-item"><strong>2.</strong> <strong>⚠️ 토큰 값을 Claude Code 대화창에 절대 붙여넣지 마세요.</strong> 아래처럼 컴퓨터에만 등록합니다.</p>
+</ul></li>
+<li><strong>⚠️ 토큰 값을 Claude Code 대화창에 절대 붙여넣지 마세요.</strong> 아래처럼 컴퓨터에만 등록합니다.
 <ul>
 <li>Windows(PowerShell): <code>setx SEOMEDIC_GITHUB_TOKEN "복사한토큰값"</code></li>
 <li>Mac/Linux(터미널, 셸 설정파일에 추가 권장): <code>export SEOMEDIC_GITHUB_TOKEN="복사한토큰값"</code></li>
 <li><strong>등록 후 Claude Code를 완전히 종료했다가 다시 실행</strong>해야 합니다(설치 직후와 동일한 이유 — 이미 켜져 있는 프로그램은 새로 등록한 값을 모릅니다).</li>
-</ul>
-<p class="ol-item"><strong>3.</strong> Claude Code 대화창에 <code>/seo-fix https://github.com/소유자/저장소</code> 입력</p>
-<p class="ol-item"><strong>4.</strong> <strong>한 번의 호출로 진단→"없는 것 추가" 자동 적용→Pull Request 생성까지 전부 진행됩니다</strong> — 로컬 폴더 모드와 달리 중간에 대화형으로 승인받는 단계가 없습니다(한 번에 끝나는 구조라 기술적으로 불가능). 그래서 <strong>검색 결과 표시에 영향을 주는 항목은 자동으로 적용되지 않고, "승인이 필요해 적용 안 함" 목록으로만 보고됩니다.</strong></p>
-<p class="ol-item"><strong>5.</strong> 결과에 Pull Request 링크가 나오면, <strong>저장소 관리자가 직접 내용을 검토한 뒤 병합 여부를 결정</strong>해야 합니다 — 자동으로 병합되지 않습니다.</p>
+</ul></li>
+<li>Claude Code 대화창에 <code>/seo-fix https://github.com/소유자/저장소</code> 입력</li>
+<li><strong>한 번의 호출로 진단→"없는 것 추가" 자동 적용→Pull Request 생성까지 전부 진행됩니다</strong> — 로컬 폴더 모드와 달리 중간에 대화형으로 승인받는 단계가 없습니다(한 번에 끝나는 구조라 기술적으로 불가능). 그래서 <strong>검색 결과 표시에 영향을 주는 항목은 자동으로 적용되지 않고, "승인이 필요해 적용 안 함" 목록으로만 보고됩니다.</strong></li>
+<li>결과에 Pull Request 링크가 나오면, <strong>저장소 관리자가 직접 내용을 검토한 뒤 병합 여부를 결정</strong>해야 합니다 — 자동으로 병합되지 않습니다.</li>
+</ol>
 <p><strong>절대로 하지 않는 것</strong>: 기본 브랜치(main/master)에 직접 반영, 강제 push(force-push), 자동 병합(merge). 항상 새 브랜치 + Pull Request로만 제안합니다(코드 구조상 강제 push 기능 자체가 없습니다).</p>
 <blockquote>
 <p>⚠️ <strong>실험적 기능 정확한 현재 상태</strong>: "내가 소유한 저장소"에 브랜치+Pull Request를 만드는 흐름은 실제 GitHub 환경에서 실행해 정상 작동을 확인했습니다. "내 소유가 아닌 저장소를 복제(fork)해서 제안하는 흐름"은 fork 생성과 복제까지는 실제 GitHub 환경에서 검증했습니다(실제로 fork 저장소가 만들어지는 것까지 확인함). 다만 그 뒤 Pull Request를 실제로 만드는 마지막 단계까지는 아직 확인하지 못했습니다(검증에 사용한 테스트 저장소에 Next.js 프로젝트 파일이 없어 그 앞 단계에서 멈췄습니다). 사용 전 이 사실을 알고 계셔야 하며, 실행 시에도 이 안내가 다시 표시됩니다.</p>
 </blockquote>
 <h2 id="6-명령어-레퍼런스">6. 명령어 레퍼런스</h2>
 <table>
-<thead><tr><th>명령어</th><th>설명</th><th>참고 옵션(자연어로 요청 가능)</th></tr></thead>
+<thead>
+<tr>
+<th>명령어</th>
+<th>설명</th>
+<th>참고 옵션(자연어로 요청 가능)</th>
+</tr>
+</thead>
 <tbody>
-<tr><td><code>/seo-audit &lt;url&gt;</code></td><td>URL 진단(분석 전용)</td><td>사이트 전체 크롤 여부, 최대 페이지 수(기본 200)·깊이(기본 3)·초당 요청수(기본 1)</td></tr>
-<tr><td><code>/seo-check &lt;url&gt;</code></td><td>베이스라인 대비 회귀 확인</td><td>-</td></tr>
-<tr><td><code>/seo-fix &lt;로컬폴더&gt;</code></td><td>로컬 Next.js 프로젝트 자동 수정(승인형)</td><td>승인/거부는 대화로 진행</td></tr>
-<tr><td><code>/seo-fix &lt;GitHub 저장소 주소&gt;</code></td><td>GitHub 저장소 대상 자동 수정 제안(PR, 실험적)</td><td><code>SEOMEDIC_GITHUB_TOKEN</code> 환경변수 필요</td></tr>
-</tbody></table>
+<tr>
+<td><code>/seo-audit &lt;url&gt;</code></td>
+<td>URL 진단(분석 전용)</td>
+<td>사이트 전체 크롤 여부, 최대 페이지 수(기본 200)·깊이(기본 3)·초당 요청수(기본 1)</td>
+</tr>
+<tr>
+<td><code>/seo-check &lt;url&gt;</code></td>
+<td>베이스라인 대비 회귀 확인</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>/seo-fix &lt;로컬폴더&gt;</code></td>
+<td>로컬 Next.js 프로젝트 자동 수정(승인형)</td>
+<td>승인/거부는 대화로 진행</td>
+</tr>
+<tr>
+<td><code>/seo-fix &lt;GitHub 저장소 주소&gt;</code></td>
+<td>GitHub 저장소 대상 자동 수정 제안(PR, 실험적)</td>
+<td><code>SEOMEDIC_GITHUB_TOKEN</code> 환경변수 필요</td>
+</tr>
+</tbody>
+</table>
 <blockquote>
 <p>현재 버전은 옵션을 <code>--플래그</code> 형태가 아니라 <strong>대화로 자연어 요청</strong>하는 방식입니다(예: "사이트 전체를 depth 2까지만 돌려줘"). 별도 커맨드라인 실행 파일은 이번 버전에 포함되지 않았습니다.</p>
 </blockquote>
@@ -226,13 +293,13 @@
      │                     Markdown 리포트 확인
      │                     (심각도순 위반 목록 + Core Web Vitals)
      ▼
-"베이스라인으로 저장해줘" 요청
+&quot;베이스라인으로 저장해줘&quot; 요청
      │
      ▼
 (시간이 지난 뒤) /seo-check https://... 재실행
      │
      ▼
-원복(회귀) 있으면 경고 / 없으면 "원복된 항목 없음"
+원복(회귀) 있으면 경고 / 없으면 &quot;원복된 항목 없음&quot;
 
 (선택) Next.js 프로젝트를 가지고 있다면:
      │
@@ -245,58 +312,90 @@
 <h2 id="8-업데이트-내용-요약">8. 업데이트 내용 요약</h2>
 <p>이 프로젝트는 위험이 큰 기능(실제 파일 수정)을 단계적으로 나눠 만들었습니다. 항목을 눌러 펼치면 자세한 내용을 볼 수 있습니다.</p>
 <details>
-<summary>✅ Phase 1 — URL 진단 + 회귀(원복) 감지 (완료)</summary>
+<summary><strong>✅ Phase 1 — URL 진단 + 회귀(원복) 감지 (완료)</strong></summary>
+
 <p>크롤+렌더링+Core Web Vitals 측정, 그리고 회귀(원복) 감지 기능입니다. 실제 라이브 사이트를 대상으로 처음부터 끝까지(end-to-end) 실제 실행으로 검증했습니다.</p>
 </details>
+
 <details>
-<summary>✅ Phase 1.5a — 로컬 Next.js 프로젝트 자동 수정 (완료·실제 실행으로 검증)</summary>
+<summary><strong>✅ Phase 1.5a — 로컬 Next.js 프로젝트 자동 수정 (완료·실제 실행으로 검증)</strong></summary>
+
 <p>"없는 것만 추가"(add_safe)하는 안전한 수정은 자동으로, 검색 결과 표시에 영향을 주는 변경(gated)은 사용자 승인 후에만 적용됩니다. 적용 후 빌드 재검증과, 빌드 실패 시 자동 롤백까지 실제 실행으로 확인했습니다.</p>
 </details>
+
 <details>
-<summary>🟡 Phase 1.5b — GitHub 저장소 대상 자동 수정 제안 (구현 완료·부분 검증)</summary>
+<summary><strong>🟡 Phase 1.5b — GitHub 저장소 대상 자동 수정 제안 (구현 완료·부분 검증)</strong></summary>
+
 <p>"내 저장소"에 새 브랜치 + Pull Request를 만드는 흐름은 실제 GitHub 환경에서 Pull Request 생성까지 실제로 검증했습니다. <strong>"내 소유가 아닌 저장소를 fork해서 제안하는 흐름"은 fork 생성과 복제까지는 실제 GitHub 환경에서 검증했습니다</strong>(실제로 fork 저장소가 만들어지는 것까지 확인함). 다만 그 뒤 Pull Request를 실제로 만드는 마지막 단계까지는 아직 확인하지 못했습니다(검증에 사용한 테스트 저장소에 Next.js 프로젝트 파일이 없어 그 앞 단계에서 멈췄습니다). 사용 전 14번 항목과 실행 시 안내를 꼭 확인하세요.</p>
 </details>
+
 <details>
-<summary>✅ Phase 2 Stage 1 — 구조화 데이터(JSON-LD) 탐지 (완료)</summary>
+<summary><strong>✅ Phase 2 Stage 1 — 구조화 데이터(JSON-LD) 탐지 (완료)</strong></summary>
+
 <p>페이지에 구조화 데이터(JSON-LD, 검색엔진이 콘텐츠를 더 정확히 이해하도록 돕는 특수 표시)가 없거나 형식이 깨져 있는지 자동으로 찾아 리포트에 알려줍니다. <strong>탐지만 하고 자동으로 고쳐주지는 않습니다</strong>(값을 새로 만들어 넣는 건 위험할 수 있어 의도적으로 제외했습니다).</p>
 </details>
+
 <details>
-<summary>✅ Phase 2 Stage 2 — Open Graph(소셜 공유 미리보기) 탐지 + 일부 자동 수정 (완료)</summary>
+<summary><strong>✅ Phase 2 Stage 2 — Open Graph(소셜 공유 미리보기) 탐지 + 일부 자동 수정 (완료)</strong></summary>
+
 <p>소셜 미디어(카카오톡·페이스북 등)에 링크를 공유했을 때 보이는 제목·주소(Open Graph 태그)가 없는지 확인합니다. 그중 <strong>제목과 주소는 이미 페이지에 있는 실제 값을 그대로 복사하는 것</strong>이라 안전해서, 승인을 거쳐 자동으로 채워드릴 수 있습니다(설명 문구는 새로운 문장을 만들어야 해서 자동 수정 대상에서 제외했습니다).</p>
 </details>
+
 <details>
-<summary>✅ Phase 2 Stage 3 — AI 크롤러 정책(GEO) 탐지 (완료)</summary>
+<summary><strong>✅ Phase 2 Stage 3 — AI 크롤러 정책(GEO) 탐지 (완료)</strong></summary>
+
 <p>ChatGPT·Claude 등 AI 검색·AI 학습에 쓰이는 크롤러(GPTBot·ClaudeBot 등 11종)가 이 사이트의 <code>robots.txt</code>에서 허용되는지 차단되는지를 확인해 리포트에 보여줍니다. <strong>탐지만 하고 "이렇게 바꾸세요"라는 정책 권고는 하지 않습니다</strong>(허용·차단 중 어느 쪽이 맞는지는 사이트 운영자의 정책 판단 영역이라, 사실만 중립적으로 알려드립니다).</p>
 </details>
+
 <details>
-<summary>✅ Phase 2 Stage 4 — 콘텐츠 기본 요소(제목·제목태그·이미지 설명) 탐지 (완료)</summary>
-<p>검색엔진이 페이지 내용을 이해하는 데 가장 기본이 되는 요소들을 확인합니다: 페이지 제목(<code>&lt;title&gt;</code>)이 없는지, 핵심 제목 태그(<code>&lt;h1&gt;</code>)가 없거나 여러 개인지, 이미지에 설명(alt 텍스트)이 빠져 있는지를 찾아 리포트에 알려줍니다. <strong>탐지만 하고 자동으로 고쳐주지는 않습니다</strong>(제목·이미지 설명은 페이지마다 내용이 달라 임의로 만들어 채우면 오히려 부정확해질 수 있어 의도적으로 제외했습니다).</p>
+<summary><strong>🔧 2026-07-06 — 품질 자동검증(CI) 도입 + 실제 결함 발견·수정</strong></summary>
+
+<p>Windows·Mac·Linux 3개 운영체제 전부에서 자동으로 빌드와 테스트가 통과하는지 확인하는 절차(CI)를 새로 만들었습니다(2026-07-06 당시 260개였던 테스트는 이후 기능이 계속 늘어 <strong>현재 553개</strong>입니다 — 아래 항목들 참고). 그 과정에서 지금까지 Windows에서만 개발·확인해와서 미처 몰랐던 실제 문제 몇 가지를 찾아 고쳤습니다(예: GitHub 자동 수정 기능이 Mac·Linux 환경에서 내부적으로 필요한 프로그램 경로를 못 찾던 문제). 지금은 3개 운영체제 모두에서 빌드·테스트 통과가 자동으로 확인되지만, <strong>사람이 Mac·Linux에서 직접 명령을 실행해보는 수동 검증까지 마친 것은 아닙니다</strong> — 자동 검증으로 위험을 낮춘 것이지, 완전히 없앤 것은 아닙니다.</p>
 </details>
+
 <details>
-<summary>✅ Phase 2 Stage 5 — 상품(Product) 구조화 데이터 필수 항목 검증 + Q&amp;A 구조 탐지 (완료)</summary>
-<p>두 가지를 추가로 확인합니다: (1) 상품 페이지의 구조화 데이터(JSON-LD)에 Google이 요구하는 필수 항목(상품명, 그리고 후기·평점·가격 중 최소 하나)이 빠져 있는지, (2) 자주 묻는 질문(Q&amp;A) 형태의 구조화 데이터가 있는지. <strong>둘 다 탐지만 하며, 내용을 새로 만들어 채워 넣지 않습니다</strong>(실제와 다른 내용을 자동 생성하면 오히려 신뢰도를 해칠 수 있어서입니다). Q&amp;A 구조를 추가한다고 AI 검색 노출이 보장되는 것도 아니라는 점도 함께 안내합니다.</p>
+<summary><strong>✅ Phase 2 Stage 4 — 콘텐츠 구조(제목·소제목·이미지 설명) 탐지 + Core Web Vitals 3종 완결 (완료)</strong></summary>
+
+<p>페이지에 제목(title)이 없거나, 소제목(H1)이 아예 없거나 반대로 여러 개 중복돼 있거나, 이미지에 대체 텍스트(alt — 시각장애인용 화면낭독기와 검색엔진이 이미지 내용을 이해하는 데 쓰이는 설명)가 빠져 있는지 자동으로 찾아 리포트에 알려줍니다. 같은 시점에 Core Web Vitals(속도 지표) 중 마지막으로 남아 있던 TBT(체감 반응성 지표 — 실제 INP는 사용자의 실제 클릭이 있어야 측정 가능해 자동 진단에서는 그 근사치로 이 지표를 씁니다) 임계값 규칙도 추가되어, 속도 지표 3종(LCP·CLS·TBT)이 전부 갖춰졌습니다. <strong>탐지만 하고 자동으로 고쳐주지는 않습니다</strong>(값을 새로 만들어 넣는 게 아니라 "있고 없고"만 확인하는 항목들이라, 자동 수정보다 사람이 직접 채우는 게 맞다고 판단했습니다). ⚠️ 페이지 제목만 이후 예외적으로 부분 자동수정이 추가됐습니다 — 아래 "페이지 제목 자동 채우기" 항목 참고.</p>
 </details>
+
 <details>
-<summary>🔧 2026-07-06 — 품질 자동검증(CI) 도입 + 실제 결함 발견·수정</summary>
-<p>Windows·Mac·Linux 3개 운영체제 전부에서 자동으로 빌드와 테스트가 통과하는지 확인하는 절차(CI)를 새로 만들었습니다(2026-07-06 당시 260개였던 테스트는 이후 기능이 계속 늘어 <strong>현재 427개</strong>입니다 — 아래 항목들 참고). 그 과정에서 지금까지 Windows에서만 개발·확인해와서 미처 몰랐던 실제 문제 몇 가지를 찾아 고쳤습니다(예: GitHub 자동 수정 기능이 Mac·Linux 환경에서 내부적으로 필요한 프로그램 경로를 못 찾던 문제). 지금은 3개 운영체제 모두에서 빌드·테스트 통과가 자동으로 확인되지만, <strong>사람이 Mac·Linux에서 직접 명령을 실행해보는 수동 검증까지 마친 것은 아닙니다</strong> — 자동 검증으로 위험을 낮춘 것이지, 완전히 없앤 것은 아닙니다.</p>
-</details>
-<details>
-<summary>✅ Phase 2 Stage 4 — 콘텐츠 구조(제목·소제목·이미지 설명) 탐지 + Core Web Vitals 3종 완결 (완료)</summary>
-<p>페이지에 제목(title)이 없거나, 소제목(H1)이 아예 없거나 반대로 여러 개 중복돼 있거나, 이미지에 대체 텍스트(alt — 시각장애인용 화면낭독기와 검색엔진이 이미지 내용을 이해하는 데 쓰이는 설명)가 빠져 있는지 자동으로 찾아 리포트에 알려줍니다. 같은 시점에 Core Web Vitals(속도 지표) 중 마지막으로 남아 있던 TBT(체감 반응성 지표 — 실제 INP는 사용자의 실제 클릭이 있어야 측정 가능해 자동 진단에서는 그 근사치로 이 지표를 씁니다) 임계값 규칙도 추가되어, 속도 지표 3종(LCP·CLS·TBT)이 전부 갖춰졌습니다. <strong>탐지만 하고 자동으로 고쳐주지는 않습니다</strong>(값을 새로 만들어 넣는 게 아니라 "있고 없고"만 확인하는 항목들이라, 자동 수정보다 사람이 직접 채우는 게 맞다고 판단했습니다).</p>
-</details>
-<details>
-<summary>✅ Phase 2 — Q&A 구조·JSON-LD 상품(Product) 필수 정보 검증 (완료)</summary>
+<summary><strong>✅ Phase 2 — Q&A 구조·JSON-LD 상품(Product) 필수 정보 검증 (완료)</strong></summary>
+
 <p>자주묻는질문(FAQ) 형태의 구조화 데이터가 있는지 확인합니다(AI 검색 답변에 인용되기 쉬운 형태인지 보는 용도일 뿐 <strong>AI 검색 노출을 보장하지는 않습니다</strong>). 그리고 JSON-LD로 "상품(Product)"을 표시해 둔 페이지라면, 상품명(name)과 리뷰·평점·가격 정보 중 최소 하나가 실제로 채워져 있는지 확인합니다(둘 다 없으면 검색결과에 별점·가격 같은 추가 정보가 표시될 자격을 잃을 수 있습니다). <strong>탐지만 하고 자동으로 고쳐주지는 않습니다.</strong></p>
 </details>
+
 <details>
-<summary>✅ Phase 2 — JSON-LD 상품명이 실제 페이지 내용과 일치하는지 검증("환각 0") (완료)</summary>
+<summary><strong>✅ Phase 2 — JSON-LD 상품명이 실제 페이지 내용과 일치하는지 검증("환각 0") (완료)</strong></summary>
+
 <p>JSON-LD(구조화 데이터)에 적어놓은 상품 이름이 실제로 그 페이지 화면에 나오는 글자와 일치하는지 확인합니다 — 검색엔진에 알려주는 구조화 정보가 실제 화면 내용과 다르면("환각"이라고 부릅니다) 검색엔진이 스팸으로 간주해 불이익을 줄 수 있기 때문입니다. 가격·할인 정보는 쉼표·통화 기호 등 표시 형식이 사람마다 달라 "다르다"는 판정 자체가 오히려 틀릴 위험이 커서, 검사 대상에서 의도적으로 제외했습니다(상품명만 결정론적으로 안전하게 비교 가능). <strong>탐지만 하고 자동으로 고쳐주지는 않습니다.</strong></p>
 </details>
+
 <details>
-<summary>🔴 2026-08-09~10 — 실사용자 설치 경로에서 플러그인 미작동 발견 (원인 파악·수정 완료, 병합 대기)</summary>
-<p>이 프로젝트 역사상 처음으로 실사용자가 격리 테스트 환경이 아닌 <strong>진짜 설치 경로</strong>(<code>/plugin marketplace add</code> → <code>/plugin install</code>)로 검증하다가, SEO 진단 명령어가 세션에 전혀 로드되지 않는 문제를 발견했습니다. 원인 두 가지를 모두 코드 대조로 확인했습니다: (1) 플러그인 버전 번호가 저장소 역사상 한 번도 갱신되지 않아 설치 캐시가 예전 내용을 계속 서빙하고 있었음, (2) 소스 코드는 고쳐도 실제 배포 파일(번들)에 반영하는 재생성 단계가 수동이라 최근 수정 2건이 배포 파일에 빠져 있었음. 두 원인 모두 수정을 완료해 검토 대기 중(Pull Request)이며, 아직 이 저장소의 기본 브랜치에 병합되지는 않았습니다. 자세한 진행 상황은 <code>CHECKPOINT.md</code>의 "M9 이후 재발견" 항목을 참고하세요.</p>
+<summary><strong>✅ 2026-08-09~10 — 실사용자 설치 경로에서 플러그인 미작동 발견 (원인 파악·수정·병합 완료)</strong></summary>
+
+<p>이 프로젝트 역사상 처음으로 실사용자가 격리 테스트 환경이 아닌 <strong>진짜 설치 경로</strong>(<code>/plugin marketplace add</code> → <code>/plugin install</code>)로 검증하다가, SEO 진단 명령어가 세션에 전혀 로드되지 않는 문제를 발견했습니다. 원인 두 가지를 모두 코드 대조로 확인했습니다: (1) 플러그인 버전 번호가 저장소 역사상 한 번도 갱신되지 않아 설치 캐시가 예전 내용을 계속 서빙하고 있었음, (2) 소스 코드는 고쳐도 실제 배포 파일(번들)에 반영하는 재생성 단계가 수동이라 최근 수정 2건이 배포 파일에 빠져 있었음. 두 원인 모두 수정해 이 저장소의 기본 브랜치(<code>master</code>)에 이미 병합·반영했습니다(이후 유사 재발을 막기 위해 "소스 변경 시 버전 번호·빌드 산출물을 함께 갱신"하는 절차를 15번 "배포" 항목에 명문화). 자세한 경위는 <code>CHECKPOINT.md</code>의 "M9 이후 재발견" 항목을 참고하세요.</p>
 </details>
-<p><strong>앞으로 계획된 것(아직 시작 안 함)</strong>: Google Search Console/Analytics <strong>실연동</strong>(Phase 2 — 현재는 인터페이스 골격과 가짜 클라이언트만 있으며 실제 계정 연동은 안 돼 있습니다, 사용자의 실제 Google 서비스계정 자격증명이 있어야 착수 가능), 네이버·Bing 지원(Phase 3). 이 문서는 실제로 구현·검증된 것만 다루며, 계획 단계 기능을 이미 되는 것처럼 설명하지 않습니다.</p>
+
+<details>
+<summary><strong>✅ Phase 2 — Google Search Console·Analytics 4·PageSpeed Insights 실연동 (완료)</strong></summary>
+
+<p>Google 서비스계정으로 실제 검색 성과(클릭수·노출수·평균 게재순위)와 방문자 통계(세션수·활성 사용자수), 실사용자 체감 속도 데이터(field CWV)를 가져와 리포트에 결합합니다. 셋 다 <strong>선택 기능</strong>이라 관련 환경변수를 설정하지 않으면 나머지 진단은 평소대로 진행됩니다(아래 "환경변수" 표 참고). PageSpeed Insights는 API 키 하나만 있으면 되고, Search Console·Analytics 4는 Google 서비스계정 발급이 먼저 필요합니다(<code>HUMAN_ACTION_CHECKLIST.md</code> 참고). Search Console·Analytics 4는 다른 자동 기능과 다르게 <strong>연동에 실패하면 이유를 리포트에 그대로 보여줍니다</strong> — 설정할 항목이 많아 실패 지점도 많기 때문에, 완전히 조용히 넘어가면 어디가 잘못됐는지 알 방법이 없기 때문입니다.</p>
+</details>
+
+<details>
+<summary><strong>✅ Phase 2 — 구조화 데이터(JSON-LD) 기본 자동 생성 (완료)</strong></summary>
+
+<p>사이트 전체에 구조화 데이터가 하나도 없으면(위 Stage 1 탐지 결과), 루트 레이아웃 파일에 최소한의 WebSite 정보(이미 페이지에 있는 실제 사이트 이름만 사용)를 자동으로 채워 넣도록 제안합니다. 승인이 필요한 변경이며, 새로운 문구를 지어내지 않고 이미 있는 값만 복사합니다(제목·설명 자동 생성은 여전히 하지 않습니다 — 위 Stage 4 설명과 같은 이유).</p>
+</details>
+
+<details>
+<summary><strong>✅ Phase 1.5 — 페이지 제목(title) 자동 채우기 (완료)</strong></summary>
+
+<p>페이지에 제목(<code>&lt;title&gt;</code>)이 전혀 없으면, 같은 페이지에 이미 있는 핵심 제목(<code>&lt;h1&gt;</code>) 글자를 그대로 복사해 채워 넣도록 제안합니다. 승인이 필요한 변경이며, 새로운 문구를 절대 지어내지 않습니다(문구를 새로 짓는 위험 때문에 지금까지 미뤄왔던 항목입니다 — 위 Stage 4 설명 참고). 다만 1차 범위라 페이지에 다른 metadata 설정(예: 소셜 공유 정보)이 이미 있고 제목만 빠진 경우에만 자동으로 채울 수 있고, metadata 설정 자체가 전혀 없는 페이지는 아직 제안만 합니다(다음 단계 과제로 남겨둠). 메타 설명(<code>&lt;meta name="description"&gt;</code>) 자동 채우기는 페이지 전체 글 중 어느 부분을 발췌해야 정확한지 더 신중한 설계가 필요해 이번엔 포함하지 않았습니다.</p>
+</details>
+
+<p><strong>앞으로 계획된 것(아직 시작 안 함)</strong>: 메타 설명(<code>&lt;meta name="description"&gt;</code>) 자동 채우기(부분 발췌 방식 설계 필요), 네이버·Bing 지원(Phase 3). 이 문서는 실제로 구현·검증된 것만 다루며, 계획 단계 기능을 이미 되는 것처럼 설명하지 않습니다.</p>
 <h2 id="9-보안데이터-흐름">9. 보안·데이터 흐름</h2>
 <ul>
 <li><strong><code>.seomedic/</code> 폴더에만 저장됩니다.</strong> 진단을 실행한 프로젝트 폴더 안에 SQLite 데이터베이스 파일(<code>.seomedic/seomedic.db</code>) 하나가 생기고, 여기에 진단 이력·베이스라인·회귀 기록이 저장됩니다. 이 폴더는 자동으로 git 추적에서 제외되도록 안내됩니다.</li>
@@ -328,27 +427,68 @@
 <p>플러그인(가벼운 껍데기)과 진단 엔진(무거운 실제 작업)이 분리되어 있습니다 — 마치 리모컨(플러그인)과 실제 가전제품(엔진)처럼, 리모컨은 가볍고 실제 일은 엔진이 합니다. GitHub 저장소 모드는 이 엔진이 저장소를 컴퓨터 임시 폴더에 잠깐 복제해와 로컬 수정과 동일한 로직을 실행한 뒤, 끝나면 임시 폴더를 정리합니다.</p>
 <h2 id="11-파일문서-위치">11. 파일·문서 위치</h2>
 <table>
-<thead><tr><th>무엇</th><th>어디에</th></tr></thead>
+<thead>
+<tr>
+<th>무엇</th>
+<th>어디에</th>
+</tr>
+</thead>
 <tbody>
-<tr><td>진단 결과 데이터베이스</td><td>진단을 실행한 프로젝트의 <code>./.seomedic/seomedic.db</code></td></tr>
-<tr><td>GitHub 모드의 회귀 이력 데이터베이스</td><td>사용자 홈 폴더 하위 <code>.seomedic-github-cache/</code>(저장소별로 분리 보관 — 임시 복제 폴더와 별개로, 삭제되지 않고 유지됨)</td></tr>
-<tr><td>이 플러그인 자체 소스</td><td><code>packages/plugin/</code>(설치되는 부분), <code>packages/mcp-engine/</code>(엔진)</td></tr>
-<tr><td>GitHub 연동 관련 소스</td><td><code>packages/mcp-engine/src/github/</code></td></tr>
-<tr><td>기획 문서(PRD)</td><td><code>.PRD/</code></td></tr>
-<tr><td>진행 상태·검증 기록</td><td><code>CHECKPOINT.md</code>(Phase 1), <code>CHECKPOINT_1.5.md</code>(Phase 1.5), <code>CHECKPOINT_2.md</code>(Phase 2)</td></tr>
-<tr><td>보안 정책</td><td><code>packages/plugin/SECURITY.md</code></td></tr>
-<tr><td>면책·이용조건</td><td><code>packages/plugin/DISCLAIMER.md</code></td></tr>
-<tr><td>라이선스</td><td><code>LICENSE</code>, <code>THIRD_PARTY_NOTICES.md</code></td></tr>
-<tr><td>문제 해결</td><td><code>TROUBLESHOOTING.md</code>(한국어), <code>TROUBLESHOOTING.en.md</code>(영문)</td></tr>
-<tr><td>자주 묻는 질문</td><td><code>FAQ.md</code>(한국어), <code>FAQ.en.md</code>(영문)</td></tr>
-</tbody></table>
+<tr>
+<td>진단 결과 데이터베이스</td>
+<td>진단을 실행한 프로젝트의 <code>./.seomedic/seomedic.db</code></td>
+</tr>
+<tr>
+<td>GitHub 모드의 회귀 이력 데이터베이스</td>
+<td>사용자 홈 폴더 하위 <code>.seomedic-github-cache/</code>(저장소별로 분리 보관 — 임시 복제 폴더와 별개로, 삭제되지 않고 유지됨)</td>
+</tr>
+<tr>
+<td>이 플러그인 자체 소스</td>
+<td><code>packages/plugin/</code>(설치되는 부분), <code>packages/mcp-engine/</code>(엔진)</td>
+</tr>
+<tr>
+<td>GitHub 연동 관련 소스</td>
+<td><code>packages/mcp-engine/src/github/</code></td>
+</tr>
+<tr>
+<td>기획 문서(PRD)</td>
+<td><code>.PRD/</code></td>
+</tr>
+<tr>
+<td>진행 상태·검증 기록</td>
+<td><code>CHECKPOINT.md</code>(Phase 1), <code>CHECKPOINT_1.5.md</code>(Phase 1.5), <code>CHECKPOINT_2.md</code>(Phase 2)</td>
+</tr>
+<tr>
+<td>보안 정책</td>
+<td><code>packages/plugin/SECURITY.md</code></td>
+</tr>
+<tr>
+<td>면책·이용조건</td>
+<td><code>packages/plugin/DISCLAIMER.md</code></td>
+</tr>
+<tr>
+<td>라이선스</td>
+<td><code>LICENSE</code>, <code>THIRD_PARTY_NOTICES.md</code></td>
+</tr>
+<tr>
+<td>문제 해결</td>
+<td><code>TROUBLESHOOTING.md</code>(한국어), <code>TROUBLESHOOTING.en.md</code>(영문)</td>
+</tr>
+<tr>
+<td>자주 묻는 질문</td>
+<td><code>FAQ.md</code>(한국어), <code>FAQ.en.md</code>(영문)</td>
+</tr>
+</tbody>
+</table>
 <h2 id="12-문제오류-대처">12. 문제/오류 대처</h2>
-<p>자주 발생하는 문제와 해결책은 <strong><a href="./TROUBLESHOOTING.md" target="_blank" rel="noopener noreferrer">TROUBLESHOOTING.md</a></strong>에 증상→원인→해결 순서로 정리되어 있습니다. 가장 흔한 것 3가지만 먼저 안내합니다:</p>
-<p class="ol-item"><strong>1.</strong> <strong>설치했는데 <code>/seo-audit</code>이 안 보여요</strong> → Claude Code를 완전히 종료 후 재시작하셨나요? (새 창만으로는 부족합니다)</p>
-<p class="ol-item"><strong>2.</strong> <strong>첫 실행이 너무 오래 걸려요</strong> → 브라우저 엔진(Chromium) 자동 설치 중일 수 있습니다(수백 MB, 1~2분 소요).</p>
-<p class="ol-item"><strong>3.</strong> <strong>"결과가 비어 있습니다"</strong> → 대상 사이트가 로봇 차단(robots.txt) 또는 방화벽으로 접근을 막고 있을 수 있습니다.</p>
+<p>자주 발생하는 문제와 해결책은 <strong><a href="./TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></strong> 문서에 증상→원인→해결 순서로 정리되어 있습니다. 가장 흔한 것 3가지만 먼저 안내합니다:</p>
+<ol type="1">
+<li><strong>설치했는데 <code>/seo-audit</code>이 안 보여요</strong> → Claude Code를 완전히 종료 후 재시작하셨나요? (새 창만으로는 부족합니다)</li>
+<li><strong>첫 실행이 너무 오래 걸려요</strong> → 브라우저 엔진(Chromium) 자동 설치 중일 수 있습니다(수백 MB, 1~2분 소요).</li>
+<li><strong>"결과가 비어 있습니다"</strong> → 대상 사이트가 로봇 차단(robots.txt) 또는 방화벽으로 접근을 막고 있을 수 있습니다.</li>
+</ol>
 <h2 id="13-faq">13. FAQ</h2>
-<p>자주 묻는 질문은 <strong><a href="./FAQ.md" target="_blank" rel="noopener noreferrer">FAQ.md</a></strong>에 정리되어 있습니다.</p>
+<p>자주 묻는 질문은 <strong><a href="./FAQ.html">FAQ.md</a></strong> 문서에 정리되어 있습니다.</p>
 <h2 id="14-법률저작권라이선스상업적-용도">14. 법률·저작권·라이선스·상업적 용도</h2>
 <p><strong>엄격하게, 축소·과장 없이 안내드립니다.</strong></p>
 <h3 id="라이선스">라이선스</h3>
@@ -363,7 +503,7 @@
 <li>소스 코드 수정·재배포(Apache License 2.0 조건 준수 하 — 원본 고지문·NOTICE 유지, 변경 사실 명시)</li>
 <li>상업적 사용(Apache License 2.0 조건 하)</li>
 </ul>
-<h3 id="할-수-없는-것-반드시-주의할-것">할 수 없는 것 / 반드시 주의할 것</h3>
+<h3 id="할-수-없는-것--반드시-주의할-것">할 수 없는 것 / 반드시 주의할 것</h3>
 <ul>
 <li><strong>본인 소유가 아니거나 명시적 권한이 없는 사이트·저장소를 무단으로 진단·수정하는 것</strong> — 법적 책임은 전적으로 사용자에게 있습니다. SeoMedic은 실행 전 권한 여부를 항상 확인하도록 설계돼 있지만, 확인 질문에 사실과 다르게 답하는 것까지 막을 수는 없습니다.</li>
 <li><strong>"검색 1위 보장", "AI 검색 노출 보장" 같은 과장된 주장을 이 도구의 결과를 근거로 하는 것</strong> — 아래 무보증 조항 참고.</li>
@@ -399,7 +539,7 @@
 │   │   ├── hooks/                     # 세션 시작 시 자동 실행되는 훅
 │   │   ├── scripts/                   # 훅이 실행하는 스크립트(의존성 자동설치 등)
 │   │   ├── skills/                    # Claude Code 스킬 정의
-│   │   └── mcp-server/dist/           # 진단 엔진의 빌드 산출물(커밋됨, 아래 "배포" 참고)
+│   │   └── mcp-server/dist/           # 진단 엔진의 빌드 산출물(커밋됨, 아래 &quot;배포&quot; 참고)
 │   └── mcp-engine/                    # 실제 진단 엔진 소스(형제 폴더라 마켓플레이스가 직접 못 읽음)
 │       ├── src/                       # TypeScript 소스
 │       ├── test/                      # vitest 테스트
@@ -408,19 +548,16 @@
 ├── README.md / README.en.md           # 이 문서
 ├── CHECKPOINT*.md                     # Phase별 진행·검증 기록
 ├── LICENSE, THIRD_PARTY_NOTICES.md
-└── TROUBLESHOOTING*.md, FAQ*.md
-</code></pre>
+└── TROUBLESHOOTING*.md, FAQ*.md</code></pre>
 <h3 id="빌드">빌드</h3>
 <pre><code>npm run build       # packages/mcp-engine를 tsc로 컴파일(dist/ 생성)
-npm run typecheck   # 테스트 파일 포함 전체 타입 검사(빌드와 별개)
-</code></pre>
+npm run typecheck   # 테스트 파일 포함 전체 타입 검사(빌드와 별개)</code></pre>
 <h3 id="테스트">테스트</h3>
 <pre><code>npm test        # packages/mcp-engine의 vitest 전체 실행(실제 네트워크로 example.com에 접속하는 스모크 테스트 1건 포함 — 인터넷 연결 필요)
-npm run audit   # 고위험 취약점만 점검(npm audit --audit-level=high)
-</code></pre>
+npm run audit   # 고위험 취약점만 점검(npm audit --audit-level=high)</code></pre>
 <h3 id="배포--새-버전을-실사용자에게-반영하는-절차">배포 — 새 버전을 실사용자에게 반영하는 절차</h3>
 <p>이 프로젝트는 npm 패키지나 별도 CLI 실행 파일을 배포하지 않습니다(별도 커맨드라인 도구는 아직 없음, 6번 항목 참고). 대신 <strong>Claude Code 마켓플레이스가 이 GitHub 저장소 자체를 직접 읽어갑니다.</strong> 그래서 "배포"는 곧 "저장소의 기본 브랜치(<code>master</code>)에 정확한 내용을 병합하는 것"입니다:</p>
-<ol>
+<ol type="1">
 <li><code>packages/mcp-engine/src/</code>에서 소스 수정</li>
 <li><code>cd packages/mcp-engine &amp;&amp; npm run package:plugin</code> — 빌드 후 결과물을 <code>packages/plugin/mcp-server/</code>로 재복사(⚠️ 이 단계를 잊으면 소스는 고쳤는데 실제 배포되는 파일은 안 바뀝니다 — 2026-08-10에 실제로 발생했던 문제, <code>CHECKPOINT.md</code> 참고)</li>
 <li><code>packages/plugin/.claude-plugin/plugin.json</code>의 <code>version</code> 필드를 올림(⚠️ 이것도 잊으면 이미 설치한 사용자의 캐시가 갱신되지 않습니다 — 역시 <code>CHECKPOINT.md</code> 참고)</li>
@@ -428,17 +565,49 @@ npm run audit   # 고위험 취약점만 점검(npm audit --audit-level=high)
 </ol>
 <h3 id="환경변수">환경변수</h3>
 <table>
-<thead><tr><th>변수명</th><th>필수 여부</th><th>용도</th></tr></thead>
-<tbody><tr><td><code>SEOMEDIC_GITHUB_TOKEN</code></td><td>선택(GitHub 저장소 자동 수정 기능을 쓸 때만)</td><td>GitHub Personal Access Token. 코드 어디에도 하드코딩되지 않으며, 사용자 컴퓨터의 환경변수로만 읽습니다(5번 항목 참고)</td></tr></tbody>
+<thead>
+<tr>
+<th>변수명</th>
+<th>필수 여부</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SEOMEDIC_GITHUB_TOKEN</code></td>
+<td>선택(GitHub 저장소 자동 수정 기능을 쓸 때만)</td>
+<td>GitHub Personal Access Token. 코드 어디에도 하드코딩되지 않으며, 사용자 컴퓨터의 환경변수로만 읽습니다(5번 항목 참고)</td>
+</tr>
+<tr>
+<td><code>PAGESPEED_API_KEY</code></td>
+<td>선택(PageSpeed Insights 실사용자 속도 데이터를 리포트에 넣고 싶을 때만)</td>
+<td>Google Cloud Console에서 발급하는 PageSpeed Insights API 키. 속성 소유권 불필요(공개 API)</td>
+</tr>
+<tr>
+<td><code>GSC_SERVICE_ACCOUNT_PATH</code></td>
+<td>선택(Search Console·Analytics 4 연동을 쓸 때만, 둘이 공용)</td>
+<td>Google 서비스계정 JSON 키 파일의 <strong>경로</strong>(파일 내용 자체가 아님). 값이 코드·로그·에러 메시지에 그대로 노출되지 않습니다</td>
+</tr>
+<tr>
+<td><code>GSC_PROPERTY_SCOPE</code></td>
+<td>선택(Search Console 연동을 쓸 때만)</td>
+<td>조회할 Search Console 속성(예: <code>sc-domain:example.com</code> 또는 <code>https://example.com/</code>)</td>
+</tr>
+<tr>
+<td><code>GA4_PROPERTY_ID</code></td>
+<td>선택(Analytics 4 연동을 쓸 때만)</td>
+<td>GA4 속성 ID(숫자만, <code>properties/</code> 접두사 없이)</td>
+</tr>
+</tbody>
 </table>
-<p>이 외의 환경변수는 이 프로젝트 코드에서 사용하지 않습니다(전체 소스 검색으로 확인).</p>
+<p>GSC·GA4는 관련 변수가 전부 있어야 활성화됩니다(하나만 있으면 미설정과 동일하게 취급 — 어중간한 설정이 조용히 잘못 작동하는 일을 막기 위함). 발급 절차는 <code>HUMAN_ACTION_CHECKLIST.md</code>를 참고하세요. 이 외의 환경변수는 이 프로젝트 코드에서 사용하지 않습니다(전체 소스 검색으로 확인, 2026-08-20 갱신).</p>
 <h3 id="운영-주의사항">운영 주의사항</h3>
 <ul>
 <li><code>packages/plugin/mcp-server/dist/</code>는 <code>.gitignore</code>의 일반 규칙(<code>dist/</code> 제외)에서 <strong>예외 처리되어 커밋 대상</strong>입니다 — 실수로 이 예외를 지우면 마켓플레이스 설치가 깨집니다.</li>
 <li><code>CHECKPOINT.md</code>는 이 저장소의 실제 검증 이력을 담은 문서로, 커밋 시점을 신중하게 판단해야 합니다(팀 관례에 따라 별도 관리될 수 있음).</li>
 </ul>
-<hr>
-<p>이 문서(README.md)가 설치부터 사용까지의 왕초보용 단계별 안내를 전부 담고 있습니다(별도 GUIDE 문서는 2026-08-04부로 이 문서로 통합되어 더 이상 존재하지 않습니다). 문제가 생기면 <strong><a href="./TROUBLESHOOTING.html" target="_blank" rel="noopener noreferrer">TROUBLESHOOTING.md</a></strong>, 궁금한 점은 <strong><a href="./FAQ.html" target="_blank" rel="noopener noreferrer">FAQ.md</a></strong>를 확인하세요.</p>
+<hr />
+<p>이 문서(README.md)가 설치부터 사용까지의 왕초보용 단계별 안내를 전부 담고 있습니다(별도 GUIDE 문서는 2026-08-04부로 이 문서로 통합되어 더 이상 존재하지 않습니다). 문제가 생기면 <strong><a href="./TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></strong> 문서를, 궁금한 점은 <strong><a href="./FAQ.html">FAQ.md</a></strong> 문서를 확인하세요.</p>
 
 </body>
 </html>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -63,11 +63,10 @@
   th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
   th { background: #f8fafc; font-weight: 600; }
   tr:nth-child(even) td { background: #fafafa; }
-  ul { padding-left: 1.4em; }
+  ul, ol { padding-left: 1.4em; }
   li { margin: 0.3em 0; }
+  li > ol, li > ul { margin-top: 0.4em; }
   hr { border: none; border-top: 1px solid #e5e7eb; margin: 2em 0; }
-  .ol-item { padding-left: 0.2em; }
-  .ol-item-nested { padding-left: 1.6em; }
   details {
     border: 1px solid #e2e8f0;
     border-radius: 8px;
@@ -92,28 +91,29 @@
 <h1 id="seomedic">SeoMedic</h1>
 <blockquote>
 <p>A Claude Code marketplace plugin, installable in any project. Give it a URL and it diagnoses your site's SEO/GEO (Generative Engine Optimization) health.</p>
-<p></p>
 <p><strong>Current capabilities: diagnosis + regression detection + approval-gated auto-fix for local Next.js projects + experimental GitHub-repository auto-fix proposals (Pull Requests).</strong> This document only describes what is actually implemented and working today, and clearly flags anything that is implemented but not yet fully verified.</p>
 </blockquote>
-<p>New to computers, terminals, or AI tools? Just follow the steps below in order. This document and its Korean counterpart (<strong><a href="./README.md" target="_blank" rel="noopener noreferrer">README.md</a></strong>) contain identical information — read whichever language you prefer.</p>
-<hr>
+<p>New to computers, terminals, or AI tools? Just follow the steps below in order. This document and its Korean counterpart (<strong><a href="./README.html">README.md</a></strong>) contain identical information — read whichever language you prefer.</p>
+<hr />
 <h2 id="table-of-contents">Table of Contents</h2>
-<p class="ol-item"><strong>1.</strong> <a href="#1-overview">Overview</a></p>
-<p class="ol-item"><strong>2.</strong> <a href="#2-prerequisites--required-software">Prerequisites &amp; Required Software</a></p>
-<p class="ol-item"><strong>3.</strong> <a href="#3-download--install">Download &amp; Install</a></p>
-<p class="ol-item"><strong>4.</strong> <a href="#4-quick-start-5-minutes">Quick Start (5 minutes)</a></p>
-<p class="ol-item"><strong>5.</strong> <a href="#5-running-using-and-how-it-works">Running, Using, and How It Works</a></p>
-<p class="ol-item"><strong>6.</strong> <a href="#6-command-reference">Command Reference</a></p>
-<p class="ol-item"><strong>7.</strong> <a href="#7-workflow">Workflow</a></p>
-<p class="ol-item"><strong>8.</strong> <a href="#8-whats-new-update-summary">What's New (Update Summary)</a></p>
-<p class="ol-item"><strong>9.</strong> <a href="#9-security--data-flow">Security &amp; Data Flow</a></p>
-<p class="ol-item"><strong>10.</strong> <a href="#10-architecture-simplified">Architecture (Simplified)</a></p>
-<p class="ol-item"><strong>11.</strong> <a href="#11-file--document-locations">File &amp; Document Locations</a></p>
-<p class="ol-item"><strong>12.</strong> <a href="#12-troubleshooting">Troubleshooting</a></p>
-<p class="ol-item"><strong>13.</strong> <a href="#13-faq">FAQ</a></p>
-<p class="ol-item"><strong>14.</strong> <a href="#14-legal-copyright-license-and-commercial-use">Legal, Copyright, License, and Commercial Use</a></p>
-<p class="ol-item"><strong>15.</strong> <a href="#15-developer--contributor-guide">Developer / Contributor Guide</a></p>
-<hr>
+<ol type="1">
+<li><a href="#1-overview">Overview</a></li>
+<li><a href="#2-prerequisites--required-software">Prerequisites &amp; Required Software</a></li>
+<li><a href="#3-download--install">Download &amp; Install</a></li>
+<li><a href="#4-quick-start-5-minutes">Quick Start (5 minutes)</a></li>
+<li><a href="#5-running-using-and-how-it-works">Running, Using, and How It Works</a></li>
+<li><a href="#6-command-reference">Command Reference</a></li>
+<li><a href="#7-workflow">Workflow</a></li>
+<li><a href="#8-whats-new-update-summary">What's New (Update Summary)</a></li>
+<li><a href="#9-security--data-flow">Security &amp; Data Flow</a></li>
+<li><a href="#10-architecture-simplified">Architecture (Simplified)</a></li>
+<li><a href="#11-file--document-locations">File &amp; Document Locations</a></li>
+<li><a href="#12-troubleshooting">Troubleshooting</a></li>
+<li><a href="#13-faq">FAQ</a></li>
+<li><a href="#14-legal-copyright-license-and-commercial-use">Legal, Copyright, License, and Commercial Use</a></li>
+<li><a href="#15-developer--contributor-guide">Developer / Contributor Guide</a></li>
+</ol>
+<hr />
 <h2 id="1-overview">1. Overview</h2>
 <p>SeoMedic automatically checks whether your site (or a site you have permission to test) is in good shape for Google search and AI-answer search engines (ChatGPT, Perplexity, and similar).</p>
 <p>Think of it as a <strong>health checkup for websites</strong>: just as a doctor examines a body and reports "this part needs attention, fix it this way," SeoMedic examines web pages and reports "this part isn't visible enough to search engines, here's how to fix it." And for <strong>Next.js sites</strong>, it can go further and actually apply the fix to your code, with your approval — either in a local folder or in a GitHub repository.</p>
@@ -124,17 +124,55 @@
 <li>For <strong>Next.js projects</strong>, purely additive fixes ("add what's missing") are applied automatically; changes that affect how the site is indexed or displayed require your explicit approval before being written to disk.</li>
 <li>Beyond local folders, you can also target a <strong>GitHub repository URL</strong> and have the same fix logic run there, submitting the result as a <strong>Pull Request</strong> (experimental — see sections 8 and 14 below).</li>
 </ul>
-<h2 id="2-prerequisites-required-software">2. Prerequisites &amp; Required Software</h2>
+<h2 id="2-prerequisites--required-software">2. Prerequisites &amp; Required Software</h2>
 <table>
-<thead><tr><th>Requirement</th><th>Why it's needed</th><th>Check command</th><th>If missing</th></tr></thead>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Why it's needed</th>
+<th>Check command</th>
+<th>If missing</th>
+</tr>
+</thead>
 <tbody>
-<tr><td><strong>Node.js 22+</strong></td><td>SeoMedic's diagnostic engine is built on Node.js</td><td><code>node -v</code></td><td>https://nodejs.org (download the LTS version)</td></tr>
-<tr><td><strong>Claude Code</strong></td><td>The program this plugin installs into</td><td><code>claude --version</code></td><td>https://claude.com/claude-code</td></tr>
-<tr><td><strong>git</strong></td><td>Used for marketplace registration/updates, and required by the local-fix feature (<code>/seo-fix</code>)</td><td><code>git --version</code></td><td>https://git-scm.com</td></tr>
-<tr><td><strong>Internet access</strong></td><td>Needed for installation and live page diagnosis</td><td>-</td><td>-</td></tr>
-<tr><td><strong>~500MB free disk space</strong></td><td>For the automatically-installed Chromium browser engine</td><td>-</td><td>-</td></tr>
-<tr><td>(Optional) <strong>GitHub account + Personal Access Token</strong></td><td>Only needed if you use the GitHub-repository auto-fix feature</td><td>-</td><td>See "GitHub repository procedure" under section 5 below</td></tr>
-</tbody></table>
+<tr>
+<td><strong>Node.js 22+</strong></td>
+<td>SeoMedic's diagnostic engine is built on Node.js</td>
+<td><code>node -v</code></td>
+<td><a href="https://nodejs.org">https://nodejs.org</a> (download the LTS version)</td>
+</tr>
+<tr>
+<td><strong>Claude Code</strong></td>
+<td>The program this plugin installs into</td>
+<td><code>claude --version</code></td>
+<td><a href="https://claude.com/claude-code">https://claude.com/claude-code</a></td>
+</tr>
+<tr>
+<td><strong>git</strong></td>
+<td>Used for marketplace registration/updates, and required by the local-fix feature (<code>/seo-fix</code>)</td>
+<td><code>git --version</code></td>
+<td><a href="https://git-scm.com">https://git-scm.com</a></td>
+</tr>
+<tr>
+<td><strong>Internet access</strong></td>
+<td>Needed for installation and live page diagnosis</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td><strong>~500MB free disk space</strong></td>
+<td>For the automatically-installed Chromium browser engine</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>(Optional) <strong>GitHub account + Personal Access Token</strong></td>
+<td>Only needed if you use the GitHub-repository auto-fix feature</td>
+<td>-</td>
+<td>See "GitHub repository procedure" under section 5 below</td>
+</tr>
+</tbody>
+</table>
 <blockquote>
 <p>First time running a terminal command? On Windows, open <code>PowerShell</code> (search for it in the Start menu); on Mac/Linux, open the <code>Terminal</code> app. Type the command exactly as shown and press Enter.</p>
 </blockquote>
@@ -142,7 +180,7 @@
 <p><strong>What should the check commands show?</strong> <code>node -v</code> should print something like <code>v22.4.0</code>, <code>git --version</code> something like <code>git version 2.43.0</code>, and <code>claude --version</code> a similar version string — any specific number is fine. If instead you see an <strong>error</strong> such as <code>'node' is not recognized as an internal or external command</code> (Windows) or <code>command not found: node</code> (Mac/Linux), that program isn't installed yet — use the "If missing" link in the table above, then <strong>open a brand-new terminal window</strong> and try again (a window that was already open won't know about a program you just installed).</p>
 <p><strong>What exactly is Node.js?</strong> It's a tool that lets a computer run programs written in JavaScript, a programming language. SeoMedic's internal diagnostic engine is built with it, so it's required — you'll never need to write any code yourself.</p>
 </blockquote>
-<h2 id="3-download-install">3. Download &amp; Install</h2>
+<h2 id="3-download--install">3. Download &amp; Install</h2>
 <p>SeoMedic isn't a separate file you download and run — it's installed <strong>from inside Claude Code itself</strong>, via marketplace commands (Claude Code fetches whatever files it needs automatically).</p>
 <pre><code>/plugin marketplace add sodam-ai/SoDam-SeoMedic
 /plugin install seomedic@sodam-seomedic-marketplace</code></pre>
@@ -152,7 +190,9 @@
 <p>Verify the install:</p>
 <pre><code>/plugin list</code></pre>
 <p>Success looks like: <code>seomedic</code> shows up in the list with status "enabled".</p>
-<p>⚠️ <strong>Known issue as of 2026-08-10</strong>: Installing this repository right now may show "2 errors during load" when you run <code>/reload-plugins</code>, with commands like <code>/seo-audit</code> not appearing at all, in some environments. The root cause has been fully identified and a fix has been completed, but it has <strong>not yet been merged</strong> into this repository's <code>master</code> (default) branch (see section 8 below and the "Rediscovered after M9" entry in <code>CHECKPOINT.md</code>). If you hit this, please contact the repository maintainer.</p>
+<blockquote>
+<p><strong>Note</strong>: Around 2026-08-10, some environments hit an issue where <code>/reload-plugins</code> showed "2 errors during load" and commands like <code>/seo-audit</code> didn't appear at all. Both root causes (an install-cache issue from the plugin's version number never being bumped, and a missed build-output regeneration step) were identified and fixed, and the fix is already merged into this repository's <code>master</code> (default) branch (see the "Rediscovered after M9" entry in <code>CHECKPOINT.md</code> for the full story). If you install fresh today, you will not encounter this issue.</p>
+</blockquote>
 <h2 id="4-quick-start-5-minutes">4. Quick Start (5 minutes)</h2>
 <p>Type this into the Claude Code chat (replace with the site you want to check):</p>
 <pre><code>/seo-audit https://example.com</code></pre>
@@ -162,57 +202,84 @@
 <li>If nothing is found, it reports "no violations found."</li>
 </ul>
 <h2 id="5-running-using-and-how-it-works">5. Running, Using, and How It Works</h2>
-<h3 id="seo-audit-diagnose"><code>/seo-audit</code> — Diagnose</h3>
+<h3 id="seo-audit--diagnose"><code>/seo-audit</code> — Diagnose</h3>
 <pre><code>/seo-audit https://your-site.com</code></pre>
 <p>Actually opens and renders the page (crawl + render) to check it from a search engine's point of view. <strong>No files are modified.</strong> You'll be asked to confirm you own the site or have permission to audit it before it proceeds.</p>
 <h3 id="saving-a-baseline-the-reference-point-for-regression-comparisons">Saving a baseline (the reference point for regression comparisons)</h3>
 <p>After reviewing an audit, ask "save this as a baseline" to trigger <code>seomedic_save_baseline</code>. <strong>Baselines are never created automatically</strong> — this is deliberate, so an incorrect state can't accidentally become your reference point.</p>
-<h3 id="seo-check-check-for-regressions"><code>/seo-check</code> — Check for regressions</h3>
+<h3 id="seo-check--check-for-regressions"><code>/seo-check</code> — Check for regressions</h3>
 <pre><code>/seo-check https://your-site.com</code></pre>
 <p>Compares the current state against your saved baseline and reports anything that used to be fine but has since regressed. If no baseline exists yet, it will guide you to run <code>/seo-audit</code> and save one first.</p>
-<h3 id="seo-fix-auto-fix-a-local-nextjs-project"><code>/seo-fix</code> — Auto-fix a local Next.js project</h3>
+<h3 id="seo-fix--auto-fix-a-local-nextjs-project"><code>/seo-fix</code> — Auto-fix a local Next.js project</h3>
 <pre><code>/seo-fix ./your-nextjs-project-folder</code></pre>
 <p>Supports <strong>Next.js projects only</strong> (other frameworks are not yet supported). Flow:</p>
-<p class="ol-item"><strong>1.</strong> <strong>Plan (dry-run)</strong>: briefly starts a local server, diagnoses it, and shows a fix plan without touching any files yet.</p>
+<ol type="1">
+<li><strong>Plan (dry-run)</strong>: briefly starts a local server, diagnoses it, and shows a fix plan without touching any files yet.
 <ul>
 <li><strong>Purely additive fixes</strong> (e.g., adding a page missing from the sitemap) are planned automatically.</li>
 <li><strong>Changes that affect how the site is indexed or displayed</strong> (canonical tags, robots directives, sitemap structure, etc.) always require your <strong>explicit approval</strong> — the diff is shown first, and you're asked to approve or reject.</li>
-</ul>
-<p class="ol-item"><strong>2.</strong> <strong>Apply</strong>: once approved, the files are actually written, and <code>next build</code> is re-run immediately to confirm the build still passes. <strong>If the build fails, the change is automatically rolled back.</strong></p>
-<p class="ol-item"><strong>3.</strong> <strong>Rollback (if needed)</strong>: ask to "undo the fix" at any time to revert an applied change.</p>
+</ul></li>
+<li><strong>Apply</strong>: once approved, the files are actually written, and <code>next build</code> is re-run immediately to confirm the build still passes. <strong>If the build fails, the change is automatically rolled back.</strong></li>
+<li><strong>Rollback (if needed)</strong>: ask to "undo the fix" at any time to revert an applied change.</li>
+</ol>
 <p>⚠️ <strong>The target must be a git repository with a clean working tree (no uncommitted changes)</strong> — if there's no safe point to roll back to, SeoMedic refuses to start. And <strong>auto-applied fixes are still real file changes</strong> — always review the diff once more before committing/deploying, even for changes labeled "safe."</p>
-<h3 id="seo-fix-github-repository-auto-fix-proposal-pull-request-experimental"><code>/seo-fix</code> — GitHub-repository auto-fix proposal (Pull Request) — ⚠️ Experimental</h3>
+<h3 id="seo-fix--github-repository-auto-fix-proposal-pull-request--warning-experimental"><code>/seo-fix</code> — GitHub-repository auto-fix proposal (Pull Request) — ⚠️ Experimental</h3>
 <pre><code>/seo-fix https://github.com/owner/repo</code></pre>
 <p>Instead of a local folder, give it a <strong>GitHub repository URL</strong>. SeoMedic temporarily clones the repository, runs the same diagnose-and-fix logic, and submits the result as a <strong>new branch + Pull Request</strong> (a proposed change). Steps:</p>
-<p class="ol-item"><strong>1.</strong> <strong>Create a GitHub Personal Access Token</strong></p>
+<ol type="1">
+<li><strong>Create a GitHub Personal Access Token</strong>
 <ul>
 <li>Go to <code>https://github.com/settings/personal-access-tokens/new</code> and log in.</li>
 <li><strong>Repository access</strong>: choose "Only select repositories" → select the target repository.</li>
 <li><strong>Repository permissions</strong>: set <code>Contents</code> → Read and write, and <code>Pull requests</code> → Read and write (both must be added explicitly — selecting the repository alone is not enough).</li>
 <li>Click <strong>Generate token</strong> and copy the value shown (it's only displayed once).</li>
-</ul>
-<p class="ol-item"><strong>2.</strong> <strong>⚠️ Never paste the token value into the Claude Code chat.</strong> Register it on your own computer instead:</p>
+</ul></li>
+<li><strong>⚠️ Never paste the token value into the Claude Code chat.</strong> Register it on your own computer instead:
 <ul>
 <li>Windows (PowerShell): <code>setx SEOMEDIC_GITHUB_TOKEN "your-copied-token"</code></li>
 <li>Mac/Linux (Terminal, ideally added to your shell profile): <code>export SEOMEDIC_GITHUB_TOKEN="your-copied-token"</code></li>
 <li><strong>Fully quit and restart Claude Code afterward</strong> — same reason as after install: an already-running program does not pick up a newly set variable.</li>
-</ul>
-<p class="ol-item"><strong>3.</strong> In the Claude Code chat, run <code>/seo-fix https://github.com/owner/repo</code>.</p>
-<p class="ol-item"><strong>4.</strong> <strong>A single call performs the entire flow: diagnose → auto-apply additive fixes → create a Pull Request.</strong> Unlike local-folder mode, there is no interactive approval step mid-flow (this is a structural limitation of a one-shot flow). As a result, <strong>anything that would affect indexing/display is never auto-applied — it's reported as "requires approval, not auto-applied."</strong></p>
-<p class="ol-item"><strong>5.</strong> If a Pull Request link is returned, <strong>the repository owner must review it and decide whether to merge</strong> — it is never merged automatically.</p>
+</ul></li>
+<li>In the Claude Code chat, run <code>/seo-fix https://github.com/owner/repo</code>.</li>
+<li><strong>A single call performs the entire flow: diagnose → auto-apply additive fixes → create a Pull Request.</strong> Unlike local-folder mode, there is no interactive approval step mid-flow (this is a structural limitation of a one-shot flow). As a result, <strong>anything that would affect indexing/display is never auto-applied — it's reported as "requires approval, not auto-applied."</strong></li>
+<li>If a Pull Request link is returned, <strong>the repository owner must review it and decide whether to merge</strong> — it is never merged automatically.</li>
+</ol>
 <p><strong>Things this feature never does</strong>: push directly to the default branch (main/master), force-push, or auto-merge. It only ever proposes changes via a new branch + Pull Request (there is no force-push capability in the code at all).</p>
 <blockquote>
 <p>⚠️ <strong>Honest current status of this experimental feature</strong>: the "your own repository" flow (create branch, apply fix, open Pull Request) has been run against real GitHub and confirmed working. The "fork someone else's repository, then propose via Pull Request" flow has been <strong>partially verified</strong>: creating the fork and cloning it have been confirmed against real GitHub — the forked repository was actually created and confirmed to exist. The final step, actually opening the Pull Request from that fork, has <strong>not yet</strong> been exercised, because the test repository used didn't contain any Next.js project files, so the flow stopped just short of that point (the Pull Request creation logic itself has already been verified in the "your own repository" flow — it just hasn't been run specifically from a forked repository yet). You should know this before using it, and this warning is also shown again at the time you run the command.</p>
 </blockquote>
 <h2 id="6-command-reference">6. Command Reference</h2>
 <table>
-<thead><tr><th>Command</th><th>Description</th><th>Notes (can be requested in natural language)</th></tr></thead>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+<th>Notes (can be requested in natural language)</th>
+</tr>
+</thead>
 <tbody>
-<tr><td><code>/seo-audit &lt;url&gt;</code></td><td>Diagnose a URL (analysis only)</td><td>Site-wide crawl option, max pages (default 200), depth (default 3), requests/sec (default 1)</td></tr>
-<tr><td><code>/seo-check &lt;url&gt;</code></td><td>Check for regressions against the saved baseline</td><td>-</td></tr>
-<tr><td><code>/seo-fix &lt;local-folder&gt;</code></td><td>Auto-fix a local Next.js project (approval-gated)</td><td>Approve/reject via conversation</td></tr>
-<tr><td><code>/seo-fix &lt;GitHub repo URL&gt;</code></td><td>GitHub-repository auto-fix proposal (PR, experimental)</td><td>Requires <code>SEOMEDIC_GITHUB_TOKEN</code> environment variable</td></tr>
-</tbody></table>
+<tr>
+<td><code>/seo-audit &lt;url&gt;</code></td>
+<td>Diagnose a URL (analysis only)</td>
+<td>Site-wide crawl option, max pages (default 200), depth (default 3), requests/sec (default 1)</td>
+</tr>
+<tr>
+<td><code>/seo-check &lt;url&gt;</code></td>
+<td>Check for regressions against the saved baseline</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>/seo-fix &lt;local-folder&gt;</code></td>
+<td>Auto-fix a local Next.js project (approval-gated)</td>
+<td>Approve/reject via conversation</td>
+</tr>
+<tr>
+<td><code>/seo-fix &lt;GitHub repo URL&gt;</code></td>
+<td>GitHub-repository auto-fix proposal (PR, experimental)</td>
+<td>Requires <code>SEOMEDIC_GITHUB_TOKEN</code> environment variable</td>
+</tr>
+</tbody>
+</table>
 <blockquote>
 <p>This version uses natural-language requests instead of <code>--flag</code> style options (e.g., "run this against the whole site but only 2 levels deep"). No separate CLI executable is included in this version.</p>
 </blockquote>
@@ -226,13 +293,13 @@ Run /seo-audit https://... ──► (diagnosis only, no changes made)
      │                     Review the Markdown report
      │                     (findings ranked by severity + Core Web Vitals)
      ▼
-Ask to "save this as a baseline"
+Ask to &quot;save this as a baseline&quot;
      │
      ▼
 (Later) re-run /seo-check https://...
      │
      ▼
-Regression found → warning shown / none found → "no regressions"
+Regression found → warning shown / none found → &quot;no regressions&quot;
 
 (Optional) If you have a Next.js project:
      │
@@ -246,51 +313,91 @@ if needed</code></pre>
 <h2 id="8-whats-new-update-summary">8. What's New (Update Summary)</h2>
 <p>This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.</p>
 <details>
-<summary>✅ Phase 1 — URL diagnosis + regression detection (Complete)</summary>
+<summary><strong>✅ Phase 1 — URL diagnosis + regression detection (Complete)</strong></summary>
+
 <p>Crawl + render + Core Web Vitals measurement, plus regression detection. Verified end-to-end against a real live site.</p>
 </details>
+
 <details>
-<summary>✅ Phase 1.5a — Auto-fix for local Next.js projects (Complete, verified by real execution)</summary>
+<summary><strong>✅ Phase 1.5a — Auto-fix for local Next.js projects (Complete, verified by real execution)</strong></summary>
+
 <p>Purely additive fixes ("add what's missing") are applied automatically; changes affecting indexing/display require approval first. Post-apply build re-verification and automatic rollback on build failure have both been confirmed by real execution.</p>
 </details>
+
 <details>
-<summary>🟡 Phase 1.5b — GitHub-repository auto-fix proposal (Implemented, partially verified)</summary>
+<summary><strong>🟡 Phase 1.5b — GitHub-repository auto-fix proposal (Implemented, partially verified)</strong></summary>
+
 <p>The "your own repository" flow (new branch + Pull Request) has been confirmed against real GitHub, including real Pull Request creation. <strong>The "fork a repository you don't own, then propose" flow has been partially verified</strong>: creating the fork and cloning it have been confirmed against real GitHub, but actually opening the Pull Request from the fork has not yet been exercised (the test repository used didn't contain any Next.js project files, so the flow stopped just short of that step). Please review section 14 and the in-app warning before using this.</p>
 </details>
+
 <details>
-<summary>✅ Phase 2 Stage 1 — Structured Data (JSON-LD) Detection (Done)</summary>
+<summary><strong>✅ Phase 2 Stage 1 — Structured Data (JSON-LD) Detection (Done)</strong></summary>
+
 <p>Automatically detects when a page is missing structured data (JSON-LD — a special markup that helps search engines understand your content more precisely) or has malformed JSON-LD, and flags it in the report. <strong>This only detects the issue — it does not auto-generate a fix.</strong> Creating structured-data values from scratch was deliberately left out, since fabricating them carries real risk.</p>
 </details>
+
 <details>
-<summary>✅ Phase 2 Stage 2 — Open Graph (Social Share Preview) Detection + Partial Auto-fix (Done)</summary>
+<summary><strong>✅ Phase 2 Stage 2 — Open Graph (Social Share Preview) Detection + Partial Auto-fix (Done)</strong></summary>
+
 <p>Checks whether the title and URL shown when a link is shared on social media (Open Graph tags) are missing. Of these, <strong>only the title and url</strong> are auto-filled with your approval — this is safe because they're simply copied from values that already exist on the page. (The description is excluded, since writing one requires generating a new sentence.)</p>
 </details>
+
 <details>
-<summary>✅ Phase 2 Stage 3 — AI Crawler Policy (GEO) Detection (Done)</summary>
+<summary><strong>✅ Phase 2 Stage 3 — AI Crawler Policy (GEO) Detection (Done)</strong></summary>
+
 <p>Checks how your <code>robots.txt</code> treats the crawlers used by AI search and AI training (11 bots, including GPTBot and ClaudeBot) and reports whether each is allowed or blocked. <strong>This only detects the current state — it does not recommend a policy.</strong> Whether allowing or blocking is the right call is a decision for the site owner, so this reports the facts neutrally, without opinion.</p>
 </details>
+
 <details>
-<summary>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</summary>
-<p>We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; <strong>now 427</strong> as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
+<summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
+
+<p>We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; <strong>now 553</strong> as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
 </details>
+
 <details>
-<summary>✅ Phase 2 Stage 4 — Content-structure detection (title/H1/image alt text) + Core Web Vitals completed (Done)</summary>
-<p>Automatically detects pages with a missing <code>&lt;title&gt;</code>, a missing (or duplicated) H1 heading, or images missing alt text (the description used by screen readers and search engines to understand an image). At the same time, the last missing Core Web Vitals (speed) threshold rule — TBT (a responsiveness metric used as a lab-measurable proxy for real INP, which requires an actual user interaction to measure) — was added, completing all three speed metrics (LCP, CLS, TBT). <strong>Detection only — no auto-fix</strong> (these are pure "present or missing" checks rather than value generation, so we judged that a human filling them in is more appropriate than an automated guess).</p>
+<summary><strong>✅ Phase 2 Stage 4 — Content-structure detection (title/H1/image alt text) + Core Web Vitals completed (Done)</strong></summary>
+
+<p>Automatically detects pages with a missing <code>&lt;title&gt;</code>, a missing (or duplicated) H1 heading, or images missing alt text (the description used by screen readers and search engines to understand an image). At the same time, the last missing Core Web Vitals (speed) threshold rule — TBT (a responsiveness metric used as a lab-measurable proxy for real INP, which requires an actual user interaction to measure) — was added, completing all three speed metrics (LCP, CLS, TBT). <strong>Detection only — no auto-fix</strong> (these are pure "present or missing" checks rather than value generation, so we judged that a human filling them in is more appropriate than an automated guess). ⚠️ The page title is now a partial exception — see "Page title auto-fill" below.</p>
 </details>
+
 <details>
-<summary>✅ Phase 2 — Q&amp;A structure + JSON-LD Product required-field validation (Done)</summary>
+<summary><strong>✅ Phase 2 — Q&A structure + JSON-LD Product required-field validation (Done)</strong></summary>
+
 <p>Checks whether FAQ-style structured data exists (this only checks whether the structure exists in a form that AI search could cite — it <strong>does not guarantee AI-search visibility</strong>). For pages that mark themselves up as a "Product" via JSON-LD, it also checks that the product name and at least one of review/rating/price information are actually present (without these, the page may lose eligibility for rich-result extras like star ratings). <strong>Detection only — no auto-fix.</strong></p>
 </details>
+
 <details>
-<summary>✅ Phase 2 — JSON-LD product name vs. actual page content match check ("zero hallucination") (Done)</summary>
+<summary><strong>✅ Phase 2 — JSON-LD product name vs. actual page content match check ("zero hallucination") (Done)</strong></summary>
+
 <p>Checks whether the product name declared in a page's JSON-LD structured data actually matches text that appears on the rendered page — if the structured data you're telling search engines doesn't match what's actually shown ("hallucination"), search engines can treat this as spam and penalize the page. Price/discount fields were deliberately excluded from this check, since formatting differences (commas, currency symbols) create a high risk of false "mismatch" results on their own; product name is the one field that can be compared safely and deterministically. <strong>Detection only — no auto-fix.</strong></p>
 </details>
+
 <details>
-<summary>🔴 2026-08-09 to 10 — Plugin failed to load via the real install path (root cause found and fixed, merge pending)</summary>
-<p>For the first time in this project's history, a real user testing via the <strong>actual install path</strong> (<code>/plugin marketplace add</code> → <code>/plugin install</code>), rather than an isolated test session, discovered that the SEO diagnostic commands never loaded into the session at all. Both root causes were confirmed by direct code comparison: (1) the plugin's version number had never been bumped in the repository's entire history, so the install cache kept serving old content; (2) even after fixing the source code, the manual step required to regenerate the actual deployed bundle had been skipped, so two recent fixes were missing from what gets installed. Both issues have been fixed and are awaiting review (Pull Request), not yet merged into this repository's default branch. See <code>CHECKPOINT.md</code> for current status.</p>
+<summary><strong>✅ 2026-08-09 to 10 — Plugin failed to load via the real install path (root cause found, fixed, and merged)</strong></summary>
+
+<p>For the first time in this project's history, a real user testing via the <strong>actual install path</strong> (<code>/plugin marketplace add</code> → <code>/plugin install</code>), rather than an isolated test session, discovered that the SEO diagnostic commands never loaded into the session at all. Both root causes were confirmed by direct code comparison: (1) the plugin's version number had never been bumped in the repository's entire history, so the install cache kept serving old content; (2) even after fixing the source code, the manual step required to regenerate the actual deployed bundle had been skipped, so two recent fixes were missing from what gets installed. Both issues were fixed and are already merged into this repository's default branch (<code>master</code>) — to prevent a repeat, section 15 ("Deployment") now spells out the rule of always bumping the version and rebuilding together with any source change. See <code>CHECKPOINT.md</code> for the full story.</p>
 </details>
-<p><strong>Planned, not yet started</strong>: <strong>real</strong> Google Search Console/Analytics integration (Phase 2 — currently only interface scaffolding and a fake client exist; no real account is connected yet, and this can't start until the user provides real Google service-account credentials); Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
-<h2 id="9-security-data-flow">9. Security &amp; Data Flow</h2>
+
+<details>
+<summary><strong>✅ Phase 2 — Real Google Search Console / Analytics 4 / PageSpeed Insights integration (Done)</strong></summary>
+
+<p>Using a Google service account, pulls in real search performance (clicks, impressions, average position), visitor stats (sessions, active users), and real-user perceived speed data (field CWV), and merges them into the report. All three are <strong>opt-in</strong> — if the related environment variables aren't set, the rest of the audit runs exactly as before (see the "Environment variables" table below). PageSpeed Insights only needs an API key; Search Console and Analytics 4 require a Google service account to be issued first (see <code>HUMAN_ACTION_CHECKLIST.md</code>). Unlike other automatic features, Search Console/Analytics 4 <strong>show the failure reason directly in the report</strong> if the integration fails — since there are many more ways to misconfigure these than a single API key, staying silent would leave no way to tell what went wrong.</p>
+</details>
+
+<details>
+<summary><strong>✅ Phase 2 — Basic structured-data (JSON-LD) auto-generation (Done)</strong></summary>
+
+<p>When a site has no structured data anywhere (per the Stage 1 detection above), proposes adding a minimal WebSite entry to the root layout file, using only the site name that's already present on the page. This is an approval-required change and never invents new wording — it only copies an already-existing value (title/description auto-generation is still excluded, for the same reason as Stage 4 above).</p>
+</details>
+
+<details>
+<summary><strong>✅ Phase 1.5 — Page title auto-fill (Done)</strong></summary>
+
+<p>When a page has no <code>&lt;title&gt;</code> at all, proposes filling it in by copying the page's own existing <code>&lt;h1&gt;</code> heading text verbatim. This is an approval-required change and never invents new wording (this was previously held back for exactly that risk — see the Stage 4 note above). Scope is deliberately narrow for now: it only works when the page already has some other metadata configuration (e.g., social-share settings) and is just missing <code>title</code> — pages with no metadata configuration at all are still proposal-only (left for a future round). Auto-filling <code>&lt;meta name="description"&gt;</code> was not included this round, since deciding which excerpt of the page to use requires more careful design.</p>
+</details>
+
+<p><strong>Planned, not yet started</strong>: Auto-filling <code>&lt;meta name="description"&gt;</code> (needs an excerpt-selection design), Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
+<h2 id="9-security--data-flow">9. Security &amp; Data Flow</h2>
 <ul>
 <li><strong>Everything is stored only in the <code>.seomedic/</code> folder.</strong> Running a diagnosis creates a single SQLite database file (<code>.seomedic/seomedic.db</code>) inside the project folder, holding diagnosis history, baselines, and regression records. This folder is set up to be excluded from git tracking automatically.</li>
 <li><strong>The database file where results are stored is locked down to owner-only access</strong> (on Mac/Linux — Windows does not support this mechanism the same way due to OS differences, so this is not yet verified on Windows).</li>
@@ -319,29 +426,70 @@ if needed</code></pre>
                                     ▼                                                open PR)
                               Results stored (.seomedic/*.db)</code></pre>
 <p>The plugin (a thin shell) and the diagnostic engine (the actual heavy lifting) are separate — like a TV remote (plugin) and the TV itself (engine): the remote is light, the engine does the real work. GitHub-repository mode has the engine briefly clone the repository into a temporary local folder, run the same fix logic as local mode, then clean up the temporary folder when done.</p>
-<h2 id="11-file-document-locations">11. File &amp; Document Locations</h2>
+<h2 id="11-file--document-locations">11. File &amp; Document Locations</h2>
 <table>
-<thead><tr><th>What</th><th>Where</th></tr></thead>
+<thead>
+<tr>
+<th>What</th>
+<th>Where</th>
+</tr>
+</thead>
 <tbody>
-<tr><td>Diagnosis result database</td><td><code>&lt;your-project&gt;/.seomedic/seomedic.db</code></td></tr>
-<tr><td>GitHub-mode regression history database</td><td>Under your home folder, <code>.seomedic-github-cache/</code> (kept separately per repository, persists independently of the temporary clone)</td></tr>
-<tr><td>This plugin's own source</td><td><code>packages/plugin/</code> (the installed part), <code>packages/mcp-engine/</code> (the engine)</td></tr>
-<tr><td>GitHub-integration source</td><td><code>packages/mcp-engine/src/github/</code></td></tr>
-<tr><td>Planning documents (PRD)</td><td><code>.PRD/</code></td></tr>
-<tr><td>Progress/verification records</td><td><code>CHECKPOINT.md</code> (Phase 1), <code>CHECKPOINT_1.5.md</code> (Phase 1.5), <code>CHECKPOINT_2.md</code> (Phase 2)</td></tr>
-<tr><td>Security policy</td><td><code>packages/plugin/SECURITY.md</code></td></tr>
-<tr><td>Disclaimer</td><td><code>packages/plugin/DISCLAIMER.md</code></td></tr>
-<tr><td>License</td><td><code>LICENSE</code>, <code>THIRD_PARTY_NOTICES.md</code></td></tr>
-<tr><td>Troubleshooting</td><td><code>TROUBLESHOOTING.md</code> (Korean), <code>TROUBLESHOOTING.en.md</code> (English)</td></tr>
-<tr><td>FAQ</td><td><code>FAQ.md</code> (Korean), <code>FAQ.en.md</code> (English)</td></tr>
-</tbody></table>
+<tr>
+<td>Diagnosis result database</td>
+<td><code>&lt;your-project&gt;/.seomedic/seomedic.db</code></td>
+</tr>
+<tr>
+<td>GitHub-mode regression history database</td>
+<td>Under your home folder, <code>.seomedic-github-cache/</code> (kept separately per repository, persists independently of the temporary clone)</td>
+</tr>
+<tr>
+<td>This plugin's own source</td>
+<td><code>packages/plugin/</code> (the installed part), <code>packages/mcp-engine/</code> (the engine)</td>
+</tr>
+<tr>
+<td>GitHub-integration source</td>
+<td><code>packages/mcp-engine/src/github/</code></td>
+</tr>
+<tr>
+<td>Planning documents (PRD)</td>
+<td><code>.PRD/</code></td>
+</tr>
+<tr>
+<td>Progress/verification records</td>
+<td><code>CHECKPOINT.md</code> (Phase 1), <code>CHECKPOINT_1.5.md</code> (Phase 1.5), <code>CHECKPOINT_2.md</code> (Phase 2)</td>
+</tr>
+<tr>
+<td>Security policy</td>
+<td><code>packages/plugin/SECURITY.md</code></td>
+</tr>
+<tr>
+<td>Disclaimer</td>
+<td><code>packages/plugin/DISCLAIMER.md</code></td>
+</tr>
+<tr>
+<td>License</td>
+<td><code>LICENSE</code>, <code>THIRD_PARTY_NOTICES.md</code></td>
+</tr>
+<tr>
+<td>Troubleshooting</td>
+<td><code>TROUBLESHOOTING.md</code> (Korean), <code>TROUBLESHOOTING.en.md</code> (English)</td>
+</tr>
+<tr>
+<td>FAQ</td>
+<td><code>FAQ.md</code> (Korean), <code>FAQ.en.md</code> (English)</td>
+</tr>
+</tbody>
+</table>
 <h2 id="12-troubleshooting">12. Troubleshooting</h2>
-<p>See <strong><a href="./TROUBLESHOOTING.en.md" target="_blank" rel="noopener noreferrer">TROUBLESHOOTING.en.md</a></strong> for a full symptom → cause → fix matrix. The three most common issues:</p>
-<p class="ol-item"><strong>1.</strong> <strong>Installed, but <code>/seo-audit</code> doesn't show up</strong> → Did you fully quit and restart Claude Code? (a new chat window alone is not enough)</p>
-<p class="ol-item"><strong>2.</strong> <strong>First run takes a long time</strong> → The Chromium browser engine may be installing automatically (a few hundred MB, 1-2 minutes).</p>
-<p class="ol-item"><strong>3.</strong> <strong>"Results are empty"</strong> → The target site may be blocking access via <code>robots.txt</code> or a firewall.</p>
+<p>See <strong><a href="./TROUBLESHOOTING.en.html">TROUBLESHOOTING.en.md</a></strong> for a full symptom → cause → fix matrix. The three most common issues:</p>
+<ol type="1">
+<li><strong>Installed, but <code>/seo-audit</code> doesn't show up</strong> → Did you fully quit and restart Claude Code? (a new chat window alone is not enough)</li>
+<li><strong>First run takes a long time</strong> → The Chromium browser engine may be installing automatically (a few hundred MB, 1-2 minutes).</li>
+<li><strong>"Results are empty"</strong> → The target site may be blocking access via <code>robots.txt</code> or a firewall.</li>
+</ol>
 <h2 id="13-faq">13. FAQ</h2>
-<p>See <strong><a href="./FAQ.en.md" target="_blank" rel="noopener noreferrer">FAQ.en.md</a></strong> for frequently asked questions.</p>
+<p>See <strong><a href="./FAQ.en.html">FAQ.en.md</a></strong> for frequently asked questions.</p>
 <h2 id="14-legal-copyright-license-and-commercial-use">14. Legal, Copyright, License, and Commercial Use</h2>
 <p><strong>Presented strictly, without minimizing or overstating anything.</strong></p>
 <h3 id="license">License</h3>
@@ -356,7 +504,7 @@ if needed</code></pre>
 <li>Modify and redistribute the source code (subject to the Apache License 2.0 — preserve the original notices/NOTICE file, mark your changes).</li>
 <li>Commercial use (under Apache License 2.0 terms).</li>
 </ul>
-<h3 id="what-you-cannot-do-must-be-careful-about">What you cannot do / must be careful about</h3>
+<h3 id="what-you-cannot-do--must-be-careful-about">What you cannot do / must be careful about</h3>
 <ul>
 <li><strong>Diagnosing or modifying a site or repository you don't own or don't have explicit permission for</strong> — legal responsibility rests entirely with the user. SeoMedic is designed to always ask for permission confirmation before proceeding, but it cannot prevent someone from answering that confirmation dishonestly.</li>
 <li><strong>Using this tool's results as the basis for exaggerated claims</strong> like "guaranteed #1 ranking" or "guaranteed AI-search visibility" — see the no-warranty section below.</li>
@@ -392,8 +540,8 @@ if needed</code></pre>
 │   │   ├── hooks/                     # Hooks run automatically at session start
 │   │   ├── scripts/                   # Scripts the hooks run (e.g. auto-installing dependencies)
 │   │   ├── skills/                    # Claude Code skill definitions
-│   │   └── mcp-server/dist/           # Build output of the diagnostic engine (committed — see "Deployment" below)
-│   └── mcp-engine/                    # The actual diagnostic engine source (a sibling folder the marketplace can't read directly)
+│   │   └── mcp-server/dist/           # Build output of the diagnostic engine (committed — see &quot;Deployment&quot; below)
+│   └── mcp-engine/                    # The actual diagnostic engine source (a sibling folder the marketplace can&#39;t read directly)
 │       ├── src/                       # TypeScript source
 │       ├── test/                      # vitest tests
 │       └── scripts/                   # Build-then-copy automation scripts
@@ -401,19 +549,16 @@ if needed</code></pre>
 ├── README.md / README.en.md           # This document
 ├── CHECKPOINT*.md                     # Per-phase progress/verification records
 ├── LICENSE, THIRD_PARTY_NOTICES.md
-└── TROUBLESHOOTING*.md, FAQ*.md
-</code></pre>
+└── TROUBLESHOOTING*.md, FAQ*.md</code></pre>
 <h3 id="build">Build</h3>
 <pre><code>npm run build       # Compiles packages/mcp-engine with tsc (generates dist/)
-npm run typecheck   # Full type check including test files (separate from build)
-</code></pre>
+npm run typecheck   # Full type check including test files (separate from build)</code></pre>
 <h3 id="test">Test</h3>
 <pre><code>npm test        # Runs the full vitest suite in packages/mcp-engine (includes one real-network smoke test against example.com — requires internet access)
-npm run audit   # Checks only for high-severity vulnerabilities (npm audit --audit-level=high)
-</code></pre>
+npm run audit   # Checks only for high-severity vulnerabilities (npm audit --audit-level=high)</code></pre>
 <h3 id="deployment--how-a-new-version-reaches-real-users">Deployment — how a new version reaches real users</h3>
 <p>This project does not publish an npm package or a separate CLI executable (there is no standalone command-line tool yet — see section 6). Instead, <strong>the Claude Code marketplace reads this GitHub repository directly.</strong> So "deployment" simply means "merging the correct content into the repository's default branch (<code>master</code>)":</p>
-<ol>
+<ol type="1">
 <li>Edit the source under <code>packages/mcp-engine/src/</code>.</li>
 <li><code>cd packages/mcp-engine &amp;&amp; npm run package:plugin</code> — builds, then re-copies the output into <code>packages/plugin/mcp-server/</code> (⚠️ skipping this step means the source is fixed but the actually-deployed file isn't — this really happened on 2026-08-10, see <code>CHECKPOINT.md</code>).</li>
 <li>Bump the <code>version</code> field in <code>packages/plugin/.claude-plugin/plugin.json</code> (⚠️ skipping this means already-installed users' caches never refresh — also documented in <code>CHECKPOINT.md</code>).</li>
@@ -421,17 +566,49 @@ npm run audit   # Checks only for high-severity vulnerabilities (npm audit --aud
 </ol>
 <h3 id="environment-variables">Environment variables</h3>
 <table>
-<thead><tr><th>Variable</th><th>Required?</th><th>Purpose</th></tr></thead>
-<tbody><tr><td><code>SEOMEDIC_GITHUB_TOKEN</code></td><td>Optional (only for the GitHub-repository auto-fix feature)</td><td>GitHub Personal Access Token. Never hardcoded anywhere in the code — read only from an environment variable on your own computer (see section 5)</td></tr></tbody>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required?</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SEOMEDIC_GITHUB_TOKEN</code></td>
+<td>Optional (only for the GitHub-repository auto-fix feature)</td>
+<td>GitHub Personal Access Token. Never hardcoded anywhere in the code — read only from an environment variable on your own computer (see section 5)</td>
+</tr>
+<tr>
+<td><code>PAGESPEED_API_KEY</code></td>
+<td>Optional (only if you want PageSpeed Insights real-user speed data in the report)</td>
+<td>PageSpeed Insights API key from Google Cloud Console. No property ownership required (public API)</td>
+</tr>
+<tr>
+<td><code>GSC_SERVICE_ACCOUNT_PATH</code></td>
+<td>Optional (only for Search Console/Analytics 4 integration, shared by both)</td>
+<td>The <strong>path</strong> to a Google service-account JSON key file (not the file contents themselves). The value is never exposed in code, logs, or error messages</td>
+</tr>
+<tr>
+<td><code>GSC_PROPERTY_SCOPE</code></td>
+<td>Optional (only for Search Console integration)</td>
+<td>The Search Console property to query (e.g. <code>sc-domain:example.com</code> or <code>https://example.com/</code>)</td>
+</tr>
+<tr>
+<td><code>GA4_PROPERTY_ID</code></td>
+<td>Optional (only for Analytics 4 integration)</td>
+<td>GA4 property ID (numeric only, no <code>properties/</code> prefix)</td>
+</tr>
+</tbody>
 </table>
-<p>No other environment variables are used anywhere in this project's code (confirmed by a full source search).</p>
+<p>GSC and GA4 each activate only when <em>all</em> of their related variables are set (a partial setup is treated the same as no setup — this prevents a half-finished configuration from silently misbehaving). See <code>HUMAN_ACTION_CHECKLIST.md</code> for the issuance procedure. No other environment variables are used anywhere in this project's code (confirmed by a full source search, updated 2026-08-20).</p>
 <h3 id="operational-notes">Operational notes</h3>
 <ul>
 <li><code>packages/plugin/mcp-server/dist/</code> is explicitly <strong>exempted</strong> from the general <code>.gitignore</code> rule that excludes <code>dist/</code> — it must stay committed. Accidentally removing this exception breaks marketplace installs.</li>
 <li><code>CHECKPOINT.md</code> is this repository's real verification history — decide commit timing for it carefully (it may be managed separately per team convention).</li>
 </ul>
-<hr>
-<p>This document (README.en.md) contains the complete beginner-friendly, step-by-step walkthrough from install through daily use (the separate GUIDE document was merged into this file as of 2026-08-04 and no longer exists). If something goes wrong, see <strong><a href="./TROUBLESHOOTING.en.html" target="_blank" rel="noopener noreferrer">TROUBLESHOOTING.en.md</a></strong>; for common questions, see <strong><a href="./FAQ.en.html" target="_blank" rel="noopener noreferrer">FAQ.en.md</a></strong>.</p>
+<hr />
+<p>This document (README.en.md) contains the complete beginner-friendly, step-by-step walkthrough from install through daily use (the separate GUIDE document was merged into this file as of 2026-08-04 and no longer exists). If something goes wrong, see <strong><a href="./TROUBLESHOOTING.en.html">TROUBLESHOOTING.en.md</a></strong>; for common questions, see <strong><a href="./FAQ.en.html">FAQ.en.md</a></strong>.</p>
 
 </body>
 </html>

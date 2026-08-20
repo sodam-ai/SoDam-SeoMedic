@@ -77,7 +77,7 @@ Verify the install:
 ```
 Success looks like: `seomedic` shows up in the list with status "enabled".
 
-> **⚠️ Known issue as of 2026-08-10**: Installing this repository right now may show "2 errors during load" when you run `/reload-plugins`, with commands like `/seo-audit` not appearing at all, in some environments. The root cause has been fully identified and a fix has been completed, but it has **not yet been merged** into this repository's `master` (default) branch (see section 8 below and the "Rediscovered after M9" entry in `CHECKPOINT.md`). If you hit this, please contact the repository maintainer.
+> **Note**: Around 2026-08-10, some environments hit an issue where `/reload-plugins` showed "2 errors during load" and commands like `/seo-audit` didn't appear at all. Both root causes (an install-cache issue from the plugin's version number never being bumped, and a missed build-output regeneration step) were identified and fixed, and the fix is already merged into this repository's `master` (default) branch (see the "Rediscovered after M9" entry in `CHECKPOINT.md` for the full story). If you install fresh today, you will not encounter this issue.
 
 ## 4. Quick Start (5 minutes)
 
@@ -232,7 +232,7 @@ Checks how your `robots.txt` treats the crawlers used by AI search and AI traini
 <details>
 <summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
 
-We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 427** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
+We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 553** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
 </details>
 
 <details>
@@ -254,9 +254,9 @@ Checks whether the product name declared in a page's JSON-LD structured data act
 </details>
 
 <details>
-<summary><strong>🔴 2026-08-09 to 10 — Plugin failed to load via the real install path (root cause found and fixed, merge pending)</strong></summary>
+<summary><strong>✅ 2026-08-09 to 10 — Plugin failed to load via the real install path (root cause found, fixed, and merged)</strong></summary>
 
-For the first time in this project's history, a real user testing via the **actual install path** (`/plugin marketplace add` → `/plugin install`), rather than an isolated test session, discovered that the SEO diagnostic commands never loaded into the session at all. Both root causes were confirmed by direct code comparison: (1) the plugin's version number had never been bumped in the repository's entire history, so the install cache kept serving old content; (2) even after fixing the source code, the manual step required to regenerate the actual deployed bundle had been skipped, so two recent fixes were missing from what gets installed. Both issues have been fixed and are awaiting review (Pull Request), not yet merged into this repository's default branch. See `CHECKPOINT.md` for current status.
+For the first time in this project's history, a real user testing via the **actual install path** (`/plugin marketplace add` → `/plugin install`), rather than an isolated test session, discovered that the SEO diagnostic commands never loaded into the session at all. Both root causes were confirmed by direct code comparison: (1) the plugin's version number had never been bumped in the repository's entire history, so the install cache kept serving old content; (2) even after fixing the source code, the manual step required to regenerate the actual deployed bundle had been skipped, so two recent fixes were missing from what gets installed. Both issues were fixed and are already merged into this repository's default branch (`master`) — to prevent a repeat, section 15 ("Deployment") now spells out the rule of always bumping the version and rebuilding together with any source change. See `CHECKPOINT.md` for the full story.
 </details>
 
 <details>
