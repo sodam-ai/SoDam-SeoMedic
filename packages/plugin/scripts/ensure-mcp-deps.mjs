@@ -3,7 +3,7 @@
 // Node 스크립트로 작성한 이유: 공식 문서 예시(diff/cp/rm 조합 셸 명령)는 POSIX 전용이라
 // Windows(cmd.exe)에서 깨질 위험이 있다 — 이 저장소는 3-OS(Windows/Mac/Linux)를 지원 대상으로 하므로
 // node로 같은 로직(패키지 변경 감지 시에만 재설치)을 크로스플랫폼으로 구현한다.
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, lstatSync, symlinkSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 
@@ -23,11 +23,37 @@ if (!existsSync(bundledPkgPath)) {
   process.exit(0);
 }
 
+// mcp-server/package.json은 "type":"module"(ESM)이다. Node의 ESM import 리졸버는 CJS 전용
+// 레거시 메커니즘인 NODE_PATH를 참조하지 않는다(공식 동작 — 실측으로도 ERR_MODULE_NOT_FOUND 확인,
+// 2026-09-01). .mcp.json이 NODE_PATH=${CLAUDE_PLUGIN_DATA}/node_modules를 설정해도 dist/server.js의
+// import문은 그 경로를 못 찾아 즉시 크래시한다. ESM은 가져오는 파일의 "조상 디렉터리"에 있는
+// node_modules만 찾으므로, mcp-server/node_modules 자리에 실제 설치 위치를 가리키는 심볼릭 링크
+// (Windows는 관리자 권한이 필요 없는 junction)를 만들어 그 조건을 충족시킨다.
+const nodeModulesLink = path.join(pluginRoot, "mcp-server", "node_modules");
+const nodeModulesTarget = path.join(dataDir, "node_modules");
+
+function ensureNodeModulesLink() {
+  if (!existsSync(nodeModulesTarget)) return; // 아직 설치 전 — npm install 이후 다시 호출됨
+  try {
+    if (lstatSync(nodeModulesLink).isSymbolicLink()) return; // 이미 올바르게 연결됨
+    console.error(`[ensure-mcp-deps] ${nodeModulesLink}가 심볼릭 링크가 아님 — 자동 연결 건너뜀(수동 확인 필요)`);
+    return;
+  } catch {
+    // lstat 실패 = 링크가 아직 없음 → 아래에서 새로 생성
+  }
+  try {
+    symlinkSync(nodeModulesTarget, nodeModulesLink, process.platform === "win32" ? "junction" : "dir");
+  } catch (err) {
+    console.error(`[ensure-mcp-deps] node_modules 링크 생성 실패: ${err.message}`);
+  }
+}
+
 const bundled = readFileSync(bundledPkgPath, "utf-8");
 const installed = existsSync(installedPkgPath) ? readFileSync(installedPkgPath, "utf-8") : null;
 
 if (bundled === installed) {
-  process.exit(0); // 의존성 변경 없음 — 이미 설치돼 있음
+  ensureNodeModulesLink(); // 의존성은 이미 설치돼 있어도 링크는 아직 없을 수 있음(기존 설치 사용자)
+  process.exit(0);
 }
 
 mkdirSync(dataDir, { recursive: true });
@@ -60,6 +86,7 @@ try {
     execFileSync(npmCmd, ["install"], { cwd: dataDir, stdio: "inherit" });
   }
   console.error("[ensure-mcp-deps] 설치 완료");
+  ensureNodeModulesLink();
 } catch (err) {
   console.error(`[ensure-mcp-deps] npm install 실패: ${err.message} — 다음 세션에서 재시도됩니다`);
   // 실패 시 installedPkgPath를 지워 다음 세션에서 diff가 다시 감지하도록 함(재시도 보장)
