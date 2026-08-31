@@ -17,6 +17,10 @@ export interface PageSignals {
   ogDescription: string | null;
   /** <meta name="description" content> */
   metaDescription: string | null;
+  /** <main> 안의 첫 <p> 텍스트(trim, 비어있지 않은 것 중 첫 번째). <main>이 없으면 null —
+   * nav/header/footer는 <main> 밖에 있다는 HTML5 시맨틱 보장에 기대어, meta description
+   * 자동채우기(R-META-DESCRIPTION-MISSING)가 본문이 아닌 텍스트를 잘못 복사하지 않도록 한다. */
+  mainFirstParagraphText: string | null;
   /** alt 속성 자체가 없는 <img> 개수. alt="" (장식용 이미지의 의도된 빈 값)는 위반이 아니므로 카운트 제외 */
   imagesWithoutAltCount: number;
   /** <body> 전체 텍스트(공백 정규화: 연속 공백/줄바꿈을 스페이스 하나로 축약 + trim). JSON-LD 값이
@@ -64,6 +68,7 @@ export function extractSignalsFromHtml(html: string): PageSignals {
       ogUrl: null,
       ogDescription: null,
       metaDescription: null,
+      mainFirstParagraphText: null,
       imagesWithoutAltCount: 0,
       bodyText: "",
     };
@@ -105,6 +110,13 @@ export function extractSignalsFromHtml(html: string): PageSignals {
 
   const bodyText = normalizeBodyText(document.querySelector("body")?.textContent);
 
+  const mainEl = document.querySelector("main");
+  const mainFirstParagraphText = mainEl
+    ? (Array.from(mainEl.querySelectorAll("p"))
+        .map((p) => p.textContent?.trim() ?? "")
+        .find((t) => t.length > 0) ?? null)
+    : null;
+
   return {
     title,
     canonical,
@@ -116,6 +128,7 @@ export function extractSignalsFromHtml(html: string): PageSignals {
     ogUrl,
     ogDescription,
     metaDescription,
+    mainFirstParagraphText,
     imagesWithoutAltCount,
     bodyText,
   };
@@ -147,6 +160,13 @@ export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
     // 이 콜백은 page.evaluate로 브라우저 컨텍스트에 직렬화돼 실행되므로 외부 함수를 참조할 수 없다.
     const bodyText = (document.querySelector("body")?.textContent ?? "").replace(/\s+/g, " ").trim();
 
+    const mainEl = document.querySelector("main");
+    const mainFirstParagraphText = mainEl
+      ? (Array.from(mainEl.querySelectorAll("p"))
+          .map((p) => p.textContent?.trim() ?? "")
+          .find((t) => t.length > 0) ?? null)
+      : null;
+
     return {
       title: titleEl?.textContent?.trim() ?? null,
       canonical: canonicalEl?.getAttribute("href") ?? null,
@@ -158,6 +178,7 @@ export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
       ogUrl: ogUrlEl?.getAttribute("content") ?? null,
       ogDescription: ogDescriptionEl?.getAttribute("content") ?? null,
       metaDescription: metaDescriptionEl?.getAttribute("content") ?? null,
+      mainFirstParagraphText,
       imagesWithoutAltCount,
       bodyText,
     };
