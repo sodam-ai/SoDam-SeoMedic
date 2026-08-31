@@ -1994,3 +1994,66 @@ README.md/README.en.md를 변환해 기존 HTML의 손으로 짠 `<head>`/CSS �
    스크립트(`scripts/generate-readme-html.mjs` 등)로 저장소에 남기지는 않았다 — 다음에 README.md가
    또 바뀌면 이번과 동일한 수작업 파이프라인(pandoc + sed + cat)을 다시 밟아야 한다. 자동화 스크립트로
    승격하는 건 다음 과제로 남긴다.
+
+---
+
+## 🔴 치명적 결함 발견·수정 — seomedic MCP 서버가 실사용 설치 경로에서 항상 연결 실패 (2026-09-01)
+
+**배경**: PRD `03_PHASES.md:33`의 Phase 1 성공기준("마켓 설치 → 실제 `/seo-audit` 실행 검증")이
+여러 세션째 미해결 상태였는데, 이 CHECKPOINT 전체를 "실사용 재검증 성공" 기록으로 재검색해보니
+**이 프로젝트 역사 전체에서 성공 기록이 단 한 건도 없었다**(실패 기록만 2건: 2026-07-18 MCP 미연결,
+2026-08-09~10 버전캐시 미갱신). 이걸 근거로 "Mac/Linux는 지금 당장 불가하니 보류, Windows는 AI가
+직접 재현 가능한 부분이니 지금 확인" 방향으로 실제 실행에 들어갔다.
+
+### 발견 경위(전부 실측, 추측 없음)
+1. `claude plugin list`로 이 PC에 이미 `seomedic@sodam-seomedic-marketplace`가 **실제 마켓플레이스
+   경로로 설치·활성화**돼 있음을 확인 — 그런데 설치된 버전이 **0.1.0**, 소스(`plugin.json`)의 현재
+   버전은 **0.1.6**이었다. `claude plugin update seomedic@sodam-seomedic-marketplace`로 갱신.
+2. 별도 격리 폴더에서 중첩 `claude -p "/seo-audit https://example.com"`을 실행(실사용자가 겪는 것과
+   동일한 실행 경로) → `seomedic` MCP 서버 연결 실패(`CONNECTION_CLOSED`)를 실측으로 확인. 이 세션
+   자신도 세션 시작 시점에 같은 서버의 연결 실패를 겪고 있었다(우연이 아니라 재현되는 문제).
+3. 설치된 플러그인 캐시(`.../plugins/cache/.../mcp-server/dist/server.js`)를 `NODE_PATH`를 설정한 채
+   직접 `node`로 실행해 진짜 크래시 원인을 재현: `Error [ERR_MODULE_NOT_FOUND]: Cannot find package
+   '@modelcontextprotocol/sdk'`.
+
+### 근본 원인(확인된 사실 — 가설 아님)
+`mcp-server/package.json`이 `"type": "module"`(ESM)인데, `.mcp.json`은 의존성이 설치된 위치
+(`${CLAUDE_PLUGIN_DATA}/node_modules` — 네이티브 모듈 때문에 SessionStart 훅에서 사용자 PC에 직접
+`npm install`하는 별도 영속 폴더)를 **`NODE_PATH` 환경변수로만** 알려주고 있었다. **Node.js의 ESM
+import 리졸버는 CJS 전용 레거시 메커니즘인 `NODE_PATH`를 아예 참조하지 않는다**(Node 공식 동작) —
+그래서 의존성이 실제로 정확히 설치돼 있어도(`@modelcontextprotocol/sdk`가 그 폴더에 실존함을 직접
+확인) `import` 시점에 못 찾고 즉시 크래시한다. 이건 Windows 한정 문제가 아니라 순수 Node.js ESM
+동작이라 **Mac/Linux에서도 100% 동일하게 재현될 구조적 버그**다 — 사실상 이 프로젝트가 지금까지
+실사용 재검증에 한 번도 성공하지 못한 핵심 원인일 가능성이 매우 높다(단, 과거 2건의 다른 실패 원인과는
+무관 — 그건 각각 버전캐시·번들누락이었고 이번 건 발생 시점은 특정하지 못함).
+
+### 수정
+`packages/plugin/scripts/ensure-mcp-deps.mjs`(SessionStart 훅에서 실행)에 `mcp-server/node_modules`
+자리에 실제 설치 위치를 가리키는 심볼릭 링크(Windows는 관리자 권한 불필요한 junction, Unix는 일반
+symlink)를 만드는 로직을 추가했다. ESM은 가져오는 파일의 "조상 디렉터리"에 있는 `node_modules`만
+찾으므로, 이 링크가 있으면 `NODE_PATH` 없이도 표준 리졸루션으로 정상 해석된다. 기존 설치 사용자(의존성
+설치는 이미 끝났지만 링크는 없는 상태)도 다음 세션 시작 시 자동으로 링크가 생기도록, "패키지 변경 없음"
+조기 종료 분기에도 링크 생성 호출을 넣었다(멱등적 — 이미 링크면 아무것도 안 함).
+
+### 검증(전부 실제 실행, 추측 없음)
+- **A/B 비교**(동일 명령 `timeout 4 node server.js 2>&1`로 조건만 바꿔 비교):
+  - 링크 없음(수정 전 상태 재현): **exit 1**, `ERR_MODULE_NOT_FOUND` 즉시 크래시.
+  - `ensure-mcp-deps.mjs`(수정본)로 링크 생성 후: **exit 0**, 4초간 출력 없음(MCP stdio 서버가
+    정상 기동해 입력을 기다리는 상태와 일치).
+- 수정 스크립트 자체의 동작 2가지를 별도 검증: (1) 링크가 없는 기존 설치 상태에서 처음 실행 시 정상
+  생성, (2) 이미 링크가 있는 상태에서 재실행 시 에러 없이 조용히 스킵(멱등성).
+- `claude plugin validate packages/plugin --strict`: **통과**.
+- `git diff --stat`: 의도한 파일 1개(`ensure-mcp-deps.mjs`)만 변경, 범위 밖 수정 없음.
+
+### 남은 것(정직하게 명시)
+1. **중첩 `claude -p` 세션을 통한 최종 end-to-end 재확인은 아직 완료 못 함** — MCP 연결 실패가
+   15분간 캐시돼 자동 재시도를 안 하는 하네스 동작 때문에, 고친 직후 같은 세션에서 곧바로 재시도해도
+   캐시된 실패를 그대로 보여준다(수정이 안 먹힌 게 아니라 캐시 문제 — `node server.js` 직접 재현으로
+   이미 별도 확인됨). 15분 경과 후(또는 새 세션에서) `/seo-audit` 전체 파이프라인 재확인 필요.
+2. Mac/Linux는 이번에도 검증 못 함(AI가 접근 가능한 머신 없음) — 다만 근본 원인이 OS 특정적이지 않고
+   순수 Node ESM 동작이라, 이 수정이 Mac/Linux에도 동일하게 적용될 것으로 판단(가능성 — 실측 아님).
+3. 아직 `git push` 안 함(브랜치 `fix/mcp-server-esm-node-path-resolution`, master 아님) — PUBLIC
+   저장소 재확인 규칙에 따라 사용자 확인 후 push.
+4. 이 브랜치는 `fix/fixture-audit-high-severity`와 독립적으로 master에서 새로 분기했다 — 두 브랜치
+   모두 이 CHECKPOINT.md 파일 끝부분을 각자 수정했으므로, 나중에 병합 시 이 파일에서 통상적인 git
+   충돌이 날 수 있다(내용 손실 위험 없음 — 양쪽 섹션을 그대로 두면 해결됨).
