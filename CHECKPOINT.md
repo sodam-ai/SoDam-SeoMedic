@@ -2277,5 +2277,50 @@ gated 항목이 몇 개 섞이든 이 테스트의 관심사가 아니게 재정
   자체 UI가 없는 CLI/MCP 도구), 정식 성능 벤치마크 — 전부 이전 라운드와 동일한 이유로 미실행.
 
 ### 남은 것
-1. **아직 push 안 함** — 새 브랜치 `fix/b1-scope-expansion-test-regressions`(master에서 분기),
-   PUBLIC 저장소 규칙대로 사용자 확인 후 push.
+1. ~~아직 push 안 함~~ **(정정, 2026-09-01 별도 라운드): push 완료 + PR #19 생성·병합 완료.** 아래
+   "✅ PR #19 병합 + alt 텍스트 스코프 결정 명문화" 섹션 참고.
+
+---
+
+## ✅ PR #19 병합 + alt 텍스트 스코프 결정 명문화 (2026-09-01, PRD 재감사 라운드 후속)
+
+**배경**: 바로 위 QA 라운드 종료 시점에 미병합 상태로 남아있던 `fix/b1-scope-expansion-test-regressions`
+브랜치를 PR #19로 열어 병합했다. 이어서 같은 라운드의 PRD 재감사에서 "Phase 1.5 gated 목록(canonical/
+noindex/robots/sitemap/JSON-LD/title/meta/**alt**) 8개 중 alt만 fixer가 없다"는 게 처음엔 빠진 기능처럼
+보였으나, 실제 코드(`rules/definitions/content-structure.ts:82-86`)와 PRD `04_PROJECT_SPEC.md:310`
+("가짜 alt 생성하지 마")을 직접 대조한 결과 **미구현이 아니라 의도된 설계**임을 확인했다. 이 결론을
+CHECKPOINT에 명문화해 다음 세션이 같은 걸 다시 "누락"으로 오판하지 않도록 기록한다.
+
+### 조치 1 — PR #19
+`fix/b1-scope-expansion-test-regressions`(테스트 회귀 2건 수정 + QA 기록, 이전 라운드에 이미 커밋·
+push 완료) → `gh pr create --fill` + `gh pr merge --merge`로 병합. master가 이 브랜치보다 앞서 있지
+않음을 병합 전 `git log origin/master..origin/<branch>` / 역방향 모두로 직접 확인해 충돌 없이 1회에
+성공(commit `18f44c8`).
+
+### 조치 2 — alt 텍스트: "미구현"이 아니라 "의도적 report_only"임을 확정 기록
+- **확인된 사실(코드 직접 대조)**: `imgAltMissingRule`(같은 파일 82-86행 주석)이 이미 "PRD가 alt 자동
+  생성을 환각 위험으로 gated 분류했지만, title/h1과 동일하게 탐지만 하고 자동수정은 만들지 않는다"고
+  명시하고 있었다. `fixers/registry.ts`의 `ALL_FIXERS` 8개(sitemap/canonical×2/OG/robots/noindex/
+  JSON-LD/title/meta-description)에 alt 관련 항목이 없는 것은 빠뜨린 게 아니라 이 결정을 그대로 반영한
+  결과다.
+- **근거**: `04_PROJECT_SPEC.md:310`(절대 하지 마 목록) — "가짜 리뷰·통계·인용·**alt 생성하지 마**".
+  alt 텍스트를 자동으로 지어내려면 이 도구가 갖고 있지 않은 이미지 이해(vision) 능력이 필요하고, 없이
+  생성하면 이미지 내용을 환각하게 된다 — 이 프로젝트의 "값 발명 금지" 원칙(canonical/title/OG fixer가
+  전부 "이미 존재하는 값 복사"만 하는 것과 동일 원칙)에 정면으로 위배된다.
+- **결론(강력 추천, 이번에 확정)**: alt 자동 fixer는 **개발하지 않는다.** 현재의 탐지 전용
+  (report_only, severity=low) 상태가 PRD 자신의 다른 조항과 일치하는 올바른 최종 상태다. 이후 감사
+  라운드에서 "Phase 1.5 gated 목록 대비 alt 미구현"을 다시 gap으로 보고하지 말 것 — 이 섹션이 그 질문에
+  대한 이미 내려진 답이다.
+- **재고려 조건(향후 실제로 바뀔 수 있는 경우만)**: 만약 이 도구에 이미지 vision 분석 능력이 추가된다면
+  (현재 로드맵에 없음), 그때는 "생성"이 아니라 "이미지 내용 기반 실제 설명"이 되므로 이 결정을 재검토할
+  근거가 생긴다. 그 전까지는 코드·PRD·이 문서 3곳이 일치하므로 변경 사유 없음.
+
+### 검증
+- `git log origin/master..origin/fix/b1-scope-expansion-test-regressions` / 역방향 양쪽 확인 →
+  분기 이후 master에 새 커밋 없음, 충돌 위험 없이 병합.
+- `gh pr view 19 --json state,mergedAt` → `MERGED` 확인.
+- alt 관련 코드·PRD 대조는 파일을 직접 읽어 인용(추측 아님) — 위 조치 2의 두 근거 모두 실제 파일 내용.
+
+### 남은 것
+- 없음(이 라운드 범위 내). PRD Phase 1 1순위(마켓 실사용 재검증)는 여전히 사람 전용 미해결 —
+  사용자가 별도 세션에서 직접 확인 진행 중(이 세션과 분리된 작업이므로 여기서 추적하지 않음).
