@@ -75,6 +75,15 @@
 - [ ] **`better-sqlite3` 네이티브 모듈 동작 확인** — CI가 그린이어도 실제 prebuilt 바이너리 로딩은 사전 보장 안 됨(`CHECKPOINT.md` M9-3 명시된 한계)
 - [ ] `github/npm-install.ts`의 Unix 레이아웃 처리(`npm_execpath` 우선 확인 로직)가 실제 환경에서도 정상 동작하는지 — 이건 CI가 이미 한 번 실제 버그를 잡아 수정한 지점이라(`CHECKPOINT_1.5.md:326-330`) 재발 여부 특히 주의
 
+> **참고(2026-09-01, Windows 한정 — 체크박스는 Mac/Linux 전용이라 그대로 미체크 유지)**: 위 항목 중
+> 72·73·75번은 이번 세션에서 **Windows에서는 실측 확인 완료**했다(72: 실제 마켓 설치 경로 npm install
+> 시 `postinstall > playwright install chromium` 실행 확인. 73: 격리 폴더에서 `claude -p "/seo-audit
+> https://example.com"` 실행 → 실제 SEO 진단 리포트 끝까지 생성 확인. 75: `better-sqlite3`의 컴파일된
+> `better_sqlite3.node` 바이너리가 실제로 생성됨을 파일 존재로 직접 확인). 74번은 부분적으로만 —
+> 승인 게이트·실제 `next build`·rollback을 포함한 전체 흐름은 자동화 통합테스트로 실증됐지만, `/seo-fix`
+> 슬래시 명령 자체를 대화형 세션에서 직접 실행한 것은 아니다. 76번은 여전히 미확인(Windows엔 해당
+> Unix 분기 자체가 실행 안 됨). Mac/Linux 자체 실행이라는 이 섹션의 원래 목적은 그대로 유효하다.
+
 ---
 
 ## 4. Phase 2 남은 2건 — 착수 전 결정·준비 필요

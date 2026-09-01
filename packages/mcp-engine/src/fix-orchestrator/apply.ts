@@ -11,6 +11,7 @@ import { planNoindexFix, writeNoindexFix } from "../fixers/noindex-fixer.js";
 import { planRobotsAiPolicyFix, writeRobotsAiPolicyFix } from "../fixers/robots-ai-policy-fixer.js";
 import { planJsonLdWebsiteFix, writeJsonLdWebsiteFix } from "../fixers/jsonld-website-fixer.js";
 import { planTitleFix, writeTitleFix } from "../fixers/title-fixer.js";
+import { planMetaDescriptionFix, writeMetaDescriptionFix } from "../fixers/meta-description-fixer.js";
 import { AI_CRAWLER_POLICY_RULE_ID } from "../crawler/ai-crawler-finding.js";
 import type { SeomedicDb } from "../db/connection.js";
 
@@ -119,6 +120,9 @@ async function applyOneFix(db: SeomedicDb, projectRoot: string, fix: FixWithFind
   }
   if (fix.rule_id === "R-TITLE-MISSING") {
     return applyTitleFix(db, projectRoot, fix);
+  }
+  if (fix.rule_id === "R-META-DESCRIPTION-MISSING") {
+    return applyMetaDescriptionFix(db, projectRoot, fix);
   }
 
   return { fixId: fix.id, targetPath: fix.target_path, outcome: "structure_changed", detail: "적용 로직이 구현되지 않은 rule_id입니다" };
@@ -437,5 +441,51 @@ async function applyTitleFix(db: SeomedicDb, projectRoot: string, fix: FixWithFi
     targetPath: fix.target_path,
     outcome: "applied",
     detail: "title을 같은 페이지 h1 텍스트로 채운 후 build 통과",
+  };
+}
+
+/** applyTitleFix와 완전히 동일한 스켈레톤 — idempotency_marker에 <main> 첫 문단 텍스트를 그대로
+ * 담아 재검증 시 그대로 재사용한다(155자 초과 시 자르는 로직은 planMetaDescriptionFix 안에서만
+ * 일어나므로 marker 자체는 원문 그대로 보관). */
+async function applyMetaDescriptionFix(db: SeomedicDb, projectRoot: string, fix: FixWithFindingRecord): Promise<AppliedFixOutcome> {
+  const absPath = path.join(projectRoot, fix.target_path!);
+  const mainText = fix.idempotency_marker;
+
+  // apply 직전 재검증(TOCTOU + 멱등성) — plan 이후 파일 구조가 바뀌었을 수 있다.
+  const recheck = planMetaDescriptionFix(absPath, mainText);
+  if (!recheck.applicable) {
+    return { fixId: fix.id, targetPath: fix.target_path, outcome: "structure_changed", detail: recheck.reason };
+  }
+  if (recheck.updatedText === recheck.originalText) {
+    // 이미 반영돼 있음(재실행·수동 반영 등) — 멱등: 실패가 아니라 성공으로 간주
+    markApplied(db, fix.id, new Date().toISOString(), fix.backup_path);
+    updateFindingStatus(db, fix.finding_id, "fixed");
+    return { fixId: fix.id, targetPath: fix.target_path, outcome: "already_applied", detail: "이미 적용되어 있습니다(멱등)" };
+  }
+
+  const backupManifest = backupFiles(projectRoot, [fix.target_path!], `fix-${fix.id}`);
+  const backupPath = backupManifest[0]?.backupPath ?? null;
+
+  writeMetaDescriptionFix(absPath, recheck.updatedText!);
+
+  try {
+    await runNextBuildOnly(projectRoot);
+  } catch (err) {
+    await revertViaGitCheckout(projectRoot, [fix.target_path!]);
+    return {
+      fixId: fix.id,
+      targetPath: fix.target_path,
+      outcome: "build_failed",
+      detail: `적용 후 build 실패로 롤백됨: ${(err as Error).message}`,
+    };
+  }
+
+  markApplied(db, fix.id, new Date().toISOString(), backupPath);
+  updateFindingStatus(db, fix.finding_id, "fixed");
+  return {
+    fixId: fix.id,
+    targetPath: fix.target_path,
+    outcome: "applied",
+    detail: "description을 <main> 첫 문단으로 채운 후 build 통과",
   };
 }

@@ -139,4 +139,35 @@ describe("extractSignalsFromHtml", () => {
     const signals = extractSignalsFromHtml("<html><title>안닫힘");
     expect(signals.bodyText).toBe("");
   });
+
+  it("mainFirstParagraphText: <main> 안의 첫 <p> 텍스트를 추출한다", () => {
+    const html = `<html><body>
+      <nav><p>내비게이션 문구(본문 아님)</p></nav>
+      <main>
+        <p>이것이 진짜 본문 첫 문단입니다.</p>
+        <p>두번째 문단은 무시된다.</p>
+      </main>
+      <footer><p>푸터 문구(본문 아님)</p></footer>
+    </body></html>`;
+    const signals = extractSignalsFromHtml(html);
+    expect(signals.mainFirstParagraphText).toBe("이것이 진짜 본문 첫 문단입니다.");
+  });
+
+  it("mainFirstParagraphText: <main> 태그 자체가 없으면 null(nav/footer 텍스트를 절대 대신 쓰지 않음)", () => {
+    const html = `<html><body><nav><p>내비게이션</p></nav><p>main 밖의 문단</p></body></html>`;
+    const signals = extractSignalsFromHtml(html);
+    expect(signals.mainFirstParagraphText).toBeNull();
+  });
+
+  it("mainFirstParagraphText: <main>은 있지만 <p>가 없으면 null", () => {
+    const html = `<html><body><main><div>문단이 아닌 텍스트</div></main></body></html>`;
+    const signals = extractSignalsFromHtml(html);
+    expect(signals.mainFirstParagraphText).toBeNull();
+  });
+
+  it("mainFirstParagraphText: 첫 <p>가 빈 문자열이면 건너뛰고 다음 비어있지 않은 <p>를 쓴다", () => {
+    const html = `<html><body><main><p>   </p><p>실제 내용</p></main></body></html>`;
+    const signals = extractSignalsFromHtml(html);
+    expect(signals.mainFirstParagraphText).toBe("실제 내용");
+  });
 });

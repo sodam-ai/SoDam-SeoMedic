@@ -14,6 +14,7 @@ const emptySignals: PageSignals = {
   ogUrl: null,
   ogDescription: null,
   metaDescription: null,
+  mainFirstParagraphText: null,
   imagesWithoutAltCount: 0,
   bodyText: "",
 };
