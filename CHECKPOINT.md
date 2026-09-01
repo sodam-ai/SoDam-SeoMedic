@@ -2367,3 +2367,38 @@ https://example.com`을 실행하고 그 결과를 공유했다.
 2. Phase 1.5 `/seo-fix`(실제 코드 수정) 실사용 검증 — 사람 전용, 미확인. 로컬 Next.js 프로젝트에서
    `--dry-run`으로 gated diff가 뜨는지, `--apply`로 add_safe가 실제 파일에 반영되고 빌드가 통과하는지
    확인 필요.
+
+---
+
+## ✅ 플러그인 이름 변경(seomedic→sodam-seomedic) 실사용 재검증 완료 + MCP 연결 실패 오탐 원인 확정 (2026-09-01)
+
+**배경**: 형제 프로젝트 8/9개가 `plugin.json`의 `name`에 `sodam-` 접두사를 쓰는데 이 프로젝트만(WikiMate
+제외) 예외였음을 발견해 `sodam-seomedic`으로 개명(PR #22). 개명 직후 사용자가 별도 세션에서
+`/plugin install sodam-seomedic@...` → `/sodam-seomedic:seo-audit`로 실사용 재검증을 시도했다.
+
+### 1차 시도 — MCP 연결 실패(재현됨, 원인 불명 상태로 시작)
+`sodam-seomedic:seomedic MCP 서버가 연결에 실패한 상태(Skipping connection — 15분 캐시)`. 같은 세션에서
+2회 더 재시도해도 동일 실패(15분 캐시라 당연). `npm 패키지 설치·Playwright 설치는 성공`했다는 로그가
+함께 찍혀 있어, 설치 자체는 끝났는데 연결만 실패한 상태였음.
+
+### 원인 분석(코드 직접 대조, 가설로 시작해 검증까지 완료)
+플러그인 이름이 바뀌면 Claude Code가 이 플러그인을 **완전히 새 플러그인**으로 취급해
+`CLAUDE_PLUGIN_ROOT`/`CLAUDE_PLUGIN_DATA`를 새로 할당한다 — 그래서 기존엔(이름이 안 바뀐 세션에서는)
+`ensure-mcp-deps.mjs`가 "패키지 변경 없음" 빠른 경로로 스킵되던 `npm install`이, 개명 직후엔 **다시
+처음부터 실행**됐다(`ensure-mcp-deps.mjs:54-57` — `bundled === installed` 비교가 새 데이터 폴더에서는
+항상 거짓이 되므로). `.mcp.json`·`hooks.json`을 직접 열어 재확인했지만 두 파일 모두
+`${CLAUDE_PLUGIN_ROOT}`/`${CLAUDE_PLUGIN_DATA}`만 참조해 이름에 하드코딩된 부분은 없었다 — 즉 코드
+버그가 아니라, **`npm install`이 도는 몇십 초~몇 분 사이에 Claude Code가 MCP 서버 연결을 먼저
+시도해버리는 타이밍 경합**이 유력 원인이라고 판단(가설로 명시해 사용자에게 전달).
+
+### 검증 — 2차 시도에서 실제로 해결됨(가설이 사실로 확정)
+사용자가 완전 재시작 후 재시도 → `plugin:sodam-seomedic:seomedic` MCP 도구 호출 정상 성공,
+`example.com` 진단 리포트(canonical 누락 등 위반 7건, CWV 3항목)가 이전 회차(개명 전 검증)와 동일한
+규칙 ID·형태로 정상 출력됨. **이걸로 확정된 것**: ① 개명 자체는 코드적으로 안전했다(경로 하드코딩
+없음, 재현 실패는 일시적 타이밍 문제였을 뿐 상시 재발하는 버그가 아님). ② `sodam-seomedic` 이름으로도
+Windows `/seo-audit` 파이프라인이 다른 프로젝트에서 정상 작동함을 재확인.
+
+### 남은 참고사항
+이름이 바뀌지 않는 한 이 타이밍 경합은 재발하지 않는다(한 번 설치되면 `npm install`이 스킵되는
+빠른 경로를 타므로). 향후 또 플러그인 이름을 바꿀 일이 있으면, 설치 직후 첫 명령이 실패해도 코드
+문제로 오판하지 말고 **완전 재시작 후 재시도**부터 안내할 것 — 이번에 실제로 그 처방으로 해결됐다.
