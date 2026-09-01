@@ -10,7 +10,7 @@
 **한 번 설치하면 어느 프로젝트에서나** `/seo-audit`·`/seo-fix`·`/seo-check` 명령으로 사용. 설치:
 ```text
 /plugin marketplace add <user>/seomedic
-/plugin install seomedic@<marketplace>
+/plugin install sodam-seomedic@<marketplace>
 ```
 > 선례(확인됨): `claude-seo`(AgriciDaniel), `aaron-he-zhu/seo-geo-claude-skills`도 동일하게 마켓 등록·플러그인 설치 방식.
 
@@ -331,7 +331,7 @@ seomedic/                         # 마켓플레이스 플러그인 저장소
 ```bash
 # (플러그인 설치)
 /plugin marketplace add <user>/seomedic
-/plugin install seomedic@<marketplace>
+/plugin install sodam-seomedic@<marketplace>
 
 # 어느 프로젝트에서나
 /seo-audit https://example.com          # 분석 전용(제3자, 소유 사이트만)

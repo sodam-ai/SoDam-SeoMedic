@@ -62,7 +62,7 @@ SeoMedic isn't a separate file you download and run — it's installed **from in
 
 ```
 /plugin marketplace add sodam-ai/SoDam-SeoMedic
-/plugin install seomedic@sodam-seomedic-marketplace
+/plugin install sodam-seomedic@sodam-seomedic-marketplace
 ```
 
 (The two values above are this project's actual GitHub repository address and marketplace name. Copy them exactly as shown.)
