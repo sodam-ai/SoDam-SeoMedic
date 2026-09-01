@@ -62,7 +62,7 @@ SeoMedic은 별도 설치 파일을 "다운로드"하는 방식이 아니라, **
 
 ```
 /plugin marketplace add sodam-ai/SoDam-SeoMedic
-/plugin install seomedic@sodam-seomedic-marketplace
+/plugin install sodam-seomedic@sodam-seomedic-marketplace
 ```
 
 (위 두 값은 이 프로젝트의 실제 GitHub 저장소 주소와 마켓플레이스 이름입니다. 그대로 복사해서 사용하시면 됩니다.)
