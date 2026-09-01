@@ -58,8 +58,18 @@ export const ALL_FIXERS = [
         // 구현됐고 title만 발견(rules/definitions/content-structure.ts)만 있고 수정기가 없었음
         // (2026-08-21 PRD 재대조로 발견, CHECKPOINT.md에 이미 "다음 순서"로 두 차례 명시돼 있던 항목).
         // 값을 새로 짓지 않는다 — 같은 페이지의 렌더된 h1 텍스트를 그대로 복사(og-fixer.ts와 동일 원칙).
-        // 1차 범위: metadata export가 이미 존재할 때만(신규 export 블록 생성은 이번 라운드에서 손대지 않음).
-        description: "정적 metadata에 title을 추가 — 같은 페이지의 h1 텍스트를 그대로 복사(값 발명 없음), 항상 승인 필요",
+        // metadata export가 없는 페이지도 지원(B-1 확장, 2026-09-01) — 새 export 블록을 처음부터 삽입.
+        // 단 'use client' 컴포넌트는 Next.js가 metadata export 자체를 금지하므로 제외(report_only).
+        description: "정적 metadata에 title을 추가(export 자체가 없으면 새로 생성) — 같은 페이지의 h1 텍스트를 그대로 복사(값 발명 없음), 항상 승인 필요",
+    },
+    {
+        ruleId: "R-META-DESCRIPTION-MISSING",
+        riskLevel: "gated",
+        // B-2(2026-09-01) — title/OG/canonical과 달리 "이미 존재하는 값을 복사"할 원본이 페이지에 없어
+        // (h1은 있지만 본문 요약 문장은 별도 필드로 존재하지 않음), <main> 시맨틱 태그 안의 첫 <p> 문단만
+        // 원본으로 인정한다(nav/footer는 HTML5 스펙상 <main> 밖이라는 보장에 기대어 오염 방지). <main>이
+        // 없거나 그 안에 문단이 없으면 무조건 report_only — 값 발명 금지 원칙을 다른 경로로 우회하지 않음.
+        description: "정적 metadata에 description을 추가(export 자체가 없으면 새로 생성) — <main> 안의 첫 문단을 그대로 복사(155자 초과 시 단어 경계에서 자름, 값 발명 없음), 항상 승인 필요",
     },
 ];
 function assertUniqueFixerRuleIds(fixers) {

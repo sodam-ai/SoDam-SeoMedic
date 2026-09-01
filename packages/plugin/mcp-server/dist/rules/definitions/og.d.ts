@@ -8,5 +8,6 @@ import type { Rule } from "../types.js";
 export declare const ogBasicMissingRule: Rule;
 /** og:description 부재 — fixer 없음(복사할 원본 meta description이 없으면 생성 자체가 불가능한 경우가 흔함). */
 export declare const ogDescriptionMissingRule: Rule;
-/** <meta name="description"> 부재 — fixer 없음(값을 창작할 수 없어 report_only만 가능). */
+/** <meta name="description"> 부재 — fixer 있음(meta-description-fixer.ts, B-2 2026-09-01):
+ * <main> 안의 첫 문단이 있을 때만 복사해 채우고, 없으면 여전히 report_only(값 창작 금지 원칙 유지). */
 export declare const metaDescriptionMissingRule: Rule;

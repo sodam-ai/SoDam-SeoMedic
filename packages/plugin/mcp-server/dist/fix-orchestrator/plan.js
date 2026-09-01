@@ -16,6 +16,7 @@ import { planNoindexFix } from "../fixers/noindex-fixer.js";
 import { planRobotsAiPolicyFix } from "../fixers/robots-ai-policy-fixer.js";
 import { planJsonLdWebsiteFix } from "../fixers/jsonld-website-fixer.js";
 import { planTitleFix } from "../fixers/title-fixer.js";
+import { planMetaDescriptionFix } from "../fixers/meta-description-fixer.js";
 import { AI_CRAWLER_POLICY_RULE_ID, buildAiCrawlerPolicyViolation } from "../crawler/ai-crawler-finding.js";
 import { findPageFilePath } from "./page-file-resolver.js";
 import { scanLocalFix } from "./scan.js";
@@ -38,6 +39,7 @@ const JSONLD_WEBSITE_RULE_VERSION = 1;
 const ROOT_LAYOUT_DIR_CANDIDATES = ["app", "src/app"];
 const ROOT_LAYOUT_EXTENSIONS = ["tsx", "jsx", "js"];
 const TITLE_RULE_ID = "R-TITLE-MISSING";
+const META_DESCRIPTION_RULE_ID = "R-META-DESCRIPTION-MISSING";
 export class FixPlanBlockedError extends Error {
     reason;
     constructor(reason, message) {
@@ -214,6 +216,14 @@ export async function planLocalFix(db, projectRoot, options = {}) {
         }
         if (finding.rule_id === TITLE_RULE_ID) {
             const fix = planTitleFixForFinding(db, projectRoot, finding, scanResult.pages);
+            if (fix)
+                plannedFixes.push({ fix, finding });
+            else
+                reportOnlyFindings.push(finding);
+            continue;
+        }
+        if (finding.rule_id === META_DESCRIPTION_RULE_ID) {
+            const fix = planMetaDescriptionFixForFinding(db, projectRoot, finding, scanResult.pages);
             if (fix)
                 plannedFixes.push({ fix, finding });
             else
@@ -494,6 +504,36 @@ function planTitleFixForFinding(db, projectRoot, finding, pages) {
         targetPath: pageRelPath,
         validation: "승인 후 next build 재검증을 통과해야 적용됩니다(title을 h1 텍스트로 채움)",
         idempotencyMarker: h1Title,
+    });
+}
+/**
+ * description 소스 값은 title-fixer와 동일 이유로 finding.page_url만으로 못 구한다 —
+ * scanResult.pages에서 렌더된 <main> 첫 문단을 가져와 그대로 복사한다(새로 계산·창작하지 않음).
+ */
+function planMetaDescriptionFixForFinding(db, projectRoot, finding, pages) {
+    const page = pages.find((p) => p.logicalUrl === finding.page_url);
+    if (!page)
+        return null; // 방어적 fail-closed(있어선 안 되는 상황)
+    const mainText = page.renderedMainFirstParagraphText;
+    if (!mainText)
+        return null; // 복사할 값이 없음(<main> 없음/문단 없음) — report_only로 남김
+    const pathname = new URL(finding.page_url).pathname;
+    const pageRelPath = findPageFilePath(projectRoot, pathname);
+    if (!pageRelPath)
+        return null; // 정적 페이지 파일을 못 찾음(동적 라우트 등) — report_only로 남김
+    const absPath = path.join(projectRoot, pageRelPath);
+    const plan = planMetaDescriptionFix(absPath, mainText);
+    if (!plan.applicable || plan.updatedText === plan.originalText)
+        return null;
+    return insertFix(db, {
+        findingId: finding.id,
+        fixType: "file_edit",
+        riskLevel: "gated",
+        approvalStatus: "pending",
+        dryRunDiff: `파일: ${pageRelPath}\n+ description: <main> 안 첫 문단 복사(155자 초과 시 자름)`,
+        targetPath: pageRelPath,
+        validation: "승인 후 next build 재검증을 통과해야 적용됩니다(description을 <main> 첫 문단으로 채움)",
+        idempotencyMarker: mainText,
     });
 }
 //# sourceMappingURL=plan.js.map

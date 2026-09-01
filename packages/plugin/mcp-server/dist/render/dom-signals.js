@@ -38,6 +38,7 @@ export function extractSignalsFromHtml(html) {
             ogUrl: null,
             ogDescription: null,
             metaDescription: null,
+            mainFirstParagraphText: null,
             imagesWithoutAltCount: 0,
             bodyText: "",
         };
@@ -66,6 +67,12 @@ export function extractSignalsFromHtml(html) {
         .filter((text) => text.length > 0);
     const imagesWithoutAltCount = Array.from(document.querySelectorAll("img")).filter((el) => getAttrCI(el, "alt") === null).length;
     const bodyText = normalizeBodyText(document.querySelector("body")?.textContent);
+    const mainEl = document.querySelector("main");
+    const mainFirstParagraphText = mainEl
+        ? (Array.from(mainEl.querySelectorAll("p"))
+            .map((p) => p.textContent?.trim() ?? "")
+            .find((t) => t.length > 0) ?? null)
+        : null;
     return {
         title,
         canonical,
@@ -77,6 +84,7 @@ export function extractSignalsFromHtml(html) {
         ogUrl,
         ogDescription,
         metaDescription,
+        mainFirstParagraphText,
         imagesWithoutAltCount,
         bodyText,
     };
@@ -102,6 +110,12 @@ export async function extractSignalsFromPage(page) {
         // normalizeBodyText와 동일한 규칙(연속 공백/줄바꿈→스페이스 하나+trim)을 인라인 적용한다 —
         // 이 콜백은 page.evaluate로 브라우저 컨텍스트에 직렬화돼 실행되므로 외부 함수를 참조할 수 없다.
         const bodyText = (document.querySelector("body")?.textContent ?? "").replace(/\s+/g, " ").trim();
+        const mainEl = document.querySelector("main");
+        const mainFirstParagraphText = mainEl
+            ? (Array.from(mainEl.querySelectorAll("p"))
+                .map((p) => p.textContent?.trim() ?? "")
+                .find((t) => t.length > 0) ?? null)
+            : null;
         return {
             title: titleEl?.textContent?.trim() ?? null,
             canonical: canonicalEl?.getAttribute("href") ?? null,
@@ -113,6 +127,7 @@ export async function extractSignalsFromPage(page) {
             ogUrl: ogUrlEl?.getAttribute("content") ?? null,
             ogDescription: ogDescriptionEl?.getAttribute("content") ?? null,
             metaDescription: metaDescriptionEl?.getAttribute("content") ?? null,
+            mainFirstParagraphText,
             imagesWithoutAltCount,
             bodyText,
         };
