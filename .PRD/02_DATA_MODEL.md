@@ -129,6 +129,22 @@ GSC/GA4 연동. **자격증명은 저장 안 하고 환경변수 경로만 참�
 | credential_env_ref | 서비스계정 JSON 경로 환경변수 이름 | GSC_SERVICE_ACCOUNT_PATH | O |
 | property_scope | **본인 소유·권한 보유 속성만** | https://my-site.com | O |
 
+### github_pr  ⟵ 설계 시점 결정으로 이 문서에 누락돼 있던 엔티티(2026-09-01 뒤늦게 보강)
+GitHub 저장소 대상 fix(`Fix.fix_type='pr'`)와 짝을 이루는 최소 필드. `Fix.github_pr_id`가 이 표를
+참조한다. 어느 저장소·브랜치에 PR을 냈는지, 중복 PR 방지에 필요한 조회 키만 담는다(구현:
+`db/migrations/0003_github_pr.ts`).
+
+| 필드 | 설명 | 예시 | 필수 |
+|------|------|------|------|
+| id | 자동 | 1 | O |
+| project_id | 소속 | prj-001 | O |
+| repo_owner / repo_name | 대상 저장소 | sodam-ai / SoDam-SeoMedic | O |
+| is_fork | fork 저장소 경유 여부 | true | O |
+| branch_name | PR 브랜치 | seomedic/fix-review | O |
+| pr_number / pr_url | GitHub PR 번호·URL(생성 전엔 null) | 42 / https://github.com/... | X |
+| state | open / closed / merged | open | O |
+| created_at | 자동 | 2026-09-01 | O |
+
 ---
 
 ## 왜 이 구조인가
