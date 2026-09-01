@@ -23,7 +23,7 @@ describe("detectNextjs — 실제 Next.js 픽스처(App Router, 실제 설치됨
     const result = detectNextjs(REAL_NEXTJS_FIXTURE);
     expect(result.isNextjs).toBe(true);
     expect(result.router).toBe("app");
-    expect(result.version).toBe("16.2.10"); // node_modules/next/package.json에서 실제로 읽은 값
+    expect(result.version).toBe("16.3.3"); // node_modules/next/package.json에서 실제로 읽은 값
   });
 });
 
