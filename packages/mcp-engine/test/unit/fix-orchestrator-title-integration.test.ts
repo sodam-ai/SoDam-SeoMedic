@@ -52,6 +52,74 @@ function makeIsolatedTitleProject(): string {
   return tempDir;
 }
 
+/**
+ * makeIsolatedTitleProject와 동일한 격리 방식이지만, app/page.tsx에 metadata export 자체를 아예
+ * 두지 않는다(B-1 확장 — "신규 export 삽입" 경로를 실제 next build까지 통과시켜 검증하기 위한
+ * 전용 픽스처). 이 상태에선 R-CANONICAL-MISSING 등 다른 gated finding도 함께 발생할 수 있지만,
+ * 아래 테스트는 R-TITLE-MISSING 건만 골라 승인·적용하므로 다른 finding은 그대로 pending으로 남아
+ * 파일을 건드리지 않는다(기존 테스트들과 동일한 격리 원칙).
+ */
+function makeIsolatedTitleProjectNoMetadata(): string {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "seomedic-title-fix-newexport-e2e-"));
+  cleanupDirs.push(tempDir);
+
+  fs.cpSync(FIXTURE_ROOT, tempDir, {
+    recursive: true,
+    filter: (src) => !src.includes(`${path.sep}.next`),
+  });
+
+  fs.writeFileSync(path.join(tempDir, ".gitignore"), "node_modules/\n.next/\n.seomedic/\n");
+
+  fs.writeFileSync(
+    path.join(tempDir, "app", "page.tsx"),
+    `export default function HomePage() {\n  return (\n    <div>\n      <h1>SeoMedic 신규 export 테스트</h1>\n    </div>\n  );\n}\n`,
+  );
+
+  git(tempDir, ["init", "-q"]);
+  git(tempDir, ["add", "-A"]);
+  git(tempDir, ["-c", "user.email=test@seomedic.local", "-c", "user.name=seomedic-test", "commit", "-q", "-m", "initial"]);
+
+  return tempDir;
+}
+
+describe("fix-orchestrator 통합 — R-TITLE-MISSING gated fixer, metadata export 신규 삽입(B-1 확장, 2026-09-01)", () => {
+  it("metadata export가 아예 없는 페이지: 승인 → 적용 → 실제 next build 통과 → 새 export가 title과 함께 삽입됨", async () => {
+    const projectRoot = makeIsolatedTitleProjectNoMetadata();
+    const db = openSeomedicDb(projectRoot);
+
+    try {
+      const planResult = await planLocalFix(db, projectRoot);
+      const titleFix = planResult.plannedFixes.find((p) => p.finding.rule_id === "R-TITLE-MISSING");
+      expect(titleFix).toBeDefined();
+      const { fix, finding } = titleFix!;
+
+      const pagePath = path.join(projectRoot, "app", "page.tsx");
+      const beforeApply = fs.readFileSync(pagePath, "utf-8");
+      expect(beforeApply).not.toContain("export const metadata"); // 착수 전엔 metadata export 자체가 없어야 정상
+
+      setApprovalStatus(db, fix.id, "approved");
+      const outcomes = await applyLocalFixes(db, projectRoot, planResult.auditRunId);
+      const titleOutcome = outcomes.find((o) => o.fixId === fix.id);
+      expect(titleOutcome).toBeDefined();
+      expect(titleOutcome!.outcome).toBe("applied");
+
+      const content = fs.readFileSync(pagePath, "utf-8");
+      expect(content).toContain('export const metadata = {\n  title: "SeoMedic 신규 export 테스트",\n};'); // 새 export가 삽입됨
+      expect(content).toContain("<h1>SeoMedic 신규 export 테스트</h1>"); // JSX는 손대지 않음
+
+      const appliedFix = findFixesByFinding(db, finding.id)[0];
+      expect(appliedFix.applied_at).not.toBeNull();
+      expect(appliedFix.backup_path).not.toBeNull();
+
+      const rollback = await rollbackLocalFix(db, projectRoot, fix.id);
+      expect(rollback.restored).toBe(true);
+      expect(fs.readFileSync(pagePath, "utf-8")).not.toContain("export const metadata"); // 되돌리기=원래대로 export 자체가 없는 상태
+    } finally {
+      db.close();
+    }
+  }, 240_000);
+});
+
 describe("fix-orchestrator 통합 — R-TITLE-MISSING gated fixer(h1 복사·승인 경로 실증)", () => {
   it("(a) 승인 없는 pending gated fix는 apply가 절대 건드리지 않는다(승인 게이트 실증)", async () => {
     const projectRoot = makeIsolatedTitleProject();
