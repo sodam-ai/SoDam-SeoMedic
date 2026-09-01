@@ -91,7 +91,7 @@
 <h1 id="seomedic">SeoMedic</h1>
 <blockquote>
 <p>A Claude Code marketplace plugin, installable in any project. Give it a URL and it diagnoses your site's SEO/GEO (Generative Engine Optimization) health.</p>
-<p><strong>Current capabilities: diagnosis + regression detection + approval-gated auto-fix for local Next.js projects + experimental GitHub-repository auto-fix proposals (Pull Requests).</strong> This document only describes what is actually implemented and working today, and clearly flags anything that is implemented but not yet fully verified.</p>
+<p><strong>Current capabilities: diagnosis + regression detection + approval-gated auto-fix for local Next.js projects + experimental GitHub-repository auto-fix proposals (Pull Requests).</strong> Both diagnosis (<code>/seo-audit</code>) and local-project auto-fix (<code>/seo-fix</code>) have been <strong>run to completion by a human, from a completely fresh session, through the real marketplace install path</strong> (2026-09-01, Windows). This document only describes what is actually implemented and working today, and clearly flags anything that is implemented but not yet fully verified.</p>
 </blockquote>
 <p>New to computers, terminals, or AI tools? Just follow the steps below in order. This document and its Korean counterpart (<strong><a href="./README.html">README.md</a></strong>) contain identical information — read whichever language you prefer.</p>
 <hr />
@@ -189,7 +189,7 @@
 <p><strong>⚠️ You must fully quit and restart Claude Code after installing.</strong> (Confirmed by direct testing: a newly installed plugin is only recognized after a full restart. Opening a new chat tab is not enough — you must quit and relaunch the actual application.)</p>
 <p>Verify the install:</p>
 <pre><code>/plugin list</code></pre>
-<p>Success looks like: <code>seomedic</code> shows up in the list with status "enabled".</p>
+<p>Success looks like: <code>sodam-seomedic</code> shows up in the list with status "enabled".</p>
 <blockquote>
 <p><strong>Note</strong>: Around 2026-08-10, some environments hit an issue where <code>/reload-plugins</code> showed "2 errors during load" and commands like <code>/seo-audit</code> didn't appear at all. Both root causes (an install-cache issue from the plugin's version number never being bumped, and a missed build-output regeneration step) were identified and fixed, and the fix is already merged into this repository's <code>master</code> (default) branch (see the "Rediscovered after M9" entry in <code>CHECKPOINT.md</code> for the full story). If you install fresh today, you will not encounter this issue.</p>
 </blockquote>
@@ -313,6 +313,12 @@ if needed</code></pre>
 <h2 id="8-whats-new-update-summary">8. What's New (Update Summary)</h2>
 <p>This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.</p>
 <details>
+<summary><strong>🎉 2026-09-01 — Real-world verification complete: both diagnosis and auto-fix confirmed working</strong></summary>
+
+<p>For the first time since this project began, <strong>a human — not an automated test — ran the commands themselves from a completely fresh conversation session</strong> and confirmed both core features (Windows). ① <code>/seo-audit</code> diagnosed a real website and returned a proper report. ② <code>/seo-fix</code> was run against a practice Next.js project: purely-additive items were applied automatically, items affecting search-result display asked for approval first and were only applied after approving, and the build passed after applying. Items that weren't approved (things needing real content, like company-description copy) were confirmed to have been left untouched.</p>
+</details>
+
+<details>
 <summary><strong>✅ Phase 1 — URL diagnosis + regression detection (Complete)</strong></summary>
 
 <p>Crawl + render + Core Web Vitals measurement, plus regression detection. Verified end-to-end against a real live site.</p>
@@ -351,7 +357,7 @@ if needed</code></pre>
 <details>
 <summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
 
-<p>We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; <strong>now 553</strong> as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
+<p>We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; <strong>now 588</strong> as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
 </details>
 
 <details>
@@ -391,12 +397,30 @@ if needed</code></pre>
 </details>
 
 <details>
-<summary><strong>✅ Phase 1.5 — Page title auto-fill (Done)</strong></summary>
+<summary><strong>✅ Phase 1.5 — Page title auto-fill (Done, scope expanded 2026-09-01)</strong></summary>
 
-<p>When a page has no <code>&lt;title&gt;</code> at all, proposes filling it in by copying the page's own existing <code>&lt;h1&gt;</code> heading text verbatim. This is an approval-required change and never invents new wording (this was previously held back for exactly that risk — see the Stage 4 note above). Scope is deliberately narrow for now: it only works when the page already has some other metadata configuration (e.g., social-share settings) and is just missing <code>title</code> — pages with no metadata configuration at all are still proposal-only (left for a future round). Auto-filling <code>&lt;meta name="description"&gt;</code> was not included this round, since deciding which excerpt of the page to use requires more careful design.</p>
+<p>When a page has no <code>&lt;title&gt;</code> at all, proposes filling it in by copying the page's own existing <code>&lt;h1&gt;</code> heading text verbatim. This is an approval-required change and never invents new wording (this was previously held back for exactly that risk — see the Stage 4 note above). <strong>Originally this only worked when the page already had some other metadata configuration (e.g., social-share settings) and was just missing <code>title</code>; on 2026-09-01 the scope was expanded to also cover pages with no metadata configuration at all</strong> (the one exception is pages marked <code>'use client'</code>, where Next.js itself disallows adding a metadata export this way — those remain proposal-only).</p>
 </details>
 
-<p><strong>Planned, not yet started</strong>: Auto-filling <code>&lt;meta name="description"&gt;</code> (needs an excerpt-selection design), Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
+<details>
+<summary><strong>✅ Meta description auto-fill (Done, 2026-09-01)</strong></summary>
+
+<p>When a page is missing <code>&lt;meta name="description"&gt;</code> (the text used in search-result snippets), proposes filling it in with a safe excerpt from text that already exists on the page. This is an approval-required change and never invents new sentences — it only uses the page's real content.</p>
+</details>
+
+<details>
+<summary><strong>🔧 2026-09-01 — Plugin renamed (seomedic → sodam-seomedic)</strong></summary>
+
+<p>To match the naming convention used by the other SoDam sibling projects, the plugin's registered name changed from <code>seomedic</code> to <code>sodam-seomedic</code>. <strong>The commands themselves (<code>seo-audit</code>, <code>seo-fix</code>, <code>seo-check</code>) are unchanged</strong> — only the plugin prefix used to address them changed (e.g., <code>/sodam-seomedic:seo-audit</code>). If you previously installed it as <code>seomedic</code>, you'll need to reinstall — just re-run the commands in section 3 ("Download &amp; Install") above.</p>
+</details>
+
+<details>
+<summary><strong>🔧 2026-09-01 — Fixed a diagnostic-engine (MCP server) connection failure</strong></summary>
+
+<p>In some environments, the diagnostic engine itself failed to connect right after a fresh plugin install. The root cause was that Node.js's modern module system (ESM) doesn't recognize the older-style path setting (<code>NODE_PATH</code>) — this is official Node.js behavior, not a bug unique to this project. Fixed by automatically creating a symbolic link at the location ESM actually looks for, and confirmed working against a real install environment.</p>
+</details>
+
+<p><strong>Planned, not yet started</strong>: Naver/Bing support (Phase 3), manual Mac/Linux execution verification (requires a human running the commands on those operating systems directly), confirming real Google Search Console/Analytics 4 data integration (requires a human to set up a service account). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.</p>
 <h2 id="9-security--data-flow">9. Security &amp; Data Flow</h2>
 <ul>
 <li><strong>Everything is stored only in the <code>.seomedic/</code> folder.</strong> Running a diagnosis creates a single SQLite database file (<code>.seomedic/seomedic.db</code>) inside the project folder, holding diagnosis history, baselines, and regression records. This folder is set up to be excluded from git tracking automatically.</li>

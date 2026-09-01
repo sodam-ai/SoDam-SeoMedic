@@ -2,7 +2,7 @@
 
 > A Claude Code marketplace plugin, installable in any project. Give it a URL and it diagnoses your site's SEO/GEO (Generative Engine Optimization) health.
 >
-> **Current capabilities: diagnosis + regression detection + approval-gated auto-fix for local Next.js projects + experimental GitHub-repository auto-fix proposals (Pull Requests).** This document only describes what is actually implemented and working today, and clearly flags anything that is implemented but not yet fully verified.
+> **Current capabilities: diagnosis + regression detection + approval-gated auto-fix for local Next.js projects + experimental GitHub-repository auto-fix proposals (Pull Requests).** Both diagnosis (`/seo-audit`) and local-project auto-fix (`/seo-fix`) have been **run to completion by a human, from a completely fresh session, through the real marketplace install path** (2026-09-01, Windows). This document only describes what is actually implemented and working today, and clearly flags anything that is implemented but not yet fully verified.
 
 New to computers, terminals, or AI tools? Just follow the steps below in order. This document and its Korean counterpart (**[README.md](./README.md)**) contain identical information — read whichever language you prefer.
 
@@ -75,7 +75,7 @@ Verify the install:
 ```
 /plugin list
 ```
-Success looks like: `seomedic` shows up in the list with status "enabled".
+Success looks like: `sodam-seomedic` shows up in the list with status "enabled".
 
 > **Note**: Around 2026-08-10, some environments hit an issue where `/reload-plugins` showed "2 errors during load" and commands like `/seo-audit` didn't appear at all. Both root causes (an install-cache issue from the plugin's version number never being bumped, and a missed build-output regeneration step) were identified and fixed, and the fix is already merged into this repository's `master` (default) branch (see the "Rediscovered after M9" entry in `CHECKPOINT.md` for the full story). If you install fresh today, you will not encounter this issue.
 
@@ -194,6 +194,12 @@ if needed
 This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.
 
 <details>
+<summary><strong>🎉 2026-09-01 — Real-world verification complete: both diagnosis and auto-fix confirmed working</strong></summary>
+
+For the first time since this project began, **a human — not an automated test — ran the commands themselves from a completely fresh conversation session** and confirmed both core features (Windows). ① `/seo-audit` diagnosed a real website and returned a proper report. ② `/seo-fix` was run against a practice Next.js project: purely-additive items were applied automatically, items affecting search-result display asked for approval first and were only applied after approving, and the build passed after applying. Items that weren't approved (things needing real content, like company-description copy) were confirmed to have been left untouched.
+</details>
+
+<details>
 <summary><strong>✅ Phase 1 — URL diagnosis + regression detection (Complete)</strong></summary>
 
 Crawl + render + Core Web Vitals measurement, plus regression detection. Verified end-to-end against a real live site.
@@ -232,7 +238,7 @@ Checks how your `robots.txt` treats the crawlers used by AI search and AI traini
 <details>
 <summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
 
-We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 553** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
+We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 588** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
 </details>
 
 <details>
@@ -272,12 +278,30 @@ When a site has no structured data anywhere (per the Stage 1 detection above), p
 </details>
 
 <details>
-<summary><strong>✅ Phase 1.5 — Page title auto-fill (Done)</strong></summary>
+<summary><strong>✅ Phase 1.5 — Page title auto-fill (Done, scope expanded 2026-09-01)</strong></summary>
 
-When a page has no `<title>` at all, proposes filling it in by copying the page's own existing `<h1>` heading text verbatim. This is an approval-required change and never invents new wording (this was previously held back for exactly that risk — see the Stage 4 note above). Scope is deliberately narrow for now: it only works when the page already has some other metadata configuration (e.g., social-share settings) and is just missing `title` — pages with no metadata configuration at all are still proposal-only (left for a future round). Auto-filling `<meta name="description">` was not included this round, since deciding which excerpt of the page to use requires more careful design.
+When a page has no `<title>` at all, proposes filling it in by copying the page's own existing `<h1>` heading text verbatim. This is an approval-required change and never invents new wording (this was previously held back for exactly that risk — see the Stage 4 note above). **Originally this only worked when the page already had some other metadata configuration (e.g., social-share settings) and was just missing `title`; on 2026-09-01 the scope was expanded to also cover pages with no metadata configuration at all** (the one exception is pages marked `'use client'`, where Next.js itself disallows adding a metadata export this way — those remain proposal-only).
 </details>
 
-**Planned, not yet started**: Auto-filling `<meta name="description">` (needs an excerpt-selection design), Naver/Bing support (Phase 3). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
+<details>
+<summary><strong>✅ Meta description auto-fill (Done, 2026-09-01)</strong></summary>
+
+When a page is missing `<meta name="description">` (the text used in search-result snippets), proposes filling it in with a safe excerpt from text that already exists on the page. This is an approval-required change and never invents new sentences — it only uses the page's real content.
+</details>
+
+<details>
+<summary><strong>🔧 2026-09-01 — Plugin renamed (seomedic → sodam-seomedic)</strong></summary>
+
+To match the naming convention used by the other SoDam sibling projects, the plugin's registered name changed from `seomedic` to `sodam-seomedic`. **The commands themselves (`seo-audit`, `seo-fix`, `seo-check`) are unchanged** — only the plugin prefix used to address them changed (e.g., `/sodam-seomedic:seo-audit`). If you previously installed it as `seomedic`, you'll need to reinstall — just re-run the commands in section 3 ("Download & Install") above.
+</details>
+
+<details>
+<summary><strong>🔧 2026-09-01 — Fixed a diagnostic-engine (MCP server) connection failure</strong></summary>
+
+In some environments, the diagnostic engine itself failed to connect right after a fresh plugin install. The root cause was that Node.js's modern module system (ESM) doesn't recognize the older-style path setting (`NODE_PATH`) — this is official Node.js behavior, not a bug unique to this project. Fixed by automatically creating a symbolic link at the location ESM actually looks for, and confirmed working against a real install environment.
+</details>
+
+**Planned, not yet started**: Naver/Bing support (Phase 3), manual Mac/Linux execution verification (requires a human running the commands on those operating systems directly), confirming real Google Search Console/Analytics 4 data integration (requires a human to set up a service account). This document only describes what has actually been implemented and verified — planned features are never described as if they already work.
 
 ## 9. Security & Data Flow
 
