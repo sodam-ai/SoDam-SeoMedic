@@ -2208,6 +2208,15 @@ description은 페이지에 "이미 존재하는 값을 복사"할 원본이 없
   세션째 기록해온 Windows 병렬실행 자원경합 flaky 패턴과 동일 시그니처, title/description fixer와
   코드상 무관)뿐 — 두 기능 자체와 관련된 실패는 0건.
 
+  > ⚠️ **정정(2026-09-01, 별도 라운드)**: 위 `github-orchestrator.test.ts` "flaky·무관" 판단은
+  > **틀렸다.** 격리 재실행으로 100% 재현되는 진짜 회귀였다 — B-1이 metadata가 전혀 없던 공유
+  > 픽스처 페이지에서 title-fixer를 새로 활성화시켰고(gated fix 신규 발생), 테스트가 "gated 항목은
+  > 정확히 1개"라고 하드코딩해뒀던 게 깨진 것. `server-integration-fix.test.ts`도 같은 원인으로
+  > 같은 회귀를 겪고 있었다("첫 fix id=sitemap" 가정이 깨짐). 둘 다 rule_id로 명시적으로 찾는
+  > 방식으로 테스트를 고쳐 해결(기능 코드는 무변경). 상세는 이 문서 하단의 "B-1 스코프 확장이
+  > 유발한 테스트 회귀 2건 수정" 섹션 참고. **교훈**: "이전에도 봤던 파일·에러 모양이 같다"는 것만
+  > 근거로 flaky 판정을 내리지 말고, 매번 격리 재실행으로 재현성부터 직접 확인할 것.
+
 ### 남은 것(정직하게 명시)
 1. **아직 push 안 함** — 새 브랜치가 아니라 이미 push된 `feat/title-fixer-new-metadata-export`에
    커밋 2개(B-1, B-2)를 이어서 얹은 상태. PUBLIC 저장소 재확인 규칙대로 사용자 확인 후 push한다.
@@ -2218,3 +2227,55 @@ description은 페이지에 "이미 존재하는 값을 복사"할 원본이 없
 4. `02_DATA_MODEL.md`의 `github_pr` 테이블 미기재 — 여러 라운드째 미해결로 남은 낮은 우선순위 문서 공백
    (참고: 이 항목은 이 커밋 이후 별도 라운드에서 실제로 해결됨 — `.PRD/02_DATA_MODEL.md` github_pr
    엔티티 섹션 참고).
+
+---
+
+## ✅ B-1 스코프 확장이 유발한 테스트 회귀 2건 수정 + 플러그인 버전/번들 동기화 (2026-09-01, PR #15~18 병합 후 QA 라운드)
+
+**배경**: PR #15~17(B-1/B-2/MCP ESM 버그수정) 병합 후, 전체 회귀 재검증 요청을 받아 master 최신
+상태 기준으로 typecheck·build·audit·전체 테스트 스위트를 처음부터 다시 실행했다.
+
+### 발견 1(치명) — plugin.json 버전 미승격으로 배포 무효화(PR #14, 2026-07-27와 동일 패턴 3번째 재발)
+`claude plugin update`를 직접 실행해보니 최신 master를 받아오고도 "이미 최신 버전(0.1.6)"이라며
+갱신을 거부했다 — B-1/B-2/MCP버그수정이 소스에는 있었지만 `plugin.json` 버전도, 배송 번들
+(`packages/plugin/mcp-server/dist/`)도 갱신 안 된 상태였음을 직접 확인(`meta-description-fixer.js`가
+배송 번들에 아예 없었음). `npm run package:plugin`으로 번들 재생성 + 버전 0.1.6→0.1.7 후 PR #18로
+병합, `claude plugin update` 재실행해 0.1.6→0.1.7 실제 갱신됨을 확인.
+
+### 발견 2 — B-1이 유발한 진짜 테스트 회귀 2건("flaky"로 오판했던 것 정정)
+전체 스위트에서 `server-integration-fix.test.ts`·`github-orchestrator.test.ts` 2개 파일이 실패했다.
+**이전 세션 라운드(B-1/B-2 CHECKPOINT 기록)에서 이 파일들의 실패를 "Windows 병렬실행 자원경합
+flaky 패턴, 무관"으로 판단했었는데, 이번에 파일 단독 격리 재실행으로 100% 재현돼 그 판단이
+틀렸음을 확인했다.**
+
+**근본 원인**: 두 테스트 모두 metadata가 전혀 없는 공유 픽스처 페이지(h1만 있음)를 쓰는데, B-1이
+title-fixer의 범위를 넓히면서 이런 페이지에서도 이제 실제 gated fix(R-TITLE-MISSING)가 새로
+생성된다. `server-integration-fix.test.ts`는 "plan 결과의 첫 번째 fix id = sitemap"이라고 가정하고
+있었고, `github-orchestrator.test.ts`는 "gated 항목은 정확히 1개"라고 하드코딩돼 있었다 — 둘 다
+B-1 이후 더 이상 성립하지 않는 가정이었다.
+
+**시행착오(정직하게 기록)**: `github-orchestrator.test.ts`는 처음에 픽스처 페이지에 title만
+미리 채워 문제를 없애려 했으나, 오히려 **더 악화**됐다(gated 3건→6건). 원인은
+`findStaticMetadataObject`가 "metadata object literal이 존재"하기만 하면 성공 판정하는데, title만
+있어도 그 조건을 만족시켜 이번엔 canonical-fixer·og-fixer까지 덩달아 활성화(이전엔 report_only였던
+canonical/OG 결함이 실제 gated fix로 승격)됐기 때문 — 부분적 메타데이터 채우기는 위험하다는 걸
+실측으로 배웠다. 최종적으로는 픽스처를 원래(metadata 전혀 없음)대로 되돌리고, 테스트 쪽을
+"gated 항목 개수"가 아니라 **R-AI-CRAWLER-POLICY를 rule_id로 직접 찾는 방식**으로 고쳤다(다른
+gated 항목이 몇 개 섞이든 이 테스트의 관심사가 아니게 재정의 — 실제 테스트 의도와 더 정확히 일치).
+
+### 검증(전부 실제 실행, 추측 없음)
+- typecheck 0에러 · build 0에러 · `npm run audit` 0 vulnerabilities.
+- `server-integration-fix.test.ts` 단독 재실행: 2/2 통과.
+- `github-orchestrator.test.ts` 단독 재실행: 5/5 통과.
+- **전체 스위트 최종 재실행: 78개 파일 588개 테스트 전부 통과(완전 그린) — 이번 세션 최초의 순수
+  그린 전체 실행**(이전 라운드들은 항상 3건 안팎의 "무관 판정" 실패를 동반했었음).
+- 민감정보 스캔(AWS/OpenAI/GitHub PAT/PEM 개인키/Slack 토큰 패턴, 추적 파일 전체): 0건.
+- lint: 이 저장소에 lint 설정 자체가 없음(스킵 아니라 원래 부재, 이전 라운드부터 동일).
+
+### 미실행(정직하게 명시)
+- Mac/Linux 실행 검증, `/seo-fix` 슬래시 명령의 실제 대화형 세션 실행, 브라우저 콘솔 오류(이 도구는
+  자체 UI가 없는 CLI/MCP 도구), 정식 성능 벤치마크 — 전부 이전 라운드와 동일한 이유로 미실행.
+
+### 남은 것
+1. **아직 push 안 함** — 새 브랜치 `fix/b1-scope-expansion-test-regressions`(master에서 분기),
+   PUBLIC 저장소 규칙대로 사용자 확인 후 push.
