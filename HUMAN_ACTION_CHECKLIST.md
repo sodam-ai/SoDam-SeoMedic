@@ -79,10 +79,14 @@
 > 72·73·75번은 이번 세션에서 **Windows에서는 실측 확인 완료**했다(72: 실제 마켓 설치 경로 npm install
 > 시 `postinstall > playwright install chromium` 실행 확인. 73: 격리 폴더에서 `claude -p "/seo-audit
 > https://example.com"` 실행 → 실제 SEO 진단 리포트 끝까지 생성 확인. 75: `better-sqlite3`의 컴파일된
-> `better_sqlite3.node` 바이너리가 실제로 생성됨을 파일 존재로 직접 확인). 74번은 부분적으로만 —
-> 승인 게이트·실제 `next build`·rollback을 포함한 전체 흐름은 자동화 통합테스트로 실증됐지만, `/seo-fix`
-> 슬래시 명령 자체를 대화형 세션에서 직접 실행한 것은 아니다. 76번은 여전히 미확인(Windows엔 해당
-> Unix 분기 자체가 실행 안 됨). Mac/Linux 자체 실행이라는 이 섹션의 원래 목적은 그대로 유효하다.
+> `better_sqlite3.node` 바이너리가 실제로 생성됨을 파일 존재로 직접 확인). **74번도 같은 날 별도 라운드에서
+> Windows 실측 완료로 갱신**(정정) — 연습용 Next.js 폴더(`D:\Test_Dev\test21`)를 대상으로 `/sodam-seomedic:
+> seo-fix` 슬래시 명령을 실제 대화형 세션에서 직접 실행, add_safe 1건 자동 적용 + gated 3건 승인 요청 →
+> 승인 → 적용까지 전 과정이 실행됐고, `next build` 통과·롤백 0건까지 확인됨(`CHECKPOINT.md` "Phase 1.5
+> 실사용 최초 성공" 섹션 참고). 이 세션이 파일 diff와 빌드 결과를 별도로 직접 재확인해 사용자 보고에만
+> 의존하지 않았다. 76번은 여전히 미확인(Windows엔 해당 Unix 분기 자체가 실행 안 됨). Mac/Linux 자체
+> 실행이라는 이 섹션의 원래 목적은 여전히 유효하다 — 72~75번은 전부 닫혔고, 76번 + Mac/Linux 자체
+> 실행만 남았다.
 
 ---
 
