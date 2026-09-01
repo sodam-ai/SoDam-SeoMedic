@@ -2402,3 +2402,52 @@ Windows `/seo-audit` 파이프라인이 다른 프로젝트에서 정상 작동�
 이름이 바뀌지 않는 한 이 타이밍 경합은 재발하지 않는다(한 번 설치되면 `npm install`이 스킵되는
 빠른 경로를 타므로). 향후 또 플러그인 이름을 바꿀 일이 있으면, 설치 직후 첫 명령이 실패해도 코드
 문제로 오판하지 말고 **완전 재시작 후 재시도**부터 안내할 것 — 이번에 실제로 그 처방으로 해결됐다.
+
+---
+
+## 🎉 Phase 1.5(`/seo-fix`, 실제 코드 수정) — 이 프로젝트 역사상 최초 실사용 성공 (2026-09-01)
+
+**배경**: `03_PHASES.md` Phase 1.5 성공기준("add_safe 수정이 실제 파일 반영 + build 통과", "gated
+항목은 승인 없이 절대 미변경")이 프로젝트 시작 이래 단 한 번도 사람이 직접 실행해 확인한 적이
+없었다(자동 테스트 588개로만 검증돼 있었음). Phase 1(`/seo-audit`) 실사용 검증이 막 끝난 직후,
+바로 이어서 이 항목을 시도했다.
+
+### 준비 (AI가 사전 작업)
+`packages/mcp-engine/test/fixtures/nextjs-minimal`(78/588 테스트가 매 라운드 검증해 온 픽스처)를
+저장소 밖 `D:\Test_Dev\test21`로 복사(node_modules 포함, 하네스 잡동사니 `.next`/`.omc`/로그 파일
+제외) → `app/about/page.tsx` 신규 + `app/page.tsx`에 링크 추가(sitemap 누락 시나리오 생성, 기존
+통합테스트의 `makeIsolatedNextProject()`와 동일 패턴 이식) → git init/commit으로 clean 상태 확보 →
+`next build` 직접 실행해 베이스라인이 정상 빌드됨을 먼저 확인.
+
+### 실행 결과 (사용자가 별도 세션에서 `/sodam-seomedic:seo-fix D:\Test_Dev\test21` 실행)
+- **계획(dry-run) 단계**: add_safe 1건(sitemap에 `/about` 추가)은 "자동 적용 예정"으로, gated 3건
+  (title×2, robots.ts AI 크롤러 정책 신규)은 각각 승인을 물었다. report-only 13건(canonical·JSON-LD·
+  OG·meta description·QA구조)은 "왜 자동화 안 되는지" 이유와 함께 목록으로만 제시되고 건드리지 않음.
+- **승인 단계**: 사용자가 3건 모두 승인 → 각 fix를 개별 `seomedic_fix_approve` 호출로 처리.
+- **적용 단계**: `seomedic_fix_apply` 1회 호출로 4건(자동 1 + 승인 3) 전부 적용, `next build` 재검증
+  통과, 롤백 발생 0건.
+
+### 검증(전부 이 세션이 직접 파일·빌드로 재확인 — 사용자 보고를 그대로 믿지 않음)
+- `git status --short` → 실제로 4개 파일 변경 확인(`app/page.tsx`·`app/about/page.tsx`·
+  `app/sitemap.ts` modified, `app/robots.ts` 신규) — 아직 커밋 안 된 워킹트리 diff 상태 그대로.
+- 각 파일 내용 직접 열람: `page.tsx`/`about/page.tsx`에 `export const metadata = { title: ... }`가
+  **h1 텍스트를 그대로 복사**(값 발명 없음, PRD 원칙과 일치)한 형태로 정확히 삽입됨. `sitemap.ts`는
+  기존 배열에 `/about` 항목만 추가(다른 내용 손실 없음). `robots.ts`는 멱등 마커 주석 + 검색봇 허용/
+  AI 학습봇(GPTBot·ClaudeBot·Google-Extended·CCBot·Bytespider) 차단 정책이 설계대로 정확히 생성됨.
+- **`next build`를 이 세션이 독립적으로 재실행** → 정상 통과, `/robots.txt` 라우트까지 포함 5개 라우트
+  전부 정상 생성 확인(사용자 세션의 "빌드 통과" 보고를 다른 방식으로 교차검증).
+
+### 이걸로 확정된 것
+- Phase 1.5의 핵심 안전장치 3가지가 전부 실사용으로 증명됨: **①** add_safe(추가만)가 실제로 안전하게
+  적용된다 **②** gated 항목은 승인 없이 자동 적용되지 않는다(승인 요청이 실제로 화면에 떴고, 승인
+  후에만 적용됨) **③** report-only 항목은 근거와 함께 건드리지 않고 남는다(값 발명 방지 원칙 준수).
+- **멱등성**(fix 재실행해도 중복 삽입 안 됨)은 이번에 실사용으로 재확인하진 않았지만, 이미 자동 테스트
+  스위트에 전용 회귀 테스트로 커버돼 있어(악의적/경계 입력값 테스트 포함) 별도 실사용 재현이 필요하지
+  않다고 판단 — `robots.ts`에 실제로 멱등 마커가 정확히 삽입된 것도 이번에 육안으로 확인됨.
+- GitHub 저장소 모드(별개 경로)는 `commands/seo-fix.md`에 이미 기록된 대로 본인 소유 저장소는 실제
+  PR 검증 완료, fork 경유는 PR 생성 마지막 단계만 미검증 — 이 항목과 무관하게 기존 상태 유지.
+
+### 남은 것
+1. Mac/Linux `/seo-audit`·`/seo-fix` 실사용 검증 — 여전히 사람 전용, 이 PC(Windows)로는 불가.
+2. `D:\Test_Dev\test21`은 계속 실사용 연습용 폴더로 남겨둔다(변경사항 커밋 여부는 사용자 선택 —
+   가짜 프로젝트라 커밋해도, 그대로 둬도 무방).
