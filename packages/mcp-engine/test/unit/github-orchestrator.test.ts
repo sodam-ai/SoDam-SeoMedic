@@ -42,8 +42,13 @@ function git(cwd: string, args: string[]): void {
  * 실제로 npm install이 한 번 더 실행된다(실제 GitHub clone과 동일한 조건).
  *
  * 이 픽스처는 add_safe(R-SITEMAP-MISSING-URL, "/about" 페이지가 sitemap.ts에 없음) 1건과
- * gated(R-AI-CRAWLER-POLICY, app/robots.ts 없음) 1건을 **동시에** 만든다 — 2026-08-20 위험도별 PR
- * 분리 재설계 이후, safe bucket과 review bucket이 각각 1건씩 독립적으로 처리하는지 검증하는 데 쓰인다.
+ * gated(R-AI-CRAWLER-POLICY, app/robots.ts 없음) 1건을 **최소한** 만든다 — 2026-08-20 위험도별 PR
+ * 분리 재설계 이후, safe bucket과 review bucket이 각각 독립적으로 처리하는지 검증하는 데 쓰인다.
+ * ⚠️ 페이지에 metadata를 전혀 안 두면(title-fixer B-1 확장 이후) title-fixer가, 부분적으로만 채우면
+ * canonical/OG fixer까지 덩달아 활성화될 수 있다(metadata object literal이 "존재"하게 되는 순간
+ * findStaticMetadataObject가 성공해 report_only였던 canonical/OG도 실제 gated fix로 바뀜 —
+ * 2026-09-01 실측으로 확인). 그래서 이 gated 개수를 정확히 통제하려 하지 않고, 아래 테스트들은
+ * R-AI-CRAWLER-POLICY를 rule_id로 직접 찾아 검증한다(다른 gated 항목이 몇 개 섞이든 무관).
  */
 function makeFakeUpstreamRepo(): string {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "seomedic-gh-orch-upstream-"));
@@ -131,12 +136,15 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
     expect(result.safe.applied[0].outcome).toBe("applied");
     expect(result.safe.pr).not.toBeNull();
 
+    // 페이지에 metadata가 전혀 없어(title-fixer B-1 확장 이후) canonical/OG 등 다른 gated fix도
+    // 함께 섞일 수 있다 — 이 테스트가 실제로 검증하려는 R-AI-CRAWLER-POLICY 건을 rule_id로 직접
+    // 찾아 검증한다(다른 gated 항목의 존재 자체는 이 테스트의 관심사가 아님, 2026-09-01).
     expect(result.review.branchName).toBe("seomedic/fix-review");
     expect(result.review.autoFixes).toHaveLength(0);
-    expect(result.review.gatedFixes).toHaveLength(1);
-    expect(result.review.gatedFixes[0].finding.rule_id).toBe("R-AI-CRAWLER-POLICY");
-    expect(result.review.applied).toHaveLength(1);
-    expect(result.review.applied[0].outcome).toBe("applied");
+    const aiCrawlerFix = result.review.gatedFixes.find((f) => f.finding.rule_id === "R-AI-CRAWLER-POLICY");
+    expect(aiCrawlerFix).toBeDefined();
+    const aiCrawlerApplied = result.review.applied.find((a) => a.fixId === aiCrawlerFix!.fix.id);
+    expect(aiCrawlerApplied?.outcome).toBe("applied");
     expect(result.review.pr).not.toBeNull();
 
     // 실제 로컬 "업스트림" 저장소에 두 브랜치가 각자 독립적으로 만들어졌는지, 서로의 변경이 섞이지
@@ -226,9 +234,14 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
     expect(result.safe.pr).toBeNull();
 
     // safe가 중복으로 건너뛰어도 review는 완전히 독립적으로(별도 clone) 정상 진행돼야 한다 —
-    // 두 bucket이 서로의 실패/스킵에 영향받지 않는 격리 실증.
+    // 두 bucket이 서로의 실패/스킵에 영향받지 않는 격리 실증. 페이지에 metadata가 전혀 없어
+    // gated 항목이 여러 개 섞일 수 있으므로(2026-09-01, 위 테스트와 동일 이유) R-AI-CRAWLER-POLICY를
+    // rule_id로 직접 찾아 검증한다.
     expect(result.review.duplicateSkipped).toBe(false);
-    expect(result.review.applied).toHaveLength(1);
+    const aiCrawlerFix = result.review.gatedFixes.find((f) => f.finding.rule_id === "R-AI-CRAWLER-POLICY");
+    expect(aiCrawlerFix).toBeDefined();
+    const aiCrawlerApplied = result.review.applied.find((a) => a.fixId === aiCrawlerFix!.fix.id);
+    expect(aiCrawlerApplied?.outcome).toBe("applied");
     expect(result.review.pr).not.toBeNull();
   }, 900_000);
 

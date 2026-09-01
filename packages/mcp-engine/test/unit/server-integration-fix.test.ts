@@ -79,7 +79,10 @@ describe("MCP 서버 — fix 툴 5개, 실제 stdio 프로세스 간 통신", ()
       expect(planText).toContain("add_safe(auto)");
 
       const auditRunId = Number(planText.match(/audit_run_id=(\d+)/)?.[1]);
-      const fixId = Number(planText.match(/fix id=(\d+)/)?.[1]);
+      // 이 픽스처는 h1은 있지만 metadata가 전혀 없어(B-1 확장 이후) R-TITLE-MISSING(gated) fix도
+      // 함께 생성될 수 있다 — "첫 번째 fix id"가 항상 sitemap이라고 가정하면 안 되므로, 이 테스트가
+      // 실제로 검증하려는 add_safe 수정(R-SITEMAP-MISSING-URL)의 id를 rule_id로 명시적으로 찾는다.
+      const fixId = Number(planText.match(/fix id=(\d+) · R-SITEMAP-MISSING-URL/)?.[1]);
       expect(auditRunId).toBeGreaterThan(0);
       expect(fixId).toBeGreaterThan(0);
 
