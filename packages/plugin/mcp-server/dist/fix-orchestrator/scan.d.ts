@@ -16,6 +16,9 @@ export interface ScannedPage {
     /** 렌더링된 DOM의 첫 h1 텍스트(R-TITLE-MISSING fixer가 metadata.title로 복사할 소스 — 동일하게
      * 렌더 실패 시 rawSignals로 폴백된다). */
     renderedH1Text: string | null;
+    /** 렌더링된 DOM의 <main> 안 첫 문단 텍스트(R-META-DESCRIPTION-MISSING fixer가 metadata.description으로
+     * 복사할 소스 — 동일하게 렌더 실패 시 rawSignals로 폴백된다). */
+    renderedMainFirstParagraphText: string | null;
 }
 export interface LocalFixScanResult {
     pages: ScannedPage[];

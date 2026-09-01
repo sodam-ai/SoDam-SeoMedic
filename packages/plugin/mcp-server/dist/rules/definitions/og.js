@@ -53,7 +53,8 @@ export const ogDescriptionMissingRule = {
         };
     },
 };
-/** <meta name="description"> 부재 — fixer 없음(값을 창작할 수 없어 report_only만 가능). */
+/** <meta name="description"> 부재 — fixer 있음(meta-description-fixer.ts, B-2 2026-09-01):
+ * <main> 안의 첫 문단이 있을 때만 복사해 채우고, 없으면 여전히 report_only(값 창작 금지 원칙 유지). */
 export const metaDescriptionMissingRule = {
     id: RULE_ID_META_DESCRIPTION,
     version: VERSION,
