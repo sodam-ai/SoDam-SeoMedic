@@ -63,7 +63,24 @@ export default function AboutPage() {
 }
 `;
 
-const NO_METADATA_EXPORT = `export default function AboutPage() {
+const NO_METADATA_EXPORT = `import Image from "next/image";
+
+export default function AboutPage() {
+  return <h1>회사 소개</h1>;
+}
+`;
+
+const NO_METADATA_NO_IMPORTS = `export default function AboutPage() {
+  return <h1>회사 소개</h1>;
+}
+`;
+
+const USE_CLIENT_NO_METADATA = `"use client";
+
+import { useState } from "react";
+
+export default function AboutPage() {
+  const [open] = useState(false);
   return <h1>회사 소개</h1>;
 }
 `;
@@ -136,14 +153,6 @@ describe("planTitleFix — 복사할 원본(h1)이 없으면 report_only 폴백"
 });
 
 describe("planTitleFix — 안전하게 확신할 수 없는 구조는 손대지 않음(report_only 폴백)", () => {
-  it("metadata export 자체가 없으면 applicable=false(1차 범위 밖 — 신규 export 생성은 다루지 않음)", () => {
-    const filePath = writeFixtureFile(NO_METADATA_EXPORT);
-    const before = fs.readFileSync(filePath, "utf-8");
-    const plan = planTitleFix(filePath, "회사 소개");
-    expect(plan.applicable).toBe(false);
-    expect(fs.readFileSync(filePath, "utf-8")).toBe(before);
-  });
-
   it("generateMetadata() 동적 함수는 applicable=false, 파일 무변경", () => {
     const filePath = writeFixtureFile(DYNAMIC_GENERATE_METADATA);
     const before = fs.readFileSync(filePath, "utf-8");
@@ -165,6 +174,61 @@ describe("planTitleFix — 파일 없음", () => {
   it("page.tsx 자체가 없으면 applicable=false", () => {
     const plan = planTitleFix("/no/such/path/page.tsx", "회사 소개");
     expect(plan.applicable).toBe(false);
+  });
+});
+
+describe("planTitleFix — metadata export 자체가 없으면 새로 삽입한다(B-1 확장, 2026-09-01)", () => {
+  it("import가 있는 파일: 마지막 import 문 뒤에 새 export를 삽입하고 import는 그대로 보존한다", () => {
+    const filePath = writeFixtureFile(NO_METADATA_EXPORT);
+    const plan = planTitleFix(filePath, "회사 소개");
+    expect(plan.applicable).toBe(true);
+    expect(plan.updatedText).toContain('import Image from "next/image";');
+    expect(plan.updatedText).toContain('export const metadata = {\n  title: "회사 소개",\n};');
+    // import문이 먼저, 새 export가 그 뒤에 와야 한다(삽입 위치 검증)
+    const importIdx = plan.updatedText!.indexOf("import Image");
+    const exportIdx = plan.updatedText!.indexOf("export const metadata");
+    expect(importIdx).toBeLessThan(exportIdx);
+  });
+
+  it("import가 전혀 없는 파일에도 안전하게 삽입된다(맨 앞)", () => {
+    const filePath = writeFixtureFile(NO_METADATA_NO_IMPORTS);
+    const plan = planTitleFix(filePath, "회사 소개");
+    expect(plan.applicable).toBe(true);
+    expect(plan.updatedText).toContain('export const metadata = {\n  title: "회사 소개",\n};');
+    expect(plan.updatedText).toContain("export default function AboutPage()");
+  });
+
+  it("writeTitleFix로 실제 디스크에 반영되고, next-morph로 재파싱해도 유효한 구문이다", () => {
+    const filePath = writeFixtureFile(NO_METADATA_EXPORT);
+    const plan = planTitleFix(filePath, "회사 소개");
+    writeTitleFix(filePath, plan.updatedText!);
+    const onDisk = fs.readFileSync(filePath, "utf-8");
+    expect(extractWrittenTitle(onDisk)).toBe("회사 소개");
+  });
+
+  it("'use client' 컴포넌트는 metadata export를 삽입하지 않는다(Next.js 제약 — 삽입하면 빌드 실패)", () => {
+    const filePath = writeFixtureFile(USE_CLIENT_NO_METADATA);
+    const before = fs.readFileSync(filePath, "utf-8");
+    const plan = planTitleFix(filePath, "회사 소개");
+    expect(plan.applicable).toBe(false);
+    expect(plan.reason).toContain("use client");
+    expect(fs.readFileSync(filePath, "utf-8")).toBe(before);
+  });
+
+  it("h1Title이 null이면(복사할 원본 없음) 삽입하지 않고 report_only", () => {
+    const filePath = writeFixtureFile(NO_METADATA_EXPORT);
+    const before = fs.readFileSync(filePath, "utf-8");
+    const plan = planTitleFix(filePath, null);
+    expect(plan.applicable).toBe(false);
+    expect(fs.readFileSync(filePath, "utf-8")).toBe(before);
+  });
+
+  it("악의적/경계 입력값(따옴표·백틱·유니코드)도 새 export 삽입 경로에서 값이 정확히 보존된다", () => {
+    const filePath = writeFixtureFile(NO_METADATA_EXPORT);
+    const h1 = `그는 "안녕\\하세요" \`백틱\` 🎉 라고 말했다`;
+    const plan = planTitleFix(filePath, h1);
+    expect(plan.applicable).toBe(true);
+    expect(extractWrittenTitle(plan.updatedText!)).toBe(h1);
   });
 });
 

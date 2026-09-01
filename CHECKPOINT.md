@@ -2103,3 +2103,55 @@ GitHub 원격에는 이 핸드오프 기록이 없다는 점을 인지할 것(�
 3. B-1(title fixer 무-metadata 케이스 확장)·B-2(meta description 자동채우기)는 여전히 미착수 —
    각각 새로운 위험군·미합의 설계 문제라 사용자 판단 선행 필요(2026-08-20 위험분석 그대로 유효).
 4. PRD 최우선 성공기준(실사용 재검증)은 사용자가 별도 세션에서 진행 중 — 결과는 이 라운드 범위 밖.
+
+---
+
+## ✅ B-1(title fixer 신규 export 지원) + B-2(meta description 자동채우기) 구현 완료 (2026-09-01)
+
+**배경**: 2026-08-20 "다음 작업 계획"이 정리한 후보 B-1/B-2를 이번 라운드에서 순서대로 실행했다.
+착수 전제: 같은 세션에서 seomedic MCP 서버의 실사용 설치 경로 연결 실패(ESM+NODE_PATH 비호환)를
+근본원인까지 찾아 고치고 Windows에서 최초로 실사용 검증에 성공한 뒤라, "배포 경로가 살아있음이
+확인된 상태에서 기능을 쌓는다"는 순서를 그대로 지켰다. 브랜치는 `fix/mcp-server-esm-node-path-resolution`
+push 이후 별도로 `feat/title-fixer-new-metadata-export`를 master에서 새로 분기해 시작했다.
+
+### B-1 — title fixer가 metadata export 자체가 없는 페이지도 지원
+기존 `title-fixer.ts`는 `export const metadata`가 **이미 존재**할 때(title 필드만 빠진 경우)만
+다뤘다(2026-08-21 1차 범위 결정). 이번에 그 제약을 제거해, metadata·generateMetadata가 파일에
+전혀 없을 때도 title 하나만 담은 새 export를 처음부터 삽입하도록 확장했다. `'use client'` 컴포넌트는
+Next.js가 metadata export 자체를 금지하므로(빌드 에러) 감지해 report_only로 제외한다. gated 등급·
+"값 발명 없음"(h1 텍스트 그대로 복사) 원칙은 그대로 유지.
+
+### B-2 — meta description 자동채우기(R-META-DESCRIPTION-MISSING, 신규 fixer)
+이 규칙 자체는 이미 존재했지만(`rules/definitions/og.ts`) "값을 창작할 수 없어 fixer 없음"으로
+의도적으로 비워둔 상태였다(2026-08-20 위험분석이 미리 경고한 지점). title/OG/canonical과 달리
+description은 페이지에 "이미 존재하는 값을 복사"할 원본이 없어서(h1은 있지만 본문 요약 문장은
+별도 필드로 없음), 착수 전 사용자와 설계를 논의해 **`<main>` 시맨틱 태그 안의 첫 문단만 원본으로
+인정**하는 방식으로 확정했다(HTML5 스펙상 nav/header/footer는 `<main>` 밖이라는 보장에 기대어 오염
+방지 — 페이지 전체 첫 `<p>`나 자동채우기 자체를 안 하는 대안도 검토했으나, 기존 원칙과 가장 잘
+맞는 이 방식을 선택). `<main>`이 없거나 그 안에 문단이 없으면 무조건 report_only. 155자(검색결과
+스니펫 관례) 초과 시 단어 경계에서 잘라 말줄임표를 붙인다(안 잘리면 원문 그대로, 불필요한 변형 없음).
+
+### 검증(전부 실제 실행, 추측 없음)
+- B-1: 단위테스트 23/23(신규 6건: 삽입 위치·import 없는 파일·use client 제외·악의적 입력값), 실제
+  `next build`까지 통과하는 통합테스트 5/5(신규 1건: 승인→적용→빌드 성공→rollback 원복).
+- B-2: 단위테스트 21/21(신규), dom-signals 신규 추출 로직 테스트 4/4, 실제 `next build`까지 통과하는
+  통합테스트 4/4(승인/거부/멱등/rollback 전 경로).
+- typecheck(`tsc -p tsconfig.test.json`·`tsconfig.json`): 각 라운드마다 0에러 확인(B-2 착수 시
+  `PageSignals`/`ScannedPage`에 신규 필수 필드를 추가하며 기존 목객체 5곳이 타입에러가 났던 것도
+  전부 찾아 수정 완료 — 동작 변경 없이 필드만 추가).
+- 전체 스위트: B-1 라운드 559개 중 556 통과, B-2 라운드 588개 중 585 통과. 두 라운드 모두 실패는
+  `detect-nextjs.test.ts`(브랜치 전환 중 로컬 `node_modules` 버전 불일치 — 내 작업 과정에서 생긴
+  일시적 상태로 실측 확인, 코드 결함 아님) 또는 `github-orchestrator.test.ts`(이 저장소가 여러
+  세션째 기록해온 Windows 병렬실행 자원경합 flaky 패턴과 동일 시그니처, title/description fixer와
+  코드상 무관)뿐 — 두 기능 자체와 관련된 실패는 0건.
+
+### 남은 것(정직하게 명시)
+1. **아직 push 안 함** — 새 브랜치가 아니라 이미 push된 `feat/title-fixer-new-metadata-export`에
+   커밋 2개(B-1, B-2)를 이어서 얹은 상태. PUBLIC 저장소 재확인 규칙대로 사용자 확인 후 push한다.
+2. B-1/B-2를 같은 브랜치에 이어 커밋했다 — 원래 "1브랜치=1목적" 관례와 다른 선택이었다(두 기능이
+   같은 세션·같은 흐름이라 하나의 PR로 묶는 것도 무리는 아니라고 판단했지만, 관례 이탈은 사실이다).
+3. Mac/Linux는 이번 라운드에서도 검증 못 함(AI가 접근 가능한 머신 없음) — 근본 원인(ESM+NODE_PATH)이
+   OS 특정적이지 않다는 판단은 여전히 유효하나 실측은 아니다.
+4. `02_DATA_MODEL.md`의 `github_pr` 테이블 미기재 — 여러 라운드째 미해결로 남은 낮은 우선순위 문서 공백
+   (참고: 이 항목은 이 커밋 이후 별도 라운드에서 실제로 해결됨 — `.PRD/02_DATA_MODEL.md` github_pr
+   엔티티 섹션 참고).
