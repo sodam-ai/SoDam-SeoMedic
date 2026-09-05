@@ -268,7 +268,7 @@ For the first time in this project's history, a real user testing via the **actu
 <details>
 <summary><strong>✅ Phase 2 — Real Google Search Console / Analytics 4 / PageSpeed Insights integration (Done)</strong></summary>
 
-Using a Google service account, pulls in real search performance (clicks, impressions, average position), visitor stats (sessions, active users), and real-user perceived speed data (field CWV), and merges them into the report. All three are **opt-in** — if the related environment variables aren't set, the rest of the audit runs exactly as before (see the "Environment variables" table below). PageSpeed Insights only needs an API key; Search Console and Analytics 4 require a Google service account to be issued first (see `HUMAN_ACTION_CHECKLIST.md`). Unlike other automatic features, Search Console/Analytics 4 **show the failure reason directly in the report** if the integration fails — since there are many more ways to misconfigure these than a single API key, staying silent would leave no way to tell what went wrong.
+Using a Google service account, pulls in real search performance (clicks, impressions, average position), visitor stats (sessions, active users), and real-user perceived speed data (field CWV), and merges them into the report. All three are **opt-in** — if the related environment variables aren't set, the rest of the audit runs exactly as before (see the "Environment variables" table below). PageSpeed Insights only needs an API key; Search Console and Analytics 4 require a Google service account to be issued first (see `.PRD/HUMAN_ACTION_CHECKLIST.md`). Unlike other automatic features, Search Console/Analytics 4 **show the failure reason directly in the report** if the integration fails — since there are many more ways to misconfigure these than a single API key, staying silent would leave no way to tell what went wrong.
 </details>
 
 <details>
@@ -456,7 +456,7 @@ This project does not publish an npm package or a separate CLI executable (there
 | `GSC_PROPERTY_SCOPE` | Optional (only for Search Console integration) | The Search Console property to query (e.g. `sc-domain:example.com` or `https://example.com/`) |
 | `GA4_PROPERTY_ID` | Optional (only for Analytics 4 integration) | GA4 property ID (numeric only, no `properties/` prefix) |
 
-GSC and GA4 each activate only when *all* of their related variables are set (a partial setup is treated the same as no setup — this prevents a half-finished configuration from silently misbehaving). See `HUMAN_ACTION_CHECKLIST.md` for the issuance procedure. No other environment variables are used anywhere in this project's code (confirmed by a full source search, updated 2026-08-20).
+GSC and GA4 each activate only when *all* of their related variables are set (a partial setup is treated the same as no setup — this prevents a half-finished configuration from silently misbehaving). See `.PRD/HUMAN_ACTION_CHECKLIST.md` for the issuance procedure. No other environment variables are used anywhere in this project's code (confirmed by a full source search, updated 2026-08-20).
 
 ### Operational notes
 - `packages/plugin/mcp-server/dist/` is explicitly **exempted** from the general `.gitignore` rule that excludes `dist/` — it must stay committed. Accidentally removing this exception breaks marketplace installs.

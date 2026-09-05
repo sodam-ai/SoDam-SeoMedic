@@ -267,7 +267,7 @@ JSON-LD(구조화 데이터)에 적어놓은 상품 이름이 실제로 그 페�
 <details>
 <summary><strong>✅ Phase 2 — Google Search Console·Analytics 4·PageSpeed Insights 실연동 (완료)</strong></summary>
 
-Google 서비스계정으로 실제 검색 성과(클릭수·노출수·평균 게재순위)와 방문자 통계(세션수·활성 사용자수), 실사용자 체감 속도 데이터(field CWV)를 가져와 리포트에 결합합니다. 셋 다 **선택 기능**이라 관련 환경변수를 설정하지 않으면 나머지 진단은 평소대로 진행됩니다(아래 "환경변수" 표 참고). PageSpeed Insights는 API 키 하나만 있으면 되고, Search Console·Analytics 4는 Google 서비스계정 발급이 먼저 필요합니다(`HUMAN_ACTION_CHECKLIST.md` 참고). Search Console·Analytics 4는 다른 자동 기능과 다르게 **연동에 실패하면 이유를 리포트에 그대로 보여줍니다** — 설정할 항목이 많아 실패 지점도 많기 때문에, 완전히 조용히 넘어가면 어디가 잘못됐는지 알 방법이 없기 때문입니다.
+Google 서비스계정으로 실제 검색 성과(클릭수·노출수·평균 게재순위)와 방문자 통계(세션수·활성 사용자수), 실사용자 체감 속도 데이터(field CWV)를 가져와 리포트에 결합합니다. 셋 다 **선택 기능**이라 관련 환경변수를 설정하지 않으면 나머지 진단은 평소대로 진행됩니다(아래 "환경변수" 표 참고). PageSpeed Insights는 API 키 하나만 있으면 되고, Search Console·Analytics 4는 Google 서비스계정 발급이 먼저 필요합니다(`.PRD/HUMAN_ACTION_CHECKLIST.md` 참고). Search Console·Analytics 4는 다른 자동 기능과 다르게 **연동에 실패하면 이유를 리포트에 그대로 보여줍니다** — 설정할 항목이 많아 실패 지점도 많기 때문에, 완전히 조용히 넘어가면 어디가 잘못됐는지 알 방법이 없기 때문입니다.
 </details>
 
 <details>
@@ -455,7 +455,7 @@ npm run audit   # 고위험 취약점만 점검(npm audit --audit-level=high)
 | `GSC_PROPERTY_SCOPE` | 선택(Search Console 연동을 쓸 때만) | 조회할 Search Console 속성(예: `sc-domain:example.com` 또는 `https://example.com/`) |
 | `GA4_PROPERTY_ID` | 선택(Analytics 4 연동을 쓸 때만) | GA4 속성 ID(숫자만, `properties/` 접두사 없이) |
 
-GSC·GA4는 관련 변수가 전부 있어야 활성화됩니다(하나만 있으면 미설정과 동일하게 취급 — 어중간한 설정이 조용히 잘못 작동하는 일을 막기 위함). 발급 절차는 `HUMAN_ACTION_CHECKLIST.md`를 참고하세요. 이 외의 환경변수는 이 프로젝트 코드에서 사용하지 않습니다(전체 소스 검색으로 확인, 2026-08-20 갱신).
+GSC·GA4는 관련 변수가 전부 있어야 활성화됩니다(하나만 있으면 미설정과 동일하게 취급 — 어중간한 설정이 조용히 잘못 작동하는 일을 막기 위함). 발급 절차는 `.PRD/HUMAN_ACTION_CHECKLIST.md`를 참고하세요. 이 외의 환경변수는 이 프로젝트 코드에서 사용하지 않습니다(전체 소스 검색으로 확인, 2026-08-20 갱신).
 
 ### 운영 주의사항
 - `packages/plugin/mcp-server/dist/`는 `.gitignore`의 일반 규칙(`dist/` 제외)에서 **예외 처리되어 커밋 대상**입니다 — 실수로 이 예외를 지우면 마켓플레이스 설치가 깨집니다.
