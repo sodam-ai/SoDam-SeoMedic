@@ -63,7 +63,7 @@ grep -rhoE '"(WebSite|Organization|Person|Article|BreadcrumbList|Product|FAQPage
 | 1 | **SEO**(일반 검색 노출) | 🟡 부분 | `rules/definitions/content-structure.ts`(title·h1·alt), `og.ts`(meta description) |
 | 2 | **Technical SEO** | ✅ | `status-redirect.ts`(4xx·5xx·리다이렉트 체인), `raw-rendered-gap.ts`, `render-bridge/` |
 | 3 | **Schema.org·JSON-LD·Entity SEO** | 🟡 **얕음** | 지원 타입이 **WebSite·Product·FAQPage 3종뿐**(`jsonld.ts`·`jsonld-required-fields.ts`·`qa-structure.ts`). **Organization·Person·Article·BreadcrumbList·sameAs = 코드 0건** |
-| 4 | **OG (Open Graph)** | ✅ | `rules/definitions/og.ts` + `fixers/og-fixer.ts` |
+| 4 | **OG (Open Graph)** | 🟡 **정정** | `rules/definitions/og.ts` + `fixers/og-fixer.ts`. ⚠️ **og:image를 검사하지 않는다** — `PageSignals`에 `ogImage` 필드 자체가 없음(2026-09-05 3차 조사에서 발견, 최초 ✅ 판정은 과대평가였음) |
 | 5 | **Sitemap + robots.txt** | ✅ | `crawler/sitemap.ts`, `crawler/robots.ts`, `fixers/sitemap-fixer.ts`, `fixers/robots-ai-policy-fixer.ts` |
 | 6 | **Canonical** | ✅ | `canonical.ts`(MISSING·JS-ONLY) + `fixers/canonical-fixer.ts` |
 | 7 | **Core Web Vitals** | ✅ | lab = LCP/CLS/TBT(`cwv-threshold.ts`, TBT는 INP 프록시), field = 진짜 INP(`integrations/psi-client.ts:100`) |
