@@ -194,6 +194,12 @@ if needed
 This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.
 
 <details>
+<summary><strong>✅ Phase 2 — Organization structured-data auto-generation (Done, 2026-09-11)</strong></summary>
+
+When a site has no structured data anywhere identifying "who runs this site" (an Organization entry), proposes adding a minimal entry to the root layout file, using only the site name that's already present on the page. This is an approval-required change and never invents values that don't already exist on the page — fields with no real-page source, such as logo URL, social-media links, or a physical address, are deliberately left out and only the name is filled in (the exact same approach and principle as "Basic structured-data auto-generation" below). This helps search engines and AI understand who actually operates the site.
+</details>
+
+<details>
 <summary><strong>🎉 2026-09-01 — Real-world verification complete: both diagnosis and auto-fix confirmed working</strong></summary>
 
 For the first time since this project began, **a human — not an automated test — ran the commands themselves from a completely fresh conversation session** and confirmed both core features (Windows). ① `/seo-audit` diagnosed a real website and returned a proper report. ② `/seo-fix` was run against a practice Next.js project: purely-additive items were applied automatically, items affecting search-result display asked for approval first and were only applied after approving, and the build passed after applying. Items that weren't approved (things needing real content, like company-description copy) were confirmed to have been left untouched.
@@ -238,7 +244,7 @@ Checks how your `robots.txt` treats the crawlers used by AI search and AI traini
 <details>
 <summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
 
-We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 588** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
+We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 603** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
 </details>
 
 <details>
@@ -268,7 +274,7 @@ For the first time in this project's history, a real user testing via the **actu
 <details>
 <summary><strong>✅ Phase 2 — Real Google Search Console / Analytics 4 / PageSpeed Insights integration (Done)</strong></summary>
 
-Using a Google service account, pulls in real search performance (clicks, impressions, average position), visitor stats (sessions, active users), and real-user perceived speed data (field CWV), and merges them into the report. All three are **opt-in** — if the related environment variables aren't set, the rest of the audit runs exactly as before (see the "Environment variables" table below). PageSpeed Insights only needs an API key; Search Console and Analytics 4 require a Google service account to be issued first (see `HUMAN_ACTION_CHECKLIST.md`). Unlike other automatic features, Search Console/Analytics 4 **show the failure reason directly in the report** if the integration fails — since there are many more ways to misconfigure these than a single API key, staying silent would leave no way to tell what went wrong.
+Using a Google service account, pulls in real search performance (clicks, impressions, average position), visitor stats (sessions, active users), and real-user perceived speed data (field CWV), and merges them into the report. All three are **opt-in** — if the related environment variables aren't set, the rest of the audit runs exactly as before (see the "Environment variables" table below). PageSpeed Insights only needs an API key; Search Console and Analytics 4 require a Google service account to be issued first (see `.PRD/HUMAN_ACTION_CHECKLIST.md`). Unlike other automatic features, Search Console/Analytics 4 **show the failure reason directly in the report** if the integration fails — since there are many more ways to misconfigure these than a single API key, staying silent would leave no way to tell what went wrong.
 </details>
 
 <details>
@@ -371,8 +377,8 @@ See **[FAQ.en.md](./FAQ.en.md)** for frequently asked questions.
 
 ### License
 - This project is licensed under the **Apache License 2.0** (broadly permits modification, redistribution, commercial use, and an express patent license, provided you preserve copyright/patent notices, mark changed files as changed, and comply with the NOTICE-file terms). See the `LICENSE` file for the exact text.
-- **Copyright holder: SoDam AI Studio (2026).** Adopting this license is a decision the project owner has finalized; the items still pending legal review are listed separately below.
-- Third-party open-source dependencies and their licenses are listed in `THIRD_PARTY_NOTICES.md`. A review found **no copyleft licenses (e.g., GPL, which impose source-disclosure obligations on redistribution).** The NOTICE-republishing obligation for the Apache-2.0-licensed dependencies among them (e.g., Playwright) is already fulfilled in that same file.
+- **Current copyright notice: SoDam AI Studio (2026).** This is the exact text currently in the `LICENSE` file. However, **final legal sign-off on this exact name/year has not yet happened** (see item L1 under "Items still pending legal review" below) — the decision to adopt Apache License 2.0 as the license type is already finalized by the project owner, but final legal approval of the copyright-holder wording itself remains a separate, still-open matter.
+- Third-party open-source dependencies and their licenses are listed in `THIRD_PARTY_NOTICES.md`. **An automated scan (license-checker)** found no copyleft licenses (e.g., GPL, which impose source-disclosure obligations on redistribution) — however, this is an **automated-scan result only; final sign-off from a legal professional has not yet been obtained** (see "Items still pending legal review" below). The NOTICE-republishing obligation for the Apache-2.0-licensed dependencies among them (e.g., Playwright) is already fulfilled in that same file.
 
 ### What you can do
 - Freely install and run diagnostics in personal or company projects.
@@ -394,10 +400,14 @@ See **[FAQ.en.md](./FAQ.en.md)** for frequently asked questions.
 - **This tool has no official affiliation, endorsement, or partnership with Google, Anthropic (Claude), OpenAI (ChatGPT), Perplexity, or any other service named in this document or in diagnostic output.** Names of search engines/AI services are mentioned purely for descriptive purposes.
 
 ### Items still pending legal review
-- Potential copyright issues in crawled content
-- Scope of fair use regarding trademarks (e.g., product names referenced in diagnostics)
-- Copyright attribution for AI-generated code/documentation output
+- **Final legal sign-off on the copyright-holder name and year** (currently "SoDam AI Studio, 2026") — the license *type* (Apache License 2.0) is already finalized, but this exact wording is still awaiting separate final confirmation.
+- **Final legal-professional approval of the dependency license scan result** (no copyleft found) — confirmed by an automated scanning tool, but not yet re-confirmed by a legal professional.
+- Potential copyright issues in crawled content (including country-specific fair-use boundaries)
+- Scope of fair use regarding trademarks (Google, Naver, Bing, Next.js, Claude, ChatGPT, and other third-party service names, as well as this project's own product name)
+- Copyright attribution and commercial-use eligibility for AI-generated code/documentation output (including this README and the project's documentation in general)
 - Whether this project's own product name ("SeoMedic") requires trademark registration
+
+**Until all six of these items are resolved, the "copyright holder" notice and the "no copyleft found" statement above should be read as "our best current confirmation," not as a legally finalized fact.**
 
 ⚠️ **None of the above constitutes legal advice.** A professional legal review is strongly recommended before commercial distribution, delivery to clients, or offering this as a service to third parties.
 
@@ -456,7 +466,7 @@ This project does not publish an npm package or a separate CLI executable (there
 | `GSC_PROPERTY_SCOPE` | Optional (only for Search Console integration) | The Search Console property to query (e.g. `sc-domain:example.com` or `https://example.com/`) |
 | `GA4_PROPERTY_ID` | Optional (only for Analytics 4 integration) | GA4 property ID (numeric only, no `properties/` prefix) |
 
-GSC and GA4 each activate only when *all* of their related variables are set (a partial setup is treated the same as no setup — this prevents a half-finished configuration from silently misbehaving). See `HUMAN_ACTION_CHECKLIST.md` for the issuance procedure. No other environment variables are used anywhere in this project's code (confirmed by a full source search, updated 2026-08-20).
+GSC and GA4 each activate only when *all* of their related variables are set (a partial setup is treated the same as no setup — this prevents a half-finished configuration from silently misbehaving). See `.PRD/HUMAN_ACTION_CHECKLIST.md` for the issuance procedure. No other environment variables are used anywhere in this project's code (confirmed by a full source search, updated 2026-08-20).
 
 ### Operational notes
 - `packages/plugin/mcp-server/dist/` is explicitly **exempted** from the general `.gitignore` rule that excludes `dist/` — it must stay committed. Accidentally removing this exception breaks marketplace installs.

@@ -19,6 +19,10 @@ export interface ScannedPage {
     /** 렌더링된 DOM의 <main> 안 첫 문단 텍스트(R-META-DESCRIPTION-MISSING fixer가 metadata.description으로
      * 복사할 소스 — 동일하게 렌더 실패 시 rawSignals로 폴백된다). */
     renderedMainFirstParagraphText: string | null;
+    /** 렌더링된 DOM의 JSON-LD 블록 원문 목록(R-JSONLD-ORG-MISSING 사이트 전체 판정용 — 이 페이지에
+     * 이미 Organization 타입이 있는지 확인하는 데 쓰인다. 새 시그널 추출이 아니라 이미 PageSignals에
+     * 있던 jsonLdBlocks를 그대로 노출만 하는 것 — renderedTitle 등과 동일 패턴). */
+    renderedJsonLdBlocks: string[];
 }
 export interface LocalFixScanResult {
     pages: ScannedPage[];

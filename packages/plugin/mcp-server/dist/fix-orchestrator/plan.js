@@ -15,6 +15,8 @@ import { planOgFix } from "../fixers/og-fixer.js";
 import { planNoindexFix } from "../fixers/noindex-fixer.js";
 import { planRobotsAiPolicyFix } from "../fixers/robots-ai-policy-fixer.js";
 import { planJsonLdWebsiteFix } from "../fixers/jsonld-website-fixer.js";
+import { planOrganizationFix } from "../fixers/organization-fixer.js";
+import { parseJsonLdNodes, getTypes } from "../rules/definitions/jsonld-shared.js";
 import { planTitleFix } from "../fixers/title-fixer.js";
 import { planMetaDescriptionFix } from "../fixers/meta-description-fixer.js";
 import { AI_CRAWLER_POLICY_RULE_ID, buildAiCrawlerPolicyViolation } from "../crawler/ai-crawler-finding.js";
@@ -34,6 +36,8 @@ const ROBOTS_APP_DIR_CANDIDATES = ["app", "src/app"];
 const ROBOTS_LAYOUT_EXTENSIONS = ["tsx", "jsx", "js"];
 const JSONLD_WEBSITE_RULE_ID = "R-JSONLD-WEBSITE-MISSING";
 const JSONLD_WEBSITE_RULE_VERSION = 1;
+const JSONLD_ORG_RULE_ID = "R-JSONLD-ORG-MISSING";
+const JSONLD_ORG_RULE_VERSION = 1;
 // robots.ts와 동일한 후보 목록이지만 대상이 "만들 위치"가 아니라 "이미 있는 layout 파일 자체"라
 // 별도 상수로 둔다(og-fixer.ts가 canonical-fixer.ts 로직을 의도적으로 복제한 것과 같은 이유).
 const ROOT_LAYOUT_DIR_CANDIDATES = ["app", "src/app"];
@@ -138,6 +142,26 @@ export async function planLocalFix(db, projectRoot, options = {}) {
             recommendedValue: `사이트 전체 페이지 ${okPages.length}개 모두 구조화 데이터(JSON-LD) 없음 — 루트 레이아웃에 기본 WebSite 스키마 추가 권장`,
         });
     }
+    // Entity SEO(14개 영역 확장 1순위) — Organization도 WebSite와 동일하게 "사이트 전체" 개념이다
+    // (회사 정보는 페이지마다 반복 선언하는 게 아니라 사이트 전체에 하나만 있으면 됨). 페이지 단위
+    // 규칙엔진(rules/registry.ts)에 넣지 않고 여기서 직접 site-wide finding을 만드는 이유는
+    // R-JSONLD-WEBSITE-MISSING과 완전히 동일하다(fixers/registry.ts 상단 주석 참고). 크롤된 페이지
+    // 중 단 하나라도 이미 Organization 타입 JSON-LD를 갖고 있으면(수동으로 넣어뒀을 수 있음) 건너뛴다.
+    const anyPageHasOrganization = okPages.some((p) => p.renderedJsonLdBlocks.some((block) => {
+        const nodes = parseJsonLdNodes(block);
+        return nodes?.some((n) => getTypes(n).includes("Organization")) ?? false;
+    }));
+    if (okPages.length > 0 && !anyPageHasOrganization) {
+        allViolations.push({
+            ruleId: JSONLD_ORG_RULE_ID,
+            ruleVersion: JSONLD_ORG_RULE_VERSION,
+            category: "schema",
+            severity: "low", // R-JSONLD-WEBSITE-MISSING과 동일 판단 — 부재는 "결함"이 아니라 "기회"
+            pageUrl: `${LOGICAL_ORIGIN}/`,
+            currentValue: null,
+            recommendedValue: `사이트 전체 페이지 ${okPages.length}개 모두 Organization 구조화 데이터 없음 — 루트 레이아웃에 기본 Organization 스키마 추가 권장`,
+        });
+    }
     if (scanResult.aiCrawlerAccess) {
         // ai-crawler-finding.ts와 동일하게 origin은 LOGICAL_ORIGIN 고정값을 쓴다 — 실제 로컬 서버 origin은
         // 실행마다 포트가 바뀌어, 그걸 그대로 쓰면 finding_key(hash(page_url+rule_id+rule_version))가 매번
@@ -208,6 +232,14 @@ export async function planLocalFix(db, projectRoot, options = {}) {
         }
         if (finding.rule_id === JSONLD_WEBSITE_RULE_ID) {
             const fix = planJsonLdWebsiteFixForFinding(db, projectRoot, finding, scanResult.pages);
+            if (fix)
+                plannedFixes.push({ fix, finding });
+            else
+                reportOnlyFindings.push(finding);
+            continue;
+        }
+        if (finding.rule_id === JSONLD_ORG_RULE_ID) {
+            const fix = planOrganizationFixForFinding(db, projectRoot, finding, scanResult.pages);
             if (fix)
                 plannedFixes.push({ fix, finding });
             else
@@ -474,6 +506,44 @@ function planJsonLdWebsiteFixForFinding(db, projectRoot, finding, pages) {
         targetPath,
         validation: "승인 후 next build 재검증을 통과해야 적용됩니다(루트 레이아웃에 WebSite JSON-LD 추가)",
         idempotencyMarker: siteName,
+    });
+}
+/**
+ * planJsonLdWebsiteFixForFinding과 완전히 동일한 로직(의도적 복제) — orgName도 홈페이지의 렌더된
+ * title을 그대로 복사한다(값 발명 금지, WebSite fixer와 동일 원칙). resolveRootLayoutPath를 그대로
+ * 재사용(같은 루트 레이아웃 파일이 대상이므로 새 함수 불필요).
+ */
+function planOrganizationFixForFinding(db, projectRoot, finding, pages) {
+    const targetPath = resolveRootLayoutPath(projectRoot);
+    if (!targetPath)
+        return null; // App Router 루트를 못 찾음 — report_only
+    const homePage = pages.find((p) => {
+        try {
+            return new URL(p.logicalUrl).pathname === "/";
+        }
+        catch {
+            return false;
+        }
+    });
+    const entryPage = homePage ?? pages[0];
+    if (!entryPage)
+        return null; // 크롤된 페이지 자체가 없음(있을 수 없는 방어적 상황) — report_only
+    const orgName = entryPage.renderedTitle;
+    if (!orgName)
+        return null; // 복사할 값이 없음 — report_only(값 발명 금지)
+    const absPath = path.join(projectRoot, targetPath);
+    const plan = planOrganizationFix(absPath, orgName);
+    if (!plan.applicable || plan.updatedText === plan.originalText)
+        return null;
+    return insertFix(db, {
+        findingId: finding.id,
+        fixType: "file_edit",
+        riskLevel: "gated",
+        approvalStatus: "pending",
+        dryRunDiff: `파일: ${targetPath}\n+ Organization JSON-LD(name: ${JSON.stringify(orgName)})`,
+        targetPath,
+        validation: "승인 후 next build 재검증을 통과해야 적용됩니다(루트 레이아웃에 Organization JSON-LD 추가)",
+        idempotencyMarker: orgName,
     });
 }
 /**

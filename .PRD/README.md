@@ -1,6 +1,6 @@
 # SeoMedic — 디자인 문서
 
-> Show Me The PRD로 생성 (2026-07-02) · **v2.5 (최종본 — 정합성 감사 완료)**
+> Show Me The PRD로 생성 (2026-07-02) · **v2.6** (본문 01~04는 v2.5 그대로 + 커버리지 맵 05 추가)
 > 기반: `RESEARCH_SOURCES.md` + `RESEARCH_SOURCES-ADD.md` + 경쟁 리서치 + 자기검증 + 외부 근거 실측
 
 ## 한 줄 소개
@@ -14,6 +14,11 @@
 | [02_DATA_MODEL.md](./02_DATA_MODEL.md) | SQLite 데이터 구조(안정 매칭키·프로젝트별 저장) | 저장 설계 |
 | [03_PHASES.md](./03_PHASES.md) | Phase 1→1.5→2→3 (+마켓 배포) | 개발 순서 |
 | [04_PROJECT_SPEC.md](./04_PROJECT_SPEC.md) | 플러그인 아키텍처 + AI 규칙 + 보안·법적·문서화 | 코딩 시마다 |
+| [05_COVERAGE_MAP.md](./05_COVERAGE_MAP.md) | **SEO/AI검색 14개 영역 × 현재 커버리지**(실측) + 착수 순서 + 미결 결정 | 새 영역 착수 전 |
+| [CHECKPOINT.md](./CHECKPOINT.md) | 진행 기록·발견사항·다음 작업 계획 (2026-09-05 루트에서 이동) | 세션 시작 시 |
+| [CHECKPOINT_1.5.md](./CHECKPOINT_1.5.md) | Phase 1.5(수정기) 상세 기록 | 수정기 작업 시 |
+| [CHECKPOINT_2.md](./CHECKPOINT_2.md) | Phase 2 상세 기록 | Phase 2 작업 시 |
+| [HUMAN_ACTION_CHECKLIST.md](./HUMAN_ACTION_CHECKLIST.md) | **사람만 할 수 있는 일**(법무·외부 인증·OS 검증·결정 대기) (2026-09-05 루트에서 이동) | 세션 시작 시 · 결정 필요 시 |
 
 ## 핵심 차별점 (근거 실측 완료)
 시장: ①"분석만 오픈소스" vs ②"JS 눈속임 SaaS(OTTO=구독끊으면 소멸)". → 빈 공간 = **"URL이면 분석, Next.js 소스면 진짜 코드수정(승인형), 회귀 감지 — 어느 프로젝트에서나 설치."**
@@ -59,6 +64,9 @@
 - **v2.3** 법률·저작권·라이선스·상업적 이용(법무 검토 구분, MIT→권장으로 완화)
 - **v2.4** 왕초보 문서화 요구사항(README·GUIDE·TROUBLESHOOTING·FAQ)
 - **v2.5** GitHub 저장소 수정(clone→브랜치→PR, main 직접 push 금지) + **최종 정합성 감사**(버전·명령어·결정로그 통일)
+- **v2.6b** (2026-09-05) `HUMAN_ACTION_CHECKLIST.md`도 루트에서 `.PRD/`로 이동(사용자 지시). 마크다운 링크는 원래 0건이라 깨진 곳 없었고, README·FAQ 각 4종의 경로 표기만 `.PRD/` 접두사로 갱신
+- **v2.6a** (2026-09-05) 사용자가 `CHECKPOINT.md`·`CHECKPOINT_1.5.md`·`CHECKPOINT_2.md` 3종을 저장소 루트에서 `.PRD/`로 이동. 이 표에 등록하고 깨진 링크 1곳을 수정했다. 이동된 파일 본문의 `.PRD/xxx` 경로 표기는 루트 기준 이력이라 그대로 뒀다(각 파일 상단에 안내 추가)
+- **v2.6** (2026-09-05) 사용자 제공 **SEO/AI검색 14개 영역** 커버리지 맵 [05_COVERAGE_MAP.md](./05_COVERAGE_MAP.md) 신규. ⚠️ **01~04 본문은 변경 없음**(헤더 v2.5 유지 = 의도된 것, 정합성 결함 아님) — 05는 기존 결정을 바꾸지 않는 *대조·인계 문서*이고, 실제 제품 결정 변경은 05의 "미결 결정 3건"을 사용자가 판단한 뒤에 이뤄진다
 
 ## 다음 단계 (구현)
 [03_PHASES.md](./03_PHASES.md)의 "Phase 1 시작 프롬프트"로 착수. 산출물 = 마켓 설치 가능한 SeoMedic 플러그인 + npm 엔진.

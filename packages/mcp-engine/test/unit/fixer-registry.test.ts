@@ -35,4 +35,8 @@ describe("fixer registry — R-CANONICAL-MISSING는 항상 gated", () => {
   it("R-TITLE-MISSING도 gated로 등록되어 있다(CTR/랭킹 신호=예외 없이 gated, 04_PROJECT_SPEC:98)", () => {
     expect(findFixerDescriptor("R-TITLE-MISSING")?.riskLevel).toBe("gated");
   });
+
+  it("R-JSONLD-ORG-MISSING도 gated로 등록되어 있다(구조화 데이터 추가=예외 없이 gated, R-JSONLD-WEBSITE-MISSING과 동일 원칙)", () => {
+    expect(findFixerDescriptor("R-JSONLD-ORG-MISSING")?.riskLevel).toBe("gated");
+  });
 });

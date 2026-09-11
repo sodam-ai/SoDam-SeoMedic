@@ -313,6 +313,12 @@ if needed</code></pre>
 <h2 id="8-whats-new-update-summary">8. What's New (Update Summary)</h2>
 <p>This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.</p>
 <details>
+<summary><strong>✅ Phase 2 — Organization structured-data auto-generation (Done, 2026-09-11)</strong></summary>
+
+<p>When a site has no structured data anywhere identifying "who runs this site" (an Organization entry), proposes adding a minimal entry to the root layout file, using only the site name that's already present on the page. This is an approval-required change and never invents values that don't already exist on the page — fields with no real-page source, such as logo URL, social-media links, or a physical address, are deliberately left out and only the name is filled in (the exact same approach and principle as "Basic structured-data auto-generation" below). This helps search engines and AI understand who actually operates the site.</p>
+</details>
+
+<details>
 <summary><strong>🎉 2026-09-01 — Real-world verification complete: both diagnosis and auto-fix confirmed working</strong></summary>
 
 <p>For the first time since this project began, <strong>a human — not an automated test — ran the commands themselves from a completely fresh conversation session</strong> and confirmed both core features (Windows). ① <code>/seo-audit</code> diagnosed a real website and returned a proper report. ② <code>/seo-fix</code> was run against a practice Next.js project: purely-additive items were applied automatically, items affecting search-result display asked for approval first and were only applied after approving, and the build passed after applying. Items that weren't approved (things needing real content, like company-description copy) were confirmed to have been left untouched.</p>
@@ -357,7 +363,7 @@ if needed</code></pre>
 <details>
 <summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
 
-<p>We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; <strong>now 588</strong> as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
+<p>We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; <strong>now 603</strong> as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
 </details>
 
 <details>
@@ -387,7 +393,7 @@ if needed</code></pre>
 <details>
 <summary><strong>✅ Phase 2 — Real Google Search Console / Analytics 4 / PageSpeed Insights integration (Done)</strong></summary>
 
-<p>Using a Google service account, pulls in real search performance (clicks, impressions, average position), visitor stats (sessions, active users), and real-user perceived speed data (field CWV), and merges them into the report. All three are <strong>opt-in</strong> — if the related environment variables aren't set, the rest of the audit runs exactly as before (see the "Environment variables" table below). PageSpeed Insights only needs an API key; Search Console and Analytics 4 require a Google service account to be issued first (see <code>HUMAN_ACTION_CHECKLIST.md</code>). Unlike other automatic features, Search Console/Analytics 4 <strong>show the failure reason directly in the report</strong> if the integration fails — since there are many more ways to misconfigure these than a single API key, staying silent would leave no way to tell what went wrong.</p>
+<p>Using a Google service account, pulls in real search performance (clicks, impressions, average position), visitor stats (sessions, active users), and real-user perceived speed data (field CWV), and merges them into the report. All three are <strong>opt-in</strong> — if the related environment variables aren't set, the rest of the audit runs exactly as before (see the "Environment variables" table below). PageSpeed Insights only needs an API key; Search Console and Analytics 4 require a Google service account to be issued first (see <code>.PRD/HUMAN_ACTION_CHECKLIST.md</code>). Unlike other automatic features, Search Console/Analytics 4 <strong>show the failure reason directly in the report</strong> if the integration fails — since there are many more ways to misconfigure these than a single API key, staying silent would leave no way to tell what went wrong.</p>
 </details>
 
 <details>
@@ -519,8 +525,8 @@ if needed</code></pre>
 <h3 id="license">License</h3>
 <ul>
 <li>This project is licensed under the <strong>Apache License 2.0</strong> (broadly permits modification, redistribution, commercial use, and an express patent license, provided you preserve copyright/patent notices, mark changed files as changed, and comply with the NOTICE-file terms). See the <code>LICENSE</code> file for the exact text.</li>
-<li><strong>Copyright holder: SoDam AI Studio (2026).</strong> Adopting this license is a decision the project owner has finalized; the items still pending legal review are listed separately below.</li>
-<li>Third-party open-source dependencies and their licenses are listed in <code>THIRD_PARTY_NOTICES.md</code>. A review found <strong>no copyleft licenses (e.g., GPL, which impose source-disclosure obligations on redistribution).</strong> The NOTICE-republishing obligation for the Apache-2.0-licensed dependencies among them (e.g., Playwright) is already fulfilled in that same file.</li>
+<li><strong>Current copyright notice: SoDam AI Studio (2026).</strong> This is the exact text currently in the <code>LICENSE</code> file. However, <strong>final legal sign-off on this exact name/year has not yet happened</strong> (see item L1 under "Items still pending legal review" below) — the decision to adopt Apache License 2.0 as the license type is already finalized by the project owner, but final legal approval of the copyright-holder wording itself remains a separate, still-open matter.</li>
+<li>Third-party open-source dependencies and their licenses are listed in <code>THIRD_PARTY_NOTICES.md</code>. <strong>An automated scan (license-checker)</strong> found no copyleft licenses (e.g., GPL, which impose source-disclosure obligations on redistribution) — however, this is an <strong>automated-scan result only; final sign-off from a legal professional has not yet been obtained</strong> (see "Items still pending legal review" below). The NOTICE-republishing obligation for the Apache-2.0-licensed dependencies among them (e.g., Playwright) is already fulfilled in that same file.</li>
 </ul>
 <h3 id="what-you-can-do">What you can do</h3>
 <ul>
@@ -547,11 +553,14 @@ if needed</code></pre>
 </ul>
 <h3 id="items-still-pending-legal-review">Items still pending legal review</h3>
 <ul>
-<li>Potential copyright issues in crawled content</li>
-<li>Scope of fair use regarding trademarks (e.g., product names referenced in diagnostics)</li>
-<li>Copyright attribution for AI-generated code/documentation output</li>
+<li><strong>Final legal sign-off on the copyright-holder name and year</strong> (currently "SoDam AI Studio, 2026") — the license <em>type</em> (Apache License 2.0) is already finalized, but this exact wording is still awaiting separate final confirmation.</li>
+<li><strong>Final legal-professional approval of the dependency license scan result</strong> (no copyleft found) — confirmed by an automated scanning tool, but not yet re-confirmed by a legal professional.</li>
+<li>Potential copyright issues in crawled content (including country-specific fair-use boundaries)</li>
+<li>Scope of fair use regarding trademarks (Google, Naver, Bing, Next.js, Claude, ChatGPT, and other third-party service names, as well as this project's own product name)</li>
+<li>Copyright attribution and commercial-use eligibility for AI-generated code/documentation output (including this README and the project's documentation in general)</li>
 <li>Whether this project's own product name ("SeoMedic") requires trademark registration</li>
 </ul>
+<p><strong>Until all six of these items are resolved, the "copyright holder" notice and the "no copyleft found" statement above should be read as "our best current confirmation," not as a legally finalized fact.</strong></p>
 <p>⚠️ <strong>None of the above constitutes legal advice.</strong> A professional legal review is strongly recommended before commercial distribution, delivery to clients, or offering this as a service to third parties.</p>
 <h2 id="15-developer--contributor-guide">15. Developer / Contributor Guide</h2>
 <p>This section is for people who want to modify this project's own code or ship a new version, not just use the tool. Regular users can skip it.</p>
@@ -625,7 +634,7 @@ npm run audit   # Checks only for high-severity vulnerabilities (npm audit --aud
 </tr>
 </tbody>
 </table>
-<p>GSC and GA4 each activate only when <em>all</em> of their related variables are set (a partial setup is treated the same as no setup — this prevents a half-finished configuration from silently misbehaving). See <code>HUMAN_ACTION_CHECKLIST.md</code> for the issuance procedure. No other environment variables are used anywhere in this project's code (confirmed by a full source search, updated 2026-08-20).</p>
+<p>GSC and GA4 each activate only when <em>all</em> of their related variables are set (a partial setup is treated the same as no setup — this prevents a half-finished configuration from silently misbehaving). See <code>.PRD/HUMAN_ACTION_CHECKLIST.md</code> for the issuance procedure. No other environment variables are used anywhere in this project's code (confirmed by a full source search, updated 2026-08-20).</p>
 <h3 id="operational-notes">Operational notes</h3>
 <ul>
 <li><code>packages/plugin/mcp-server/dist/</code> is explicitly <strong>exempted</strong> from the general <code>.gitignore</code> rule that excludes <code>dist/</code> — it must stay committed. Accidentally removing this exception breaks marketplace installs.</li>
@@ -633,6 +642,5 @@ npm run audit   # Checks only for high-severity vulnerabilities (npm audit --aud
 </ul>
 <hr />
 <p>This document (README.en.md) contains the complete beginner-friendly, step-by-step walkthrough from install through daily use (the separate GUIDE document was merged into this file as of 2026-08-04 and no longer exists). If something goes wrong, see <strong><a href="./TROUBLESHOOTING.en.html">TROUBLESHOOTING.en.md</a></strong>; for common questions, see <strong><a href="./FAQ.en.html">FAQ.en.md</a></strong>.</p>
-
 </body>
 </html>

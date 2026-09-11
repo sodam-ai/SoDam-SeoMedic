@@ -88,6 +88,16 @@ export const ALL_FIXERS: FixerDescriptor[] = [
     // 없거나 그 안에 문단이 없으면 무조건 report_only — 값 발명 금지 원칙을 다른 경로로 우회하지 않음.
     description: "정적 metadata에 description을 추가(export 자체가 없으면 새로 생성) — <main> 안의 첫 문단을 그대로 복사(155자 초과 시 단어 경계에서 자름, 값 발명 없음), 항상 승인 필요",
   },
+  {
+    ruleId: "R-JSONLD-ORG-MISSING",
+    riskLevel: "gated",
+    // 14개 영역 확장(2026-09-05 CHECKPOINT "3번 Entity SEO — 가장 먼저 할 것") 1순위 항목.
+    // jsonld-website-fixer.ts와 완전히 동일한 원칙("구조화 데이터 추가=예외 없이 gated") — 사이트
+    // 전체에 Organization 타입 JSON-LD가 전혀 없을 때만, 이미 렌더된 홈페이지 title을 name으로
+    // 복사해 최소 스키마 추가를 제안한다. logo·sameAs·주소는 페이지에 원본이 없어 절대 넣지 않는다
+    // (Entity 자동수정은 name 수준까지가 한계선 — 04_PROJECT_SPEC "값 발명 금지" 원칙).
+    description: "루트 레이아웃에 site-wide JSON-LD(Organization)가 전혀 없을 때 최소 스키마 추가를 제안(name만, 이미 렌더된 title 복사) — 항상 승인 필요",
+  },
 ];
 
 function assertUniqueFixerRuleIds(fixers: FixerDescriptor[]): void {
