@@ -377,8 +377,8 @@ See **[FAQ.en.md](./FAQ.en.md)** for frequently asked questions.
 
 ### License
 - This project is licensed under the **Apache License 2.0** (broadly permits modification, redistribution, commercial use, and an express patent license, provided you preserve copyright/patent notices, mark changed files as changed, and comply with the NOTICE-file terms). See the `LICENSE` file for the exact text.
-- **Copyright holder: SoDam AI Studio (2026).** Adopting this license is a decision the project owner has finalized; the items still pending legal review are listed separately below.
-- Third-party open-source dependencies and their licenses are listed in `THIRD_PARTY_NOTICES.md`. A review found **no copyleft licenses (e.g., GPL, which impose source-disclosure obligations on redistribution).** The NOTICE-republishing obligation for the Apache-2.0-licensed dependencies among them (e.g., Playwright) is already fulfilled in that same file.
+- **Current copyright notice: SoDam AI Studio (2026).** This is the exact text currently in the `LICENSE` file. However, **final legal sign-off on this exact name/year has not yet happened** (see item L1 under "Items still pending legal review" below) — the decision to adopt Apache License 2.0 as the license type is already finalized by the project owner, but final legal approval of the copyright-holder wording itself remains a separate, still-open matter.
+- Third-party open-source dependencies and their licenses are listed in `THIRD_PARTY_NOTICES.md`. **An automated scan (license-checker)** found no copyleft licenses (e.g., GPL, which impose source-disclosure obligations on redistribution) — however, this is an **automated-scan result only; final sign-off from a legal professional has not yet been obtained** (see "Items still pending legal review" below). The NOTICE-republishing obligation for the Apache-2.0-licensed dependencies among them (e.g., Playwright) is already fulfilled in that same file.
 
 ### What you can do
 - Freely install and run diagnostics in personal or company projects.
@@ -400,10 +400,14 @@ See **[FAQ.en.md](./FAQ.en.md)** for frequently asked questions.
 - **This tool has no official affiliation, endorsement, or partnership with Google, Anthropic (Claude), OpenAI (ChatGPT), Perplexity, or any other service named in this document or in diagnostic output.** Names of search engines/AI services are mentioned purely for descriptive purposes.
 
 ### Items still pending legal review
-- Potential copyright issues in crawled content
-- Scope of fair use regarding trademarks (e.g., product names referenced in diagnostics)
-- Copyright attribution for AI-generated code/documentation output
+- **Final legal sign-off on the copyright-holder name and year** (currently "SoDam AI Studio, 2026") — the license *type* (Apache License 2.0) is already finalized, but this exact wording is still awaiting separate final confirmation.
+- **Final legal-professional approval of the dependency license scan result** (no copyleft found) — confirmed by an automated scanning tool, but not yet re-confirmed by a legal professional.
+- Potential copyright issues in crawled content (including country-specific fair-use boundaries)
+- Scope of fair use regarding trademarks (Google, Naver, Bing, Next.js, Claude, ChatGPT, and other third-party service names, as well as this project's own product name)
+- Copyright attribution and commercial-use eligibility for AI-generated code/documentation output (including this README and the project's documentation in general)
 - Whether this project's own product name ("SeoMedic") requires trademark registration
+
+**Until all six of these items are resolved, the "copyright holder" notice and the "no copyleft found" statement above should be read as "our best current confirmation," not as a legally finalized fact.**
 
 ⚠️ **None of the above constitutes legal advice.** A professional legal review is strongly recommended before commercial distribution, delivery to clients, or offering this as a service to third parties.
 
