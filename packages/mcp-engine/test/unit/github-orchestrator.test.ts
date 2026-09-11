@@ -177,14 +177,23 @@ describe("runGithubFix — 실제 GitHub 없이 가짜 client로 전체 오케�
     expect(result.safe.pr).toBeNull();
 
     // app/robots.ts가 없고 사이트 전체에 JSON-LD도 전혀 없는 기본 픽스처 그대로라, R-AI-CRAWLER-POLICY
-    // ·R-JSONLD-WEBSITE-MISSING(둘 다 별도 파일)까지 포함해 gated 5종이 review bucket 하나에 전부
-    // 몰린다 — "같은 파일 3개 + 다른 파일 2개"가 한 PR로 묶이는 조합 검증
-    // (2026-08-20: R-JSONLD-WEBSITE-MISSING 신설로 4→5, 회귀 아님 — 의도한 동작 변화).
+    // ·R-JSONLD-WEBSITE-MISSING·R-JSONLD-ORG-MISSING(전부 별도 파일 또는 site-wide)까지 포함해
+    // gated 6종이 review bucket 하나에 전부 몰린다 — "같은 파일 3개 + 다른 파일 2개(WebSite+Organization은
+    // 같은 layout.tsx에 스크립트 2개로 공존)"가 한 PR로 묶이는 조합 검증
+    // (2026-08-20: R-JSONLD-WEBSITE-MISSING 신설로 4→5, 2026-09-11: R-JSONLD-ORG-MISSING 신설로 5→6,
+    // 둘 다 회귀 아님 — 새 site-wide 규칙이 같은 공유 픽스처(JSON-LD 전무)에 정당하게 반응한 것).
     const gatedRuleIds = result.review.gatedFixes.map((f) => f.finding.rule_id).sort();
     expect(gatedRuleIds).toEqual(
-      ["R-AI-CRAWLER-POLICY", "R-CANONICAL-MISSING", "R-JSONLD-WEBSITE-MISSING", "R-NOINDEX-DETECTED", "R-OG-BASIC-MISSING"].sort(),
+      [
+        "R-AI-CRAWLER-POLICY",
+        "R-CANONICAL-MISSING",
+        "R-JSONLD-ORG-MISSING",
+        "R-JSONLD-WEBSITE-MISSING",
+        "R-NOINDEX-DETECTED",
+        "R-OG-BASIC-MISSING",
+      ].sort(),
     );
-    expect(result.review.applied).toHaveLength(5);
+    expect(result.review.applied).toHaveLength(6);
     expect(result.review.applied.every((a) => a.outcome === "applied")).toBe(true);
     expect(result.review.pr).not.toBeNull();
 

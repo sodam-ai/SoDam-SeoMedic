@@ -83,6 +83,7 @@ export async function scanLocalFix(origin, opts = {}) {
                 renderedTitle: renderedSignals.title,
                 renderedH1Text: renderedSignals.h1Text,
                 renderedMainFirstParagraphText: renderedSignals.mainFirstParagraphText,
+                renderedJsonLdBlocks: renderedSignals.jsonLdBlocks,
             });
         }
     }

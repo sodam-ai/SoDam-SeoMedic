@@ -103,6 +103,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
           renderedTitle: null,
           renderedH1Text: null,
           renderedMainFirstParagraphText: null,
+          renderedJsonLdBlocks: [],
         },
       ];
 
@@ -150,6 +151,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
           renderedTitle: null,
           renderedH1Text: null,
           renderedMainFirstParagraphText: null,
+          renderedJsonLdBlocks: [],
         },
       ];
       const fix = planJsOnlyCanonicalFixForFinding(db, projectRoot, finding, pages);
@@ -176,6 +178,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
           renderedTitle: null,
           renderedH1Text: null,
           renderedMainFirstParagraphText: null,
+          renderedJsonLdBlocks: [],
         },
       ];
       const fix = planJsOnlyCanonicalFixForFinding(db, projectRoot, finding, pages);
@@ -202,6 +205,7 @@ describe("fix-orchestrator 통합 — R-CANONICAL-JS-ONLY gated fixer(JS 계산�
           renderedTitle: null,
           renderedH1Text: null,
           renderedMainFirstParagraphText: null,
+          renderedJsonLdBlocks: [],
         },
       ];
       const fix = planJsOnlyCanonicalFixForFinding(db, projectRoot, finding, pages);

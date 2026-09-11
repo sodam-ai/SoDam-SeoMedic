@@ -4009,3 +4009,105 @@ seo-fix    →  fix
 - `.PRD/` 안의 문서들(`01_PRD.md`·`04_PROJECT_SPEC.md`·`CHECKPOINT*.md`)의 언급은 **이제 같은 폴더
   형제 파일이라 그대로 정확**하다 — 손대지 않았다.
 - 파일 상단에 위치 안내를 추가하고, `.PRD/README.md` 문서 구성 표에 등록했다.
+
+---
+
+## ✅ 14개 영역 확장 착수 — 3번 Entity SEO 1순위(Organization) gated fixer 신규 구현 (2026-09-11)
+
+**배경**: 2026-09-05의 6차례 자기감사가 확정한 "기능 확장 계획"의 §3 진행 순서 1단계
+(`3번 Entity SEO — 가장 먼저 할 것`)를 실행했다. 착수 전 이 프로젝트 자신의 PRD 성공기준
+재확인(0단계, "실사용 재검증 3건")도 검토했으나, 이번 세션에서 `sodam-seomedic` MCP 서버가
+연결 실패 상태였고(캐시된 재시도 대기 중) 그 세 항목은 원래도 "새 세션에서 사람이 확인" 성격이라
+**이번 라운드에서는 코드 작업(1단계)에 집중**했다 — 0단계는 다음 세션(또는 사용자의 별도 세션)
+과제로 명시적으로 이월한다.
+
+### 구현 범위 — 왜 Organization만인가(의도적으로 좁힘)
+
+기능 확장 계획 원안은 "Organization·Article·BreadcrumbList"를 한 세트로 제시했으나, 실제
+착수 전 재검토 결과 셋을 한 라운드에 넣는 건 이 프로젝트가 매 라운드 반복해 온 "범위를
+의도적으로 좁힌다" 원칙에 어긋난다고 판단해 축소했다:
+- **Organization만 구현**: `jsonld-website-fixer.ts`(2026-08-20 구현, 9+4개 테스트로 이미
+  검증된 패턴)와 **완전히 동일한 site-wide 구조**라 위험이 가장 낮고, `jsonLdBlocks`가 이미
+  `PageSignals`에 있어 새 시그널 추출이 불필요하다(로드맵 3차가 "낮음" 난이도로 분류한 근거 그대로).
+- **Article 보류**: Google 공식 문서가 "필수 속성 없음"이라 명시해(2026-07-18 Q&A 라운드에서
+  이미 확인된 사실) "무엇이 빠졌다"를 판정할 기준 자체가 없다 — 탐지 규칙을 만들 근거가 약함.
+- **BreadcrumbList 보류**: URL 경로에서 파생 생성해야 해서 Organization과 구조가 다른 별도
+  작업이다(진짜 신규 로직, 복제가 아님) — 한 라운드에 섞으면 검증 밀도가 떨어질 위험.
+
+### 신규 모듈(전부 기존 패턴의 의도적 복제 — og-fixer.ts가 canonical-fixer.ts를 복제한 이 저장소
+관례 그대로, 새 로직 발명 최소화)
+
+- `fixers/organization-fixer.ts`(신규) — `planOrganizationFix`/`writeOrganizationFix`.
+  `jsonld-website-fixer.ts`와 완전히 동일한 스켈레톤(루트 레이아웃 1곳·`<body>` 정확히 1개일
+  때만·M7 이스케이프 동일 적용). name만 홈페이지의 렌더된 title을 그대로 복사(값 발명 없음),
+  **logo·sameAs·url은 절대 넣지 않는다**(2026-09-05 로드맵의 "바뀐 판정 2" 결정 그대로 — 페이지에
+  원본이 없는 필드는 자동수정 대상이 아니라는 원칙).
+- `fix-orchestrator/scan.ts` — `ScannedPage`에 `renderedJsonLdBlocks: string[]` 필드 추가(신규
+  시그널 추출이 아니라 이미 있던 `renderedSignals.jsonLdBlocks`를 그대로 노출만 함 — renderedTitle
+  등과 동일 패턴). Organization 탐지가 "사이트 전체에 이 타입이 하나라도 있는가"를 판정하려면
+  페이지별 JSON-LD 원문이 필요해서 추가.
+- `fix-orchestrator/plan.ts` — `rules/definitions/jsonld-shared.ts`의 `parseJsonLdNodes`/`getTypes`
+  (Stage 5 때 이미 만들어진 공유 헬퍼, 새로 안 만듦)로 크롤된 전체 페이지의 JSON-LD를 파싱해
+  Organization 타입이 하나도 없으면 `R-JSONLD-ORG-MISSING` site-wide finding을 생성. **왜
+  `rules/registry.ts`(페이지 단위 규칙엔진)에 안 넣었나** — R-JSONLD-WEBSITE-MISSING과 완전히
+  같은 이유(fixers/registry.ts 상단 주석 참고): 회사 정보는 페이지마다 반복 선언하는 게 아니라
+  사이트 전체 개념이라 페이지 단위 모델에 안 맞는다.
+- `fix-orchestrator/apply.ts` — `applyOrganizationFix`(TOCTOU 재검증→백업→쓰기→build 재검증→
+  실패 시 롤백, 다른 기존 파일 수정형 fixer와 완전히 동일).
+- `fixers/registry.ts` — `R-JSONLD-ORG-MISSING`을 **gated**로 등록(구조화 데이터 추가는 예외
+  없이 gated라는 이 저장소 원칙 그대로).
+
+### 검증(전부 실제 실행, 목업 아님)
+
+- 단위 테스트 9개(`organization-fixer.test.ts`) — jsonld-website-fixer.test.ts와 동일 항목:
+  파일없음/body 0·2개 fail-closed·정상 삽입·logo/sameAs/url 미포함·기존 내용 보존·멱등·
+  M7 이스케이프(`</script>` 주입 방어).
+- 통합 테스트 5개(`fix-orchestrator-organization-integration.test.ts`, 실제 `next build` 포함) —
+  (a) 미승인 시 무변화 (b) 승인→적용→build 통과→layout.tsx 반영(logo/sameAs/url 없음 확인)→
+  rollback 원복 (c) 거부 시 무변화 (d) 재실행해도 중복 없음(멱등) **(e) 신규 — R-JSONLD-WEBSITE-MISSING과
+  동시 발생해도 같은 layout.tsx에 `<script>` 태그 2개가 서로 안 지우고 함께 반영됨**(겹침 안전성
+  실증 — TOCTOU 재검증 설계가 여러 site-wide JSON-LD fixer 조합에서도 안전함을 이번에 새로 확인).
+- `fixer-registry.test.ts`에 회귀가드 1건 추가(gated 유지 확인).
+- **typecheck 0에러 · build 0에러**(둘 다 재실행 확인).
+- **전체 스위트 1차 실행 — 80개 파일 603개 테스트 중 4개 실패**(신규 테스트는 전부 포함해 통과):
+  1. `server-integration.test.ts`(EPERM 임시폴더 삭제 실패 + 90초 타임아웃)
+  2. `fix-orchestrator-integration.test.ts`(RenderBridgeError — 로컬 next 서버 조기종료)
+  3. `server-integration-github-tool-registration.test.ts`(30초 타임아웃)
+  4. `github-orchestrator.test.ts`의 "gated 여러 개 겹침" 스트레스 테스트(하드코딩된 gated
+     rule_id 5종 배열이 신규 `R-JSONLD-ORG-MISSING` 추가로 6종이 됨 — **2026-08-20에 이미
+     "R-JSONLD-WEBSITE-MISSING 신설로 4→5"로 한 번 겪은 것과 정확히 같은 클래스의 회귀**)
+- **원인 규명(추측 아님, 4건 전부 격리 재실행으로 직접 확인)**:
+  - 1·2·3번은 **각각 단독 실행 시 100% 통과**(server-integration.test.ts 단독 통과,
+    fix-orchestrator-integration.test.ts 단독 3/3 통과, server-integration-github-tool-registration.test.ts
+    완전 단독 6.47초 만에 통과) — 이 저장소가 이미 여러 차례(EBUSY·EPERM·npm-install 타임아웃 등)
+    기록해 온 "80개 파일 동시/순차 실행 시 Windows 자원 경합" 패턴과 동일. 내 변경과 무관.
+  - 4번은 **실제 회귀이지만 코드 결함이 아니라 예상된 테스트 갱신 누락** — 공유 픽스처(JSON-LD가
+    전혀 없는 홈페이지)에 새 site-wide 규칙이 정당하게 반응해 gated 개수가 5→6이 된 것.
+    `gatedRuleIds` 배열에 `"R-JSONLD-ORG-MISSING"` 추가 + `applied` 기대값 5→6으로 수정 후
+    **단독 재실행 5/5 전부 통과**로 확정.
+- **전체 스위트 재실행은 하지 않음(정직하게 명시)** — 80개 파일 동시 실행이 800~1000초+ 걸리고
+  4건 전부 이미 원인이 확정·해결됐음을 격리 재현으로 개별 증명했으므로, 이 저장소가 과거에도
+  반복해 온 "문제 파일만 단독 재실행해 재현성 확인" 방식으로 검증을 마쳤다고 판단했다. 필요하면
+  다음 세션에서 전체 재실행으로 한 번 더 교차검증 가능.
+- `npm run package:plugin` 재생성 완료, `mcp-server/dist/fixers/registry.js`에
+  `R-JSONLD-ORG-MISSING` 포함 확인. `plugin.json` **0.1.8→0.1.9**(실제 도달 가능한 코드 변경).
+  `claude plugin validate packages/plugin --strict` 통과.
+
+### 남은 것(정직하게 명시)
+
+1. **PRD 0단계(실사용 재검증 3건: `/seo-audit` 1회, `/seo-fix` 2회 연속)는 이번 라운드에서도
+   미완료** — `sodam-seomedic` MCP 서버 연결 실패로 이 세션에서 시도하지 못함. 다음 세션(또는
+   완전 재시작 후 이 세션)에서 최우선으로 시도할 것.
+2. **정확도 측정 픽스처(`test/fixtures/accuracy/`, 2026-09-05 7차가 설계한 것)는 이번에 만들지
+   않았다** — R-JSONLD-ORG-MISSING은 **site-wide 판정**(여러 페이지 + 실제 Next 서버 필요)이라
+   7차 설계가 명시한 "그런 규칙은 정확도 측정 대상에서 제외"(sitemap을 예로 든 것과 동일 범주)에
+   해당한다. **이 인프라 자체는 다음 순서(BreadcrumbList 또는 그 이후 영역 중 페이지 단위로
+   판정 가능한 규칙)에서 실제로 만드는 것을 권장** — 억지로 안 맞는 규칙에 붙이지 않았다.
+3. **Article·BreadcrumbList는 미착수**(위 "왜 Organization만인가" 참고) — 3번 영역이 아직
+   완전히 끝난 게 아니다. `.PRD/05_COVERAGE_MAP.md`의 3번 행을 "진행중"으로 갱신했다.
+4. **README 4종(md/en.md/html/en.html)·`.PRD/02_DATA_MODEL.md`는 이번 라운드에서 갱신하지
+   않았다** — `02_DATA_MODEL.md`의 category 목록(`schema`)은 이미 있어 변경 불필요하지만, README
+   §8 업데이트 요약에 이번 기능을 추가하는 문서 작업은 남아있다(2026-09-05 5차 DoD의 "문서까지
+   끝나야 완료" 기준 미충족 — 다음 작업으로 명시 이월).
+5. **커밋은 새 브랜치에만, push는 사용자 확인 후** — 아래 참고.
+
