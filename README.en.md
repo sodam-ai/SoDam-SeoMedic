@@ -194,6 +194,12 @@ if needed
 This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.
 
 <details>
+<summary><strong>✅ Phase 2 — Organization structured-data auto-generation (Done, 2026-09-11)</strong></summary>
+
+When a site has no structured data anywhere identifying "who runs this site" (an Organization entry), proposes adding a minimal entry to the root layout file, using only the site name that's already present on the page. This is an approval-required change and never invents values that don't already exist on the page — fields with no real-page source, such as logo URL, social-media links, or a physical address, are deliberately left out and only the name is filled in (the exact same approach and principle as "Basic structured-data auto-generation" below). This helps search engines and AI understand who actually operates the site.
+</details>
+
+<details>
 <summary><strong>🎉 2026-09-01 — Real-world verification complete: both diagnosis and auto-fix confirmed working</strong></summary>
 
 For the first time since this project began, **a human — not an automated test — ran the commands themselves from a completely fresh conversation session** and confirmed both core features (Windows). ① `/seo-audit` diagnosed a real website and returned a proper report. ② `/seo-fix` was run against a practice Next.js project: purely-additive items were applied automatically, items affecting search-result display asked for approval first and were only applied after approving, and the build passed after applying. Items that weren't approved (things needing real content, like company-description copy) were confirmed to have been left untouched.
@@ -238,7 +244,7 @@ Checks how your `robots.txt` treats the crawlers used by AI search and AI traini
 <details>
 <summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
 
-We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 588** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
+We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 603** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
 </details>
 
 <details>

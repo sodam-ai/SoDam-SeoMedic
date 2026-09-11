@@ -313,6 +313,12 @@ if needed</code></pre>
 <h2 id="8-whats-new-update-summary">8. What's New (Update Summary)</h2>
 <p>This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.</p>
 <details>
+<summary><strong>✅ Phase 2 — Organization structured-data auto-generation (Done, 2026-09-11)</strong></summary>
+
+<p>When a site has no structured data anywhere identifying "who runs this site" (an Organization entry), proposes adding a minimal entry to the root layout file, using only the site name that's already present on the page. This is an approval-required change and never invents values that don't already exist on the page — fields with no real-page source, such as logo URL, social-media links, or a physical address, are deliberately left out and only the name is filled in (the exact same approach and principle as "Basic structured-data auto-generation" below). This helps search engines and AI understand who actually operates the site.</p>
+</details>
+
+<details>
 <summary><strong>🎉 2026-09-01 — Real-world verification complete: both diagnosis and auto-fix confirmed working</strong></summary>
 
 <p>For the first time since this project began, <strong>a human — not an automated test — ran the commands themselves from a completely fresh conversation session</strong> and confirmed both core features (Windows). ① <code>/seo-audit</code> diagnosed a real website and returned a proper report. ② <code>/seo-fix</code> was run against a practice Next.js project: purely-additive items were applied automatically, items affecting search-result display asked for approval first and were only applied after approving, and the build passed after applying. Items that weren't approved (things needing real content, like company-description copy) were confirmed to have been left untouched.</p>
@@ -357,7 +363,7 @@ if needed</code></pre>
 <details>
 <summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
 
-<p>We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; <strong>now 588</strong> as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
+<p>We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; <strong>now 603</strong> as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but <strong>this does not yet include a human manually running the commands on macOS/Linux</strong> — the automated checks reduce this risk, they don't fully eliminate it.</p>
 </details>
 
 <details>
@@ -633,6 +639,5 @@ npm run audit   # Checks only for high-severity vulnerabilities (npm audit --aud
 </ul>
 <hr />
 <p>This document (README.en.md) contains the complete beginner-friendly, step-by-step walkthrough from install through daily use (the separate GUIDE document was merged into this file as of 2026-08-04 and no longer exists). If something goes wrong, see <strong><a href="./TROUBLESHOOTING.en.html">TROUBLESHOOTING.en.md</a></strong>; for common questions, see <strong><a href="./FAQ.en.html">FAQ.en.md</a></strong>.</p>
-
 </body>
 </html>
