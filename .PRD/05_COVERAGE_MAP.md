@@ -60,10 +60,10 @@ grep -rhoE '"(WebSite|Organization|Person|Article|BreadcrumbList|Product|FAQPage
 
 | # | 영역 | 상태 | 근거 파일 (실측) |
 |---|------|------|------------------|
-| 1 | **SEO**(일반 검색 노출) | 🟡 부분 | `rules/definitions/content-structure.ts`(title·h1·alt), `og.ts`(meta description) |
+| 1 | **SEO**(일반 검색 노출) | 🟡 부분 | `rules/definitions/content-structure.ts`(title·h1·alt), `og.ts`(meta description). 2026-10-11: title 추출이 인라인 SVG의 `<title>`을 페이지 title로 오인하던 결함 수정(`dom-signals.ts`, raw·rendered 양쪽) |
 | 2 | **Technical SEO** | ✅ | `status-redirect.ts`(4xx·5xx·리다이렉트 체인), `raw-rendered-gap.ts`, `render-bridge/` |
 | 3 | **Schema.org·JSON-LD·Entity SEO** | 🟡 **진행중(2026-09-11 갱신)** | 지원 타입이 **WebSite·Product·FAQPage·Organization 4종**(`jsonld.ts`·`jsonld-required-fields.ts`·`qa-structure.ts`·`organization-fixer.ts`). `R-JSONLD-ORG-MISSING`(gated fixer, name만 자동채움) 신규 — jsonld-website-fixer.ts와 완전히 동일한 site-wide 패턴 재사용. **Person·Article·BreadcrumbList·sameAs = 여전히 코드 0건**(다음 라운드로 명시 이월 — 이유는 CHECKPOINT.md 해당 라운드 기록 참고) |
-| 4 | **OG (Open Graph)** | 🟡 **정정** | `rules/definitions/og.ts` + `fixers/og-fixer.ts`. ⚠️ **og:image를 검사하지 않는다** — `PageSignals`에 `ogImage` 필드 자체가 없음(2026-09-05 3차 조사에서 발견, 최초 ✅ 판정은 과대평가였음) |
+| 4 | **OG (Open Graph)** | 🟡 **진행중(2026-10-11 갱신)** | `rules/definitions/og.ts` + `fixers/og-fixer.ts`. ✅ **og:image 탐지 추가**(`R-OG-IMAGE-MISSING`, report_only — `PageSignals.ogImage`를 raw·rendered 양쪽에 추가). **자동수정은 의도적으로 없음** — 복사할 원본이 페이지에 없고, 이미지 URL을 요청하면 SSRF 신규 공격면이 된다. 남은 것: 이미지 실제 존재·크기 검사(별도 설계 필요), `og:image:url`만 쓰는 페이지는 누락으로 오판할 수 있음(og.ts 주석에 명시) |
 | 5 | **Sitemap + robots.txt** | ✅ | `crawler/sitemap.ts`, `crawler/robots.ts`, `fixers/sitemap-fixer.ts`, `fixers/robots-ai-policy-fixer.ts` |
 | 6 | **Canonical** | ✅ | `canonical.ts`(MISSING·JS-ONLY) + `fixers/canonical-fixer.ts` |
 | 7 | **Core Web Vitals** | ✅ | lab = LCP/CLS/TBT(`cwv-threshold.ts`, TBT는 INP 프록시), field = 진짜 INP(`integrations/psi-client.ts:100`) |
@@ -73,7 +73,7 @@ grep -rhoE '"(WebSite|Organization|Person|Article|BreadcrumbList|Product|FAQPage
 | 11 | **LLMO / AI Search 최적화** | 🟡 부분 | 위 10번과 동일 기반. **`llms.txt` = 코드 0건** |
 | 12 | **X Cards** | ❌ | `twitter:` 문자열이 **코드 전체에서 0건** |
 | 13 | **AI Visibility·인용 추적** | ❌ | 측정 기능 자체가 부재. **PRD 확정 결정과 충돌 → 아래 "미결 결정" 참고** |
-| 14 | **Crawler / Indexing 관리** | 🟡 부분 | noindex 규칙+fixer(`indexing.ts`·`noindex-fixer.ts`), AI봇 접근 리포트는 있음. 단 GSC는 `searchanalytics`만 사용 — **URL Inspection API 미사용이라 "실제 색인됐는가"는 확인 불가**(`integrations/gsc-client.ts`) |
+| 14 | **Crawler / Indexing 관리** | 🟡 부분 | noindex 규칙+fixer(`indexing.ts`·`noindex-fixer.ts`), AI봇 접근 리포트는 있음. **2026-10-11 추가**: `R-NOINDEX-VARIANT-DETECTED`(robots 메타의 `none`, `googlebot` 전용 메타의 `noindex`/`none` — report_only, 기존 규칙은 R1에 따라 불변). 아직 못 보는 것: `X-Robots-Tag` 응답 헤더, 같은 이름 메타가 여러 개일 때 첫 번째 외의 것. 단 GSC는 `searchanalytics`만 사용 — **URL Inspection API 미사용이라 "실제 색인됐는가"는 확인 불가**(`integrations/gsc-client.ts`) |
 
 ---
 
@@ -81,7 +81,7 @@ grep -rhoE '"(WebSite|Organization|Person|Article|BreadcrumbList|Product|FAQPage
 
 ### 그룹 A — 기존 틀에 그대로 얹힘 (저비용)
 
-SeoMedic은 **규칙(rule) 22개 + 수정기(fixer) 8개를 레지스트리에 등록**하는 구조라,
+SeoMedic은 **규칙(rule) 24개 + 수정기(fixer) 10개를 레지스트리에 등록**하는 구조라,
 아래는 "새 파일 1개 + `rules/registry.ts` 또는 `fixers/registry.ts`에 한 줄 추가"로 끝난다.
 
 - **12번 X Cards** — `og.ts` / `og-fixer.ts`를 그대로 복제하는 형태

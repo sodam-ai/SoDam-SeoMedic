@@ -194,6 +194,19 @@ if needed
 This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.
 
 <details>
+<summary><strong>✅ Phase 2 — Accuracy hardening: link-preview image (og:image) and noindex-variant detection + an accuracy measurement harness (Done, 2026-10-11)</strong></summary>
+
+We built, for the first time, a **harness that measures in numbers whether each check rule judges correctly** (for every rule, sample "healthy" and "problem" pages are kept and scored automatically). Right now 8 of the 24 rules are measured; on the prepared samples there are 0 healthy pages wrongly flagged and 0 problem pages missed. The remaining rules are not measured yet. Along the way it exposed 4 places that were actually wrong, and we fixed them.
+
+- **Reports a missing link-preview image (og:image).** It only reports; it does not fill the value in automatically — it never invents values the page doesn't already have, and it never opens the image URL itself (an unsafe action).
+- **Reports pages that are kept out of search via `noindex` written as `none` or as Google's own `googlebot` meta tag.** These used to come out as "no problem". It only reports; it does not fix them automatically.
+- **Fixed: a missing page title (title) was mistaken as present when an inline icon (SVG) in the body had its own name.**
+- **Fixed: a false alarm saying "structured data differs from the page" when a product name simply had two spaces in a row.**
+
+The versions of existing check rules were left unchanged and the new check was added as a separate rule, so baseline comparisons you saved earlier (`/seo-check`) are not broken. However, problems newly detected this way (the 2nd and 3rd items above) may show up once as "newly appeared".
+</details>
+
+<details>
 <summary><strong>✅ Phase 2 — Organization structured-data auto-generation (Done, 2026-09-11)</strong></summary>
 
 When a site has no structured data anywhere identifying "who runs this site" (an Organization entry), proposes adding a minimal entry to the root layout file, using only the site name that's already present on the page. This is an approval-required change and never invents values that don't already exist on the page — fields with no real-page source, such as logo URL, social-media links, or a physical address, are deliberately left out and only the name is filled in (the exact same approach and principle as "Basic structured-data auto-generation" below). This helps search engines and AI understand who actually operates the site.
@@ -244,7 +257,7 @@ Checks how your `robots.txt` treats the crawlers used by AI search and AI traini
 <details>
 <summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
 
-We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 603** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
+We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 641** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
 </details>
 
 <details>

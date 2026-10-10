@@ -114,23 +114,27 @@
       *(충족 — 2026-09-01 사람이 새 세션에서 `/seo-audit` 실제 실행해 리포트 수신. 근거: `CHECKPOINT.md` 2026-09-01 섹션 · `README.md` §8)*
 - [ ] **raw HTML vs 렌더드 DOM 차이**를 실제 탐지.
       *(코드·단위테스트는 구현됨 — `rules/definitions/raw-rendered-gap.ts`. 다만 **실사용에서 실제로 이 차이를 탐지한 기록**은 2026-09-05 대조에서 찾지 못했다. 라이브 사이트에서 1건 탐지 확인 시 체크할 것)*
+      *(2026-10-11 재확인: `seomedic_audit`은 URL만 입력받고 SSRF 가드(M1)가 loopback을 막으므로 로컬 폴더·dev 서버로는 이 항목을 닫기 어렵다 — 본인이 소유한 **공개 URL**에서 raw/rendered 차이가 있는 페이지 1건이 필요하다. 코드 정독 기준이며 실행으로 확인한 것은 아님)*
 - [ ] **진단 정확도**: known-good/known-bad 픽스처 사이트 세트에서 **핵심 규칙 오탐 0, 재현율 ≥ 90%**(임의 목표, 조정 가능).
       *(⚠️ **미충족 — 측정 자체가 불가능한 상태**. 2026-09-05 실측: `test/fixtures/`에 known-good/known-bad 세트가 없고 재현율·오탐률 계산 코드도 없다. 규칙을 늘리기 전에 기반이 필요하므로, **새 규칙마다 픽스처 2종(정상/문제)을 함께 만드는 방식**을 완료 조건에 넣었다 — `CHECKPOINT.md` 2026-09-05 6차 섹션 참고)*
+      *(**2026-10-11 갱신 — 측정은 시작됐으나 체크는 보류**: 측정 틀 구축(`test/fixtures/accuracy/` + `test/unit/rule-accuracy.test.ts`). 24개 규칙 중 8개 측정, 준비한 픽스처 기준 **오탐 0·재현율 100%**. 측정 중 실제 결함 4건 발견·수정(noindex `none`/`googlebot` 미탐 → 새 규칙 `R-NOINDEX-VARIANT-DETECTED`, SVG title 오인, Product 이름 공백 오탐). **HTML만으로 판정 가능한데 아직 안 잰 규칙 10개**(H1×2·IMG-ALT·RAW-RENDERED-GAP·OG-BASIC·OG-DESCRIPTION·META-DESCRIPTION·JSONLD-MISSING·PRODUCT-INCOMPLETE·QA-STRUCTURE)와, HTML로 안 재지는 6개(CWV×3·STATUS×2·REDIRECT)가 남아 있다)*
 - [x] **CWV 측정 안정성**: Lighthouse **3회 중앙값 + 임계 밴드**로 회귀 오탐 억제. 리포트에 **"lab 값 — Google 랭킹용 field(CrUX)와 다름"** 명시.
       *(충족 — `cwv/lighthouse-runner.ts`가 3회 중앙값 산출, `report/markdown.ts:75`가 리포트에 lab·field 차이 경고를 실제 출력)*
 - [ ] 같은 프로젝트 두 번 검사 시 **원복 항목 1개 이상** 안정 키로 정확 탐지.
       *(회귀 비교 코드는 구현됨 — `regression/`. 다만 **실사용에서 원복을 실제로 잡아낸 기록**은 2026-09-05 대조에서 찾지 못했다. `/seo-check` 실사용 1회로 확인 시 체크할 것)*
+      *(2026-10-11 재확인: 같은 이유로 **공개 URL + 두 실행 사이에 페이지를 바꾸는 시나리오**가 필요하다. `regression/classify.ts`는 베이스라인에 없던 finding_key가 새로 나타나면 원복으로 분류한다. 코드 정독 기준이며 실행으로 확인한 것은 아님)*
 
 ### Phase 1.5 (수정기)
 - [x] Next.js 소스 1개에서 **"추가형"** 수정을 실제 파일로 반영, **적용 후 `build` 통과** 확인.
       *(충족 — 2026-09-01 `/seo-fix` 실사용, 적용 후 `next build` 통과 확인. 근거: `CHECKPOINT.md` 2026-09-01 · `README.md` §8)*
 - [x] canonical/noindex/robots/sitemap/JSON-LD는 **승인 없이 절대 변경 안 함**(dry-run 기본).
       *(충족 — 2026-09-01 실사용에서 승인하지 않은 항목이 손대지 않은 채 남는 것까지 확인. 코드상 `fixers/registry.ts`의 해당 항목 전부 `gated`)*
-- [ ] fix 2회 실행해도 **중복 삽입 없음(멱등)**, git clean 아니면 **자동 백업/중단**.
-      *(코드는 구현됨 — `git-safety/git-guard.ts`, 각 fixer의 멱등 처리. 다만 **실사용에서 같은 대상에 fix를 2회 연속 실행한 기록**은 찾지 못했다. 1회 확인으로 체크 가능)*
+- [x] fix 2회 실행해도 **중복 삽입 없음(멱등)**, git clean 아니면 **자동 백업/중단**.
+      *(충족 — 2026-10-11 03:00~03:03 KST, 연습용 Next.js 프로젝트에 **실제 MCP 도구**(`seomedic_fix_plan`→`approve`→`apply`)로 4회 반복 확인. ① 같은 `auditRunId`로 apply를 다시 실행하면 "적용할 fix 없음", 파일 해시가 1회차 직후와 동일 ② 변경을 커밋하지 않은 채 plan을 다시 부르면 git dirty로 거부 ③ 이전 수정은 재제안되지 않았고 canonical·OG·JSON-LD 등 새로 가능해진 수정만 추가 ④ 4회차에 적용 가능한 수정 0건·`next build` 통과·중복 삽입 0. **참고**: 수정은 의존 연쇄(title→metadata→canonical/OG→og:url/JSON-LD) 때문에 3회에 걸쳐 수렴하며(중복은 아님), 이 확인에 쓰인 설치 플러그인은 0.1.9였다)*
 
 ### 보안 (핵심 요구사항 — 선택 아님, OWASP ASVS 기준)
 - [ ] **SSRF**: 사설/loopback/메타데이터 IP·`file://`·off-host 리다이렉트 크롤 거부.
+      *(⚠️ 2026-10-11 재확인: 크롤·렌더 경로는 요청마다 재검증하지만 **Lighthouse(CWV) 경로는 진입 URL만 검증**한다 — 리다이렉트 중간에 사설 IP로 빠지는 경우의 방어 공백. 근거 `cwv/lighthouse-runner.ts:52-59`, `CHECKPOINT.md` M3("M9/Phase2 추적"이라 적었으나 후속 기록 없음). 설계 라운드 필요)*
 - [ ] **명령어 주입**: 렌더 브릿지 셸 보간 금지(argv 배열) — 경로에 셸 메타문자 넣어도 미실행.
 - [ ] **경로 조작**: 수정은 프로젝트 루트 내 confine, `..` 이탈 거부.
 - [ ] **시크릿**: 코드·로그·화면·에러·DB·Git에 키/토큰 0(스캔 통과), env-only.
