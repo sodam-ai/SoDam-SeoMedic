@@ -201,3 +201,56 @@ describe("extractSignalsFromHtml", () => {
     expect(signals.mainFirstParagraphText).toBe("실제 내용");
   });
 });
+
+describe("extractSignalsFromHtml — metaGooglebot (R-NOINDEX-VARIANT-DETECTED용 신호)", () => {
+  it("<meta name=\"googlebot\">의 content를 추출한다", () => {
+    const html = `<html><head><meta name="googlebot" content="noindex"></head><body></body></html>`;
+    expect(extractSignalsFromHtml(html).metaGooglebot).toBe("noindex");
+  });
+
+  it("googlebot 메타가 없으면 null — name=\"robots\"만 있어도 섞이지 않는다", () => {
+    const html = `<html><head><meta name="robots" content="noindex"></head><body></body></html>`;
+    const signals = extractSignalsFromHtml(html);
+    expect(signals.metaGooglebot).toBeNull();
+    expect(signals.metaRobots).toBe("noindex");
+  });
+
+  it("속성명·name 값이 대문자/혼합 대소문자여도 추출한다(linkedom은 속성명 대소문자를 보존하므로 getAttrCI 필수)", () => {
+    const html = `<html><head><META NAME="GoogleBot" CONTENT="NoIndex"></head><body></body></html>`;
+    expect(extractSignalsFromHtml(html).metaGooglebot).toBe("NoIndex");
+  });
+
+  it("googlebot-news 같은 다른 UA 메타는 googlebot으로 오인하지 않는다", () => {
+    const html = `<html><head><meta name="googlebot-news" content="noindex"></head><body></body></html>`;
+    expect(extractSignalsFromHtml(html).metaGooglebot).toBeNull();
+  });
+
+  it("metaRobots 의미는 그대로다 — googlebot 값이 metaRobots로 새지 않는다(R-NOINDEX-DETECTED v1 보존)", () => {
+    const html = `<html><head><meta name="googlebot" content="noindex"></head><body></body></html>`;
+    expect(extractSignalsFromHtml(html).metaRobots).toBeNull();
+  });
+});
+
+describe("extractSignalsFromHtml — title은 SVG 안의 <title>을 제외한다", () => {
+  const svg = `<svg width="20" height="20" role="img"><title>로고 아이콘</title><circle cx="10" cy="10" r="8"/></svg>`;
+
+  it("head에 title이 없고 본문 인라인 SVG의 title만 있으면 title은 null", () => {
+    const html = `<html><head><meta charset="utf-8"></head><body><h1>제목</h1>${svg}</body></html>`;
+    expect(extractSignalsFromHtml(html).title).toBeNull();
+  });
+
+  it("head에 진짜 title이 있으면 SVG title이 있어도 head title을 쓴다", () => {
+    const html = `<html><head><title>실제 제목</title></head><body>${svg}</body></html>`;
+    expect(extractSignalsFromHtml(html).title).toBe("실제 제목");
+  });
+
+  it("SVG title이 문서 순서상 앞서도(본문 → 뒤늦은 title) SVG를 건너뛰고 HTML title을 찾는다", () => {
+    const html = `<html><body>${svg}<title>본문에 놓인 HTML title</title></body></html>`;
+    expect(extractSignalsFromHtml(html).title).toBe("본문에 놓인 HTML title");
+  });
+
+  it("SVG가 여러 개여도 전부 제외한다", () => {
+    const html = `<html><body>${svg}${svg}</body></html>`;
+    expect(extractSignalsFromHtml(html).title).toBeNull();
+  });
+});

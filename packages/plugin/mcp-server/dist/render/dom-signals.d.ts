@@ -5,6 +5,9 @@ export interface PageSignals {
     h1Count: number;
     h1Text: string | null;
     metaRobots: string | null;
+    /** <meta name="googlebot" content>. Google 전용 robots 지시어 — name="robots"와 별개로 noindex를 걸 수 있다
+     * (R-NOINDEX-VARIANT-DETECTED 전용). 기존 metaRobots 의미는 바꾸지 않는다(R-NOINDEX-DETECTED v1 보존). */
+    metaGooglebot: string | null;
     /** <script type="application/ld+json"> 각 블록의 원문 텍스트(trim, 빈 문자열 제외). 존재 여부는 length>0으로 판단 */
     jsonLdBlocks: string[];
     /** <meta property="og:title" content>. og:*는 name이 아니라 property 속성으로 매칭한다 */

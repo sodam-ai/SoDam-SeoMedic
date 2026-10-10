@@ -8,6 +8,7 @@ const empty: PageSignals = {
   h1Count: 0,
   h1Text: null,
   metaRobots: null,
+  metaGooglebot: null,
   jsonLdBlocks: [],
   ogTitle: null,
   ogUrl: null,

@@ -1,5 +1,5 @@
 import { canonicalMissingRule, canonicalJsOnlyRule } from "./definitions/canonical.js";
-import { noindexDetectedRule } from "./definitions/indexing.js";
+import { noindexDetectedRule, noindexVariantDetectedRule } from "./definitions/indexing.js";
 import { jsonLdMissingRule, jsonLdInvalidRule } from "./definitions/jsonld.js";
 import { qaStructureMissingRule } from "./definitions/qa-structure.js";
 import { jsonLdProductIncompleteRule, jsonLdProductNameMismatchRule } from "./definitions/jsonld-required-fields.js";
@@ -33,6 +33,8 @@ export const ALL_RULES = [
     imgAltMissingRule,
     // 14개 영역 확장 — 4번 OG의 결손 보완(2026-10): 기존 og 규칙은 version 그대로 두고 새 rule_id로 추가
     ogImageMissingRule,
+    // 1번 일반 SEO·14번 색인 관리의 결손 보완(2026-10): noindex의 다른 표기(none, googlebot 메타) — v1은 그대로 두고 신설
+    noindexVariantDetectedRule,
 ];
 /** rule_id는 registry 전체에서 유일해야 finding_key(page_url+rule_id+rule_version) 매칭이 안정적이다. */
 function assertUniqueRuleIds(rules) {

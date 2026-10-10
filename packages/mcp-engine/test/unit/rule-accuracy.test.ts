@@ -37,7 +37,11 @@ interface Fixture {
 }
 
 function loadFixtures(): { fixtures: Fixture[]; problems: string[] } {
-  const files = readdirSync(FIXTURE_DIR);
+  // 점(.)으로 시작하는 항목·디렉터리는 픽스처가 아니다 — 외부 도구가 작업 폴더에 상태 폴더(.omc 등)를 만들어도
+  // 명명 규칙 위반으로 오판하지 않는다. 일반 파일(.html)의 오타는 아래 problems에서 여전히 잡힌다.
+  const files = readdirSync(FIXTURE_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && !entry.name.startsWith("."))
+    .map((entry) => entry.name);
   const rawHalves = new Map<string, string>();
   for (const file of files) {
     if (RAW_SUFFIX.test(file)) rawHalves.set(file.replace(RAW_SUFFIX, ".html"), file);
