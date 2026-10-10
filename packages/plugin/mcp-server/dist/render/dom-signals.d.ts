@@ -13,6 +13,9 @@ export interface PageSignals {
     ogUrl: string | null;
     /** <meta property="og:description" content> */
     ogDescription: string | null;
+    /** <meta property="og:image" content>. 태그의 content 값만 읽는다 — 이미지 URL을 실제로 요청하지 않는다
+     * (요청하려면 SSRF 가드(M1)가 필요한 신규 공격면이라 의도적으로 제외, 존재 여부·크기 검사는 범위 밖) */
+    ogImage: string | null;
     /** <meta name="description" content> */
     metaDescription: string | null;
     /** <main> 안의 첫 <p> 텍스트(trim, 비어있지 않은 것 중 첫 번째). <main>이 없으면 null —

@@ -37,6 +37,7 @@ export function extractSignalsFromHtml(html) {
             ogTitle: null,
             ogUrl: null,
             ogDescription: null,
+            ogImage: null,
             metaDescription: null,
             mainFirstParagraphText: null,
             imagesWithoutAltCount: 0,
@@ -61,6 +62,7 @@ export function extractSignalsFromHtml(html) {
     const ogTitle = metaByProperty("og:title");
     const ogUrl = metaByProperty("og:url");
     const ogDescription = metaByProperty("og:description");
+    const ogImage = metaByProperty("og:image");
     const jsonLdBlocks = Array.from(document.querySelectorAll("script"))
         .filter((el) => getAttrCI(el, "type")?.toLowerCase() === "application/ld+json")
         .map((el) => el.textContent?.trim() ?? "")
@@ -83,6 +85,7 @@ export function extractSignalsFromHtml(html) {
         ogTitle,
         ogUrl,
         ogDescription,
+        ogImage,
         metaDescription,
         mainFirstParagraphText,
         imagesWithoutAltCount,
@@ -103,6 +106,7 @@ export async function extractSignalsFromPage(page) {
         const ogTitleEl = document.querySelector('meta[property="og:title" i]');
         const ogUrlEl = document.querySelector('meta[property="og:url" i]');
         const ogDescriptionEl = document.querySelector('meta[property="og:description" i]');
+        const ogImageEl = document.querySelector('meta[property="og:image" i]');
         const jsonLdBlocks = Array.from(document.querySelectorAll('script[type="application/ld+json" i]'))
             .map((el) => (el.textContent ?? "").trim())
             .filter((text) => text.length > 0);
@@ -126,6 +130,7 @@ export async function extractSignalsFromPage(page) {
             ogTitle: ogTitleEl?.getAttribute("content") ?? null,
             ogUrl: ogUrlEl?.getAttribute("content") ?? null,
             ogDescription: ogDescriptionEl?.getAttribute("content") ?? null,
+            ogImage: ogImageEl?.getAttribute("content") ?? null,
             metaDescription: metaDescriptionEl?.getAttribute("content") ?? null,
             mainFirstParagraphText,
             imagesWithoutAltCount,

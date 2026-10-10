@@ -15,6 +15,9 @@ export interface PageSignals {
   ogUrl: string | null;
   /** <meta property="og:description" content> */
   ogDescription: string | null;
+  /** <meta property="og:image" content>. 태그의 content 값만 읽는다 — 이미지 URL을 실제로 요청하지 않는다
+   * (요청하려면 SSRF 가드(M1)가 필요한 신규 공격면이라 의도적으로 제외, 존재 여부·크기 검사는 범위 밖) */
+  ogImage: string | null;
   /** <meta name="description" content> */
   metaDescription: string | null;
   /** <main> 안의 첫 <p> 텍스트(trim, 비어있지 않은 것 중 첫 번째). <main>이 없으면 null —
@@ -67,6 +70,7 @@ export function extractSignalsFromHtml(html: string): PageSignals {
       ogTitle: null,
       ogUrl: null,
       ogDescription: null,
+      ogImage: null,
       metaDescription: null,
       mainFirstParagraphText: null,
       imagesWithoutAltCount: 0,
@@ -98,6 +102,7 @@ export function extractSignalsFromHtml(html: string): PageSignals {
   const ogTitle = metaByProperty("og:title");
   const ogUrl = metaByProperty("og:url");
   const ogDescription = metaByProperty("og:description");
+  const ogImage = metaByProperty("og:image");
 
   const jsonLdBlocks = Array.from(document.querySelectorAll("script"))
     .filter((el) => getAttrCI(el, "type")?.toLowerCase() === "application/ld+json")
@@ -127,6 +132,7 @@ export function extractSignalsFromHtml(html: string): PageSignals {
     ogTitle,
     ogUrl,
     ogDescription,
+    ogImage,
     metaDescription,
     mainFirstParagraphText,
     imagesWithoutAltCount,
@@ -148,6 +154,7 @@ export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
     const ogTitleEl = document.querySelector('meta[property="og:title" i]');
     const ogUrlEl = document.querySelector('meta[property="og:url" i]');
     const ogDescriptionEl = document.querySelector('meta[property="og:description" i]');
+    const ogImageEl = document.querySelector('meta[property="og:image" i]');
     const jsonLdBlocks = Array.from(document.querySelectorAll('script[type="application/ld+json" i]'))
       .map((el) => (el.textContent ?? "").trim())
       .filter((text) => text.length > 0);
@@ -177,6 +184,7 @@ export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
       ogTitle: ogTitleEl?.getAttribute("content") ?? null,
       ogUrl: ogUrlEl?.getAttribute("content") ?? null,
       ogDescription: ogDescriptionEl?.getAttribute("content") ?? null,
+      ogImage: ogImageEl?.getAttribute("content") ?? null,
       metaDescription: metaDescriptionEl?.getAttribute("content") ?? null,
       mainFirstParagraphText,
       imagesWithoutAltCount,

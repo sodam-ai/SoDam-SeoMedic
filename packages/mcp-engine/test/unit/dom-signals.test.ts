@@ -88,6 +88,36 @@ describe("extractSignalsFromHtml", () => {
     expect(signals.metaDescription).toBeNull();
   });
 
+  it("og:image는 property 속성의 content를 그대로 추출한다(이미지 URL을 요청하지 않음 — 값만 읽음)", () => {
+    const signals = extractSignalsFromHtml(
+      `<html><head><meta property="og:image" content="https://example.com/og.png"></head></html>`,
+    );
+    expect(signals.ogImage).toBe("https://example.com/og.png");
+  });
+
+  it("og:image가 없거나 name 속성으로 잘못 쓰였으면 null, content가 비면 빈 문자열(부재와 구분되지만 둘 다 falsy)", () => {
+    expect(extractSignalsFromHtml(`<html><head></head></html>`).ogImage).toBeNull();
+    expect(extractSignalsFromHtml(`<html><head><meta name="og:image" content="x.png"></head></html>`).ogImage).toBeNull();
+    expect(extractSignalsFromHtml(`<html><head><meta property="og:image" content=""></head></html>`).ogImage).toBe("");
+  });
+
+  it("og:image: property·content 속성명이 대문자여도 추출된다(linkedom 대소문자 회귀 방지, R11)", () => {
+    const signals = extractSignalsFromHtml(`<html><head><META PROPERTY="OG:IMAGE" CONTENT="https://example.com/UP.png"></head></html>`);
+    expect(signals.ogImage).toBe("https://example.com/UP.png");
+  });
+
+  it("og:image:width 같은 하위 속성은 og:image로 오인하지 않는다(정확 일치)", () => {
+    const signals = extractSignalsFromHtml(`<html><head><meta property="og:image:width" content="1200"></head></html>`);
+    expect(signals.ogImage).toBeNull();
+  });
+
+  it("og:image가 여러 개면 첫 번째를 쓴다", () => {
+    const signals = extractSignalsFromHtml(
+      `<html><head><meta property="og:image" content="first.png"><meta property="og:image" content="second.png"></head></html>`,
+    );
+    expect(signals.ogImage).toBe("first.png");
+  });
+
   it("property 속성이 대문자여도 og 태그가 추출된다(linkedom 대소문자 회귀 방지)", () => {
     const html = `<html><head><META PROPERTY="OG:TITLE" CONTENT="대문자 속성"></head></html>`;
     const signals = extractSignalsFromHtml(html);
