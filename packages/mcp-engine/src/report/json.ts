@@ -24,6 +24,7 @@ const PageSchema = z.object({
       note: z.string(),
     })
     .nullable(),
+  cwvNote: z.string().optional(),
   fieldData: z
     .object({
       lcpMs: z.number().nullable(),
@@ -115,6 +116,7 @@ export function buildJsonReport(input: AuditReportInput): JsonReport {
             note: CWV_NOTE,
           }
         : null,
+      ...(page.cwvNote ? { cwvNote: page.cwvNote } : {}),
       fieldData: page.fieldData
         ? {
             lcpMs: page.fieldData.lcpMs,
