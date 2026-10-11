@@ -191,7 +191,7 @@
 <pre><code>/plugin list</code></pre>
 <p>목록에 <code>sodam-seomedic</code>이 "enabled" 상태로 보이면 성공입니다.</p>
 <blockquote>
-<p><strong>참고</strong>: 과거(2026-08-10 무렵) 일부 환경에서 <code>/reload-plugins</code> 실행 시 "2 errors during load"가 뜨고 <code>/seo-audit</code> 등 명령어가 안 보이던 문제가 있었습니다. 원인 2가지(플러그인 버전 번호 미갱신으로 인한 설치 캐시 문제, 빌드 산출물 재생성 누락) 모두 확인해 수정했고, 이 저장소의 <code>master</code>(기본) 브랜치에 이미 반영돼 있습니다(경위는 <code>CHECKPOINT.md</code>의 "M9 이후 재발견" 항목 참고). 지금 새로 설치하신다면 이 문제를 겪지 않습니다.</p>
+<p><strong>참고</strong>: 과거(2026-08-10 무렵) 일부 환경에서 <code>/reload-plugins</code> 실행 시 "2 errors during load"가 뜨고 <code>/seo-audit</code> 등 명령어가 안 보이던 문제가 있었습니다. 원인 2가지(플러그인 버전 번호 미갱신으로 인한 설치 캐시 문제, 빌드 산출물 재생성 누락) 모두 확인해 수정했고, 이 저장소의 <code>master</code>(기본) 브랜치에 이미 반영돼 있습니다(경위는 <code>.PRD/CHECKPOINT.md</code>의 "M9 이후 재발견" 항목 참고). 지금 새로 설치하신다면 이 문제를 겪지 않습니다.</p>
 </blockquote>
 <h2 id="4-빠른-시작5분">4. 빠른 시작(5분)</h2>
 <p>Claude Code 대화창에 아래처럼 입력하세요(원하는 사이트 주소로 바꾸세요):</p>
@@ -311,6 +311,20 @@
 빌드 재검증→(필요시) 되돌리기            Pull Request 생성→관리자 검토</code></pre>
 <h2 id="8-업데이트-내용-요약">8. 업데이트 내용 요약</h2>
 <p>이 프로젝트는 위험이 큰 기능(실제 파일 수정)을 단계적으로 나눠 만들었습니다. 항목을 눌러 펼치면 자세한 내용을 볼 수 있습니다.</p>
+
+<p>맨 위 두 항목(2026-10-11~12)의 기능은 플러그인 0.1.10~0.1.12 버전에서 순서대로 들어갔습니다(og:image 탐지는 0.1.10, noindex 변형·제목 수정은 0.1.11, 아래 보안 보강은 0.1.12). 이보다 낮은 버전이 설치돼 있으면 해당 기능이 없습니다.</p>
+<details>
+<summary><strong>✅ 보안 — 속도(Core Web Vitals) 측정 중 내부 주소 접근 차단 + IPv6 표기 우회 2건 수정 (구현·검증 완료, 플러그인 0.1.12)</strong></summary>
+
+<p>진단 대상 주소만 검사하던 빈틈을 메웠습니다. 입력한 주소가 안전해도 그 주소가 다른 곳으로 보내는(리다이렉트) 경우, 속도 측정 단계에서 브라우저가 내부망 주소에 접근할 수 있다는 것을 실험으로 확인했고(로컬 서버 2대로 재현), 이를 막았습니다.</p>
+<ul>
+<li><strong>측정 중 브라우저의 모든 요청을 검사합니다.</strong> 측정하는 동안만 이 프로그램 안에 잠깐 열리는 내부 전용 중계 프로그램을 거치게 하고, 사설·내부 주소로 가는 요청(리다이렉트로 옮겨 간 주소 포함)은 차단합니다. 차단되면 리포트에 이유가 표시되고 나머지 진단은 그대로 진행됩니다.</li>
+<li><strong>기존에 있던 IPv6 표기 우회 2건을 고쳤습니다.</strong> IPv6 주소를 쓰는 방식(대괄호 표기, 변형 표기)에 따라 일부 내부 주소가 검사를 통과하던 문제입니다.</li>
+<li><strong>속도 영향</strong>: 예시 사이트(example.com)에서 Lighthouse 측정(3회 중앙값)을 3세트 돌려 평균낸 LCP가 794ms에서 약 807ms로(약 +1.7%) 늘었습니다. 사이트 1개·컴퓨터 1대에서 잰 값이라 다른 환경에서는 달라질 수 있습니다.</li>
+</ul>
+<p><strong>아직 확인하지 못한 것</strong>: 사람이 직접 실행해 확인한 환경은 Windows뿐입니다(macOS·Linux는 직접 실행해 보지 않았고 자동 검증(CI) 결과에 의존합니다). 회사 인터넷이 별도 프록시를 요구하는 환경에서는 측정이 실패할 수 있으며, 이때 해결 방법은 <strong><a href="./TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></strong> 21번에 있습니다.</p>
+</details>
+
 <details>
 <summary><strong>✅ Phase 2 — 진단 정확도 보강: 링크 공유 이미지(og:image)·noindex 변형 탐지 + 정확도 측정 장치 (완료, 2026-10-11)</strong></summary>
 
@@ -374,7 +388,7 @@
 <details>
 <summary><strong>🔧 2026-07-06 — 품질 자동검증(CI) 도입 + 실제 결함 발견·수정</strong></summary>
 
-<p>Windows·Mac·Linux 3개 운영체제 전부에서 자동으로 빌드와 테스트가 통과하는지 확인하는 절차(CI)를 새로 만들었습니다(2026-07-06 당시 260개였던 테스트는 이후 기능이 계속 늘어 <strong>현재 641개</strong>입니다 — 아래 항목들 참고). 그 과정에서 지금까지 Windows에서만 개발·확인해와서 미처 몰랐던 실제 문제 몇 가지를 찾아 고쳤습니다(예: GitHub 자동 수정 기능이 Mac·Linux 환경에서 내부적으로 필요한 프로그램 경로를 못 찾던 문제). 지금은 3개 운영체제 모두에서 빌드·테스트 통과가 자동으로 확인되지만, <strong>사람이 Mac·Linux에서 직접 명령을 실행해보는 수동 검증까지 마친 것은 아닙니다</strong> — 자동 검증으로 위험을 낮춘 것이지, 완전히 없앤 것은 아닙니다.</p>
+<p>Windows·Mac·Linux 3개 운영체제 전부에서 자동으로 빌드와 테스트가 통과하는지 확인하는 절차(CI)를 새로 만들었습니다(2026-07-06 당시 260개였던 테스트는 이후 기능이 계속 늘어 <strong>현재 681개</strong>입니다 — 아래 항목들 참고). 그 과정에서 지금까지 Windows에서만 개발·확인해와서 미처 몰랐던 실제 문제 몇 가지를 찾아 고쳤습니다(예: GitHub 자동 수정 기능이 Mac·Linux 환경에서 내부적으로 필요한 프로그램 경로를 못 찾던 문제). 지금은 3개 운영체제 모두에서 빌드·테스트 통과가 자동으로 확인되지만, <strong>사람이 Mac·Linux에서 직접 명령을 실행해보는 수동 검증까지 마친 것은 아닙니다</strong> — 자동 검증으로 위험을 낮춘 것이지, 완전히 없앤 것은 아닙니다.</p>
 </details>
 
 <details>
@@ -398,7 +412,7 @@
 <details>
 <summary><strong>✅ 2026-08-09~10 — 실사용자 설치 경로에서 플러그인 미작동 발견 (원인 파악·수정·병합 완료)</strong></summary>
 
-<p>이 프로젝트 역사상 처음으로 실사용자가 격리 테스트 환경이 아닌 <strong>진짜 설치 경로</strong>(<code>/plugin marketplace add</code> → <code>/plugin install</code>)로 검증하다가, SEO 진단 명령어가 세션에 전혀 로드되지 않는 문제를 발견했습니다. 원인 두 가지를 모두 코드 대조로 확인했습니다: (1) 플러그인 버전 번호가 저장소 역사상 한 번도 갱신되지 않아 설치 캐시가 예전 내용을 계속 서빙하고 있었음, (2) 소스 코드는 고쳐도 실제 배포 파일(번들)에 반영하는 재생성 단계가 수동이라 최근 수정 2건이 배포 파일에 빠져 있었음. 두 원인 모두 수정해 이 저장소의 기본 브랜치(<code>master</code>)에 이미 병합·반영했습니다(이후 유사 재발을 막기 위해 "소스 변경 시 버전 번호·빌드 산출물을 함께 갱신"하는 절차를 15번 "배포" 항목에 명문화). 자세한 경위는 <code>CHECKPOINT.md</code>의 "M9 이후 재발견" 항목을 참고하세요.</p>
+<p>이 프로젝트 역사상 처음으로 실사용자가 격리 테스트 환경이 아닌 <strong>진짜 설치 경로</strong>(<code>/plugin marketplace add</code> → <code>/plugin install</code>)로 검증하다가, SEO 진단 명령어가 세션에 전혀 로드되지 않는 문제를 발견했습니다. 원인 두 가지를 모두 코드 대조로 확인했습니다: (1) 플러그인 버전 번호가 저장소 역사상 한 번도 갱신되지 않아 설치 캐시가 예전 내용을 계속 서빙하고 있었음, (2) 소스 코드는 고쳐도 실제 배포 파일(번들)에 반영하는 재생성 단계가 수동이라 최근 수정 2건이 배포 파일에 빠져 있었음. 두 원인 모두 수정해 이 저장소의 기본 브랜치(<code>master</code>)에 이미 병합·반영했습니다(이후 유사 재발을 막기 위해 "소스 변경 시 버전 번호·빌드 산출물을 함께 갱신"하는 절차를 15번 "배포" 항목에 명문화). 자세한 경위는 <code>.PRD/CHECKPOINT.md</code>의 "M9 이후 재발견" 항목을 참고하세요.</p>
 </details>
 
 <details>
@@ -444,7 +458,7 @@
 <li><strong>결과가 저장되는 파일은 소유자만 열어볼 수 있도록 잠급니다</strong>(Mac/Linux 환경 — Windows는 운영체제 구조상 이 방식이 적용되지 않아, Windows에서는 아직 별도 확인이 필요한 상태입니다).</li>
 <li><strong>크롤한 페이지 원문은 저장하지 않습니다.</strong> 해시값(지문)과 500자 이하 짧은 요약만 남깁니다(저작권 보호 목적).</li>
 <li><strong>텔레메트리(사용 데이터 외부 전송)가 전혀 없습니다.</strong> 사용자가 지정한 진단 대상 URL(그리고 GitHub 모드에서는 지정한 저장소) 외에는 어디로도 데이터를 보내지 않습니다.</li>
-<li><strong>사설 IP·내부망 주소는 진단 대상으로 삼지 않습니다</strong>(SSRF 방지 — <code>127.0.0.1</code>, <code>192.168.x.x</code>, 클라우드 내부 메타데이터 주소 등은 자동 차단됩니다).</li>
+<li><strong>사설 IP·내부망 주소는 진단 대상으로 삼지 않습니다</strong>(SSRF 방지 — <code>127.0.0.1</code>, <code>192.168.x.x</code>, 클라우드 내부 메타데이터 주소 등은 자동 차단됩니다). 진단 대상 주소뿐 아니라 <strong>리다이렉트로 옮겨 가는 주소</strong>와, Core Web Vitals 측정 중 <strong>브라우저가 보내는 모든 요청</strong>도 같은 규칙으로 검사합니다(측정하는 동안만 이 프로그램 안에 잠깐 열리는 내부 전용 중계 프로그램을 거치고, 끝나면 닫힙니다). IPv6 형식으로 쓴 내부 주소(<code>[::1]</code> 등)도 차단합니다. 이 검사 때문에 Core Web Vitals 수치가 아주 조금 늘 수 있습니다(예시 사이트 기준 약 +1.7%). 회사 인터넷이 별도 프록시를 요구하는 환경에서는 Core Web Vitals 측정이 실패할 수 있으며, 이때는 리포트에 이유가 표시되고 나머지 진단은 그대로 진행됩니다.</li>
 <li><strong><code>/seo-fix</code>(로컬 수정)는 git이 clean일 때만 동작하고, 적용 전 대상 파일을 자동 백업합니다.</strong> 색인·표시에 영향을 주는 변경은 사용자 승인 없이 절대 적용되지 않으며, 적용 후 빌드가 실패하면 즉시 자동으로 되돌립니다.</li>
 <li><strong>GitHub 토큰은 환경변수(<code>SEOMEDIC_GITHUB_TOKEN</code>)로만 읽습니다.</strong> 코드에 하드코딩되지 않고, 대화창·명령어 인자·로그·에러 메시지 어디에도 토큰 값 자체가 출력되지 않습니다. 토큰이 없으면 GitHub 모드는 이유를 밝히고 스스로 거부합니다.</li>
 <li><strong>GitHub 저장소 수정은 항상 새 브랜치 + Pull Request로만 제안됩니다.</strong> 기본 브랜치(main/master) 직접 push, 강제 push(force-push), 자동 병합(merge) 기능은 코드 구조상 아예 존재하지 않습니다.</li>
@@ -498,7 +512,7 @@
 </tr>
 <tr>
 <td>진행 상태·검증 기록</td>
-<td><code>CHECKPOINT.md</code>(Phase 1), <code>CHECKPOINT_1.5.md</code>(Phase 1.5), <code>CHECKPOINT_2.md</code>(Phase 2)</td>
+<td><code>.PRD/CHECKPOINT.md</code>(Phase 1), <code>.PRD/CHECKPOINT_1.5.md</code>(Phase 1.5), <code>.PRD/CHECKPOINT_2.md</code>(Phase 2)</td>
 </tr>
 <tr>
 <td>보안 정책</td>
@@ -523,14 +537,60 @@
 </tbody>
 </table>
 <h2 id="12-문제오류-대처">12. 문제/오류 대처</h2>
-<p>자주 발생하는 문제와 해결책은 <strong><a href="./TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></strong> 문서에 증상→원인→해결 순서로 정리되어 있습니다. 가장 흔한 것 3가지만 먼저 안내합니다:</p>
+<p>자주 발생하는 문제와 해결책은 <strong><a href="./TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></strong> 문서에 증상→원인→해결 순서로 정리되어 있습니다. 가장 흔한 것 4가지만 먼저 안내합니다:</p>
 <ol type="1">
 <li><strong>설치했는데 <code>/seo-audit</code>이 안 보여요</strong> → Claude Code를 완전히 종료 후 재시작하셨나요? (새 창만으로는 부족합니다)</li>
 <li><strong>첫 실행이 너무 오래 걸려요</strong> → 브라우저 엔진(Chromium) 자동 설치 중일 수 있습니다(수백 MB, 1~2분 소요).</li>
 <li><strong>"결과가 비어 있습니다"</strong> → 대상 사이트가 로봇 차단(robots.txt) 또는 방화벽으로 접근을 막고 있을 수 있습니다.</li>
+<li><strong>리포트에 "Core Web Vitals 측정을 건너뛰었습니다"라고 나와요</strong> → 안내문에 적힌 이유(내부 주소 차단·측정 실패·회사 프록시 등)에 따라 <strong><a href="./TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></strong> 21번을 확인하세요. 나머지 진단 결과는 정상입니다.</li>
 </ol>
 <h2 id="13-faq">13. FAQ</h2>
-<p>자주 묻는 질문은 <strong><a href="./FAQ.html">FAQ.md</a></strong> 문서에 정리되어 있습니다.</p>
+<p>처음 쓰는 분이 가장 궁금해할 만한 9가지를 아래에 바로 적었습니다(항목을 눌러 펼치세요). 전체 질문은 <strong><a href="./FAQ.html">FAQ.md</a></strong> 문서에 있습니다.</p>
+<details>
+<summary><strong>Q. SeoMedic이 검색 순위를 올려주나요?</strong></summary>
+
+<p>아니요. SeoMedic은 <strong>진단 도구</strong>입니다. 문제를 찾아서 알려줄 뿐, 검색 순위·AI 노출을 보장하지 않습니다. 어떤 도구도 순위를 "보장"할 수는 없습니다.</p>
+</details>
+<details>
+<summary><strong>Q. 내가 만들지 않은 남의 사이트도 진단할 수 있나요?</strong></summary>
+
+<p>기술적으로는 가능하지만, <strong>본인 소유이거나 진단 권한이 있는 사이트만</strong> 대상으로 해야 합니다. 무단으로 제3자 사이트를 대량 크롤하는 것은 법적 문제가 될 수 있습니다.</p>
+</details>
+<details>
+<summary><strong>Q. 진단하면서 코드를 직접 고쳐주나요?</strong></summary>
+
+<p><strong>Next.js 프로젝트라면 가능합니다.</strong> 로컬 폴더(<code>/seo-fix ./내-프로젝트-폴더</code>) 또는 GitHub 저장소 주소(<code>/seo-fix https://github.com/소유자/저장소</code>)를 지정할 수 있습니다. "없는 것 추가"는 자동으로, 검색 결과 표시에 영향을 주는 변경은 승인을 받은 뒤에만 실제 파일에 반영합니다. 다른 프레임워크(React, Vue 등)는 아직 지원하지 않습니다.</p>
+</details>
+<details>
+<summary><strong>Q. 내 컴퓨터에서 개발 중인 사이트(localhost)나 회사 내부 주소도 진단할 수 있나요?</strong></summary>
+
+<p>아니요. 보안(SSRF 방지)을 위해 <code>127.0.0.1</code>·<code>localhost</code>·<code>192.168.x.x</code> 같은 내부 주소는 진단 대상으로 삼지 않고 자동으로 차단합니다. 인터넷에 공개된 주소(<code>https://...</code>)로 진단해 주세요. Next.js 프로젝트 폴더를 대상으로 하는 <code>/seo-fix ./폴더</code>는 위 5번에서 따로 설명한 별도 기능입니다.</p>
+</details>
+<details>
+<summary><strong>Q. GitHub 토큰을 대화창에 입력해도 되나요?</strong></summary>
+
+<p><strong>절대 안 됩니다.</strong> 대화 내용은 로그로 남기 때문에, 한 번이라도 입력되는 순간 그 토큰은 노출된 것으로 취급해야 합니다. 반드시 본인 컴퓨터의 환경변수(<code>SEOMEDIC_GITHUB_TOKEN</code>)로만 등록하세요. 실수로 입력했다면 즉시 GitHub에서 해당 토큰을 폐기(삭제)하고 새로 발급하세요.</p>
+</details>
+<details>
+<summary><strong>Q. 내 개인정보나 크롤한 사이트 내용이 어딘가로 전송되나요?</strong></summary>
+
+<p>아니요. 텔레메트리(사용 데이터 외부 전송)가 전혀 없습니다. 모든 데이터는 진단을 실행한 내 컴퓨터의 <code>.seomedic/</code> 폴더(GitHub 모드는 홈 폴더의 <code>.seomedic-github-cache/</code>도 함께) 안에만 저장됩니다.</p>
+</details>
+<details>
+<summary><strong>Q. 무료인가요?</strong></summary>
+
+<p>네, SeoMedic 자체는 무료이고 크레딧·과금 없이 로컬에서 실행됩니다. 다만 이 도구를 실행하는 Claude Code 사용료는 별도입니다.</p>
+</details>
+<details>
+<summary><strong>Q. /seo-fix로 수정했는데 마음에 안 들면 되돌릴 수 있나요?</strong></summary>
+
+<p><strong>로컬 폴더 모드</strong>는 네, 되돌릴 수 있습니다 — "방금 적용한 수정 되돌려줘"라고 요청하면 적용 당시 만들어둔 백업으로 복원합니다. 적용 직후 <code>next build</code>가 실패하면 사람이 요청하지 않아도 자동으로 즉시 원상복구됩니다. <strong>GitHub 모드</strong>는 결과가 Pull Request(제안)로만 남기 때문에, 마음에 안 들면 그 PR을 그냥 닫으면 됩니다 — 기본 브랜치는 애초에 건드리지 않습니다.</p>
+</details>
+<details>
+<summary><strong>Q. 이 도구를 상업적으로 써도 되나요(회사 프로젝트, 고객 납품 등)?</strong></summary>
+
+<p>이 프로젝트는 <strong>Apache License 2.0</strong>을 채택했습니다(2026-08-10 확정) — 저작권·특허 고지 유지, 변경 파일 표시, NOTICE 준수를 조건으로 수정·재배포·상업적 사용을 폭넓게 허용합니다. 다만 <code>LICENSE</code> 파일의 저작권자 표기("SoDam AI Studio", 2026)와 일부 법무 검토 항목은 여전히 전문가 최종 확인 대기 중입니다. 상업적 배포 전에는 이 문서의 14번(법률·저작권·라이선스·상업적 용도)과 <code>LICENSE</code> 파일 원문을 확인하시고, 필요하면 법률 전문가의 검토를 받으시길 권장합니다. 이 답변은 법률 자문이 아닙니다.</p>
+</details>
 <h2 id="14-법률저작권라이선스상업적-용도">14. 법률·저작권·라이선스·상업적 용도</h2>
 <p><strong>엄격하게, 축소·과장 없이 안내드립니다.</strong></p>
 <h3 id="라이선스">라이선스</h3>
@@ -589,9 +649,8 @@
 │       ├── src/                       # TypeScript 소스
 │       ├── test/                      # vitest 테스트
 │       └── scripts/                   # 빌드→복사 자동화 스크립트
-├── .PRD/                              # 기획 문서
+├── .PRD/                              # 기획 문서 + CHECKPOINT*.md(Phase별 진행·검증 기록)
 ├── README.md / README.en.md           # 이 문서
-├── CHECKPOINT*.md                     # Phase별 진행·검증 기록
 ├── LICENSE, THIRD_PARTY_NOTICES.md
 └── TROUBLESHOOTING*.md, FAQ*.md</code></pre>
 <h3 id="빌드">빌드</h3>
@@ -604,8 +663,8 @@ npm run audit   # 고위험 취약점만 점검(npm audit --audit-level=high)</c
 <p>이 프로젝트는 npm 패키지나 별도 CLI 실행 파일을 배포하지 않습니다(별도 커맨드라인 도구는 아직 없음, 6번 항목 참고). 대신 <strong>Claude Code 마켓플레이스가 이 GitHub 저장소 자체를 직접 읽어갑니다.</strong> 그래서 "배포"는 곧 "저장소의 기본 브랜치(<code>master</code>)에 정확한 내용을 병합하는 것"입니다:</p>
 <ol type="1">
 <li><code>packages/mcp-engine/src/</code>에서 소스 수정</li>
-<li><code>cd packages/mcp-engine &amp;&amp; npm run package:plugin</code> — 빌드 후 결과물을 <code>packages/plugin/mcp-server/</code>로 재복사(⚠️ 이 단계를 잊으면 소스는 고쳤는데 실제 배포되는 파일은 안 바뀝니다 — 2026-08-10에 실제로 발생했던 문제, <code>CHECKPOINT.md</code> 참고)</li>
-<li><code>packages/plugin/.claude-plugin/plugin.json</code>의 <code>version</code> 필드를 올림(⚠️ 이것도 잊으면 이미 설치한 사용자의 캐시가 갱신되지 않습니다 — 역시 <code>CHECKPOINT.md</code> 참고)</li>
+<li><code>cd packages/mcp-engine &amp;&amp; npm run package:plugin</code> — 빌드 후 결과물을 <code>packages/plugin/mcp-server/</code>로 재복사(⚠️ 이 단계를 잊으면 소스는 고쳤는데 실제 배포되는 파일은 안 바뀝니다 — 2026-08-10에 실제로 발생했던 문제, <code>.PRD/CHECKPOINT.md</code> 참고)</li>
+<li><code>packages/plugin/.claude-plugin/plugin.json</code>의 <code>version</code> 필드를 올림(⚠️ 이것도 잊으면 이미 설치한 사용자의 캐시가 갱신되지 않습니다 — 역시 <code>.PRD/CHECKPOINT.md</code> 참고)</li>
 <li>커밋 → Pull Request → 검토 후 <code>master</code> 병합</li>
 </ol>
 <h3 id="환경변수">환경변수</h3>
@@ -649,7 +708,7 @@ npm run audit   # 고위험 취약점만 점검(npm audit --audit-level=high)</c
 <h3 id="운영-주의사항">운영 주의사항</h3>
 <ul>
 <li><code>packages/plugin/mcp-server/dist/</code>는 <code>.gitignore</code>의 일반 규칙(<code>dist/</code> 제외)에서 <strong>예외 처리되어 커밋 대상</strong>입니다 — 실수로 이 예외를 지우면 마켓플레이스 설치가 깨집니다.</li>
-<li><code>CHECKPOINT.md</code>는 이 저장소의 실제 검증 이력을 담은 문서로, 커밋 시점을 신중하게 판단해야 합니다(팀 관례에 따라 별도 관리될 수 있음).</li>
+<li><code>.PRD/CHECKPOINT.md</code>는 이 저장소의 실제 검증 이력을 담은 문서로, 커밋 시점을 신중하게 판단해야 합니다(팀 관례에 따라 별도 관리될 수 있음).</li>
 </ul>
 <hr />
 <p>이 문서(README.md)가 설치부터 사용까지의 왕초보용 단계별 안내를 전부 담고 있습니다(별도 GUIDE 문서는 2026-08-04부로 이 문서로 통합되어 더 이상 존재하지 않습니다). 문제가 생기면 <strong><a href="./TROUBLESHOOTING.html">TROUBLESHOOTING.md</a></strong> 문서를, 궁금한 점은 <strong><a href="./FAQ.html">FAQ.md</a></strong> 문서를 확인하세요.</p>
