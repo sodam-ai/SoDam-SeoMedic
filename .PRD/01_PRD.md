@@ -137,7 +137,7 @@
 
 ### 보안 (핵심 요구사항 — 선택 아님, OWASP ASVS 기준)
 - [ ] **SSRF**: 사설/loopback/메타데이터 IP·`file://`·off-host 리다이렉트 크롤 거부.
-      *(⚠️ 2026-10-11 재확인: 크롤·렌더 경로는 요청마다 재검증하지만 **Lighthouse(CWV) 경로는 진입 URL만 검증**한다 — 리다이렉트 중간에 사설 IP로 빠지는 경우의 방어 공백. 근거 `cwv/lighthouse-runner.ts:52-59`, `CHECKPOINT.md` M3("M9/Phase2 추적"이라 적었으나 후속 기록 없음). 설계 라운드 필요)*
+      *(2026-10-11 재확인에서 **Lighthouse(CWV) 경로는 진입 URL만 검증**하는 방어 공백이 확인됐다(근거 `cwv/lighthouse-runner.ts`, `CHECKPOINT.md` M3). **2026-10-12 플러그인 0.1.12에서 해소**: Chromium의 모든 요청을 SSRF 정책 프록시(`cwv/ssrf-proxy.ts`)로 통과시켜 리다이렉트·서브리소스를 차단하고, 같은 때 `http://[::1]/`·`::ffff:7f00:1` IPv6 우회 2건도 고쳤다. 단 로컬 Windows에서만 검증했고 3-OS CI·Linux/macOS 실측은 아직 없으며 회귀 테스트 일부가 미추가라 체크박스는 `[ ]`로 둔다)*
 - [ ] **명령어 주입**: 렌더 브릿지 셸 보간 금지(argv 배열) — 경로에 셸 메타문자 넣어도 미실행.
 - [ ] **경로 조작**: 수정은 프로젝트 루트 내 confine, `..` 이탈 거부.
 - [ ] **시크릿**: 코드·로그·화면·에러·DB·Git에 키/토큰 0(스캔 통과), env-only.
