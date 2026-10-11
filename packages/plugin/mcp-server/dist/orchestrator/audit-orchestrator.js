@@ -4,7 +4,8 @@ import { buildAiCrawlerPolicyViolation } from "../crawler/ai-crawler-finding.js"
 import { launchGuardedBrowser, renderAndExtractSignals } from "../render/browser-pool.js";
 import { extractSignalsFromHtml } from "../render/dom-signals.js";
 import { evaluateAllRules } from "../rules/registry.js";
-import { measureCoreWebVitals } from "../cwv/lighthouse-runner.js";
+import { measureCoreWebVitals, CwvMeasurementError } from "../cwv/lighthouse-runner.js";
+import { SsrfBlockedError } from "../crawler/ssrf-guard.js";
 import { getPsiApiKey } from "../integrations/psi-token.js";
 import { createPsiClient } from "../integrations/psi-client.js";
 import { mergeFieldData } from "../integrations/field-data-merger.js";
@@ -71,12 +72,21 @@ export async function runAudit(options) {
                 // 렌더링 실패(타임아웃 등)는 이 페이지의 raw/rendered 비교만 건너뛴다
             }
             let cwv;
+            let cwvNote;
             if (page.depth === 0) {
                 try {
                     cwv = await measureCoreWebVitals(page.finalUrl);
+                    if (cwv.blockedTargets && cwv.blockedTargets.length > 0) {
+                        cwvNote = `측정 중 사설·내부 주소로 가는 요청이 차단되었습니다(SSRF 방어) — 차단 대상: ${cwv.blockedTargets.join(", ")}`;
+                    }
                 }
-                catch {
-                    // CWV 측정 실패해도 나머지 규칙 검사 결과는 유효하다
+                catch (error) {
+                    // CWV 측정 실패해도 나머지 규칙 검사 결과는 유효하다. 다만 조용히 삼키지는 않는다 — 차단(SSRF 방어)처럼
+                    // 사용자가 알아야 할 사유를 리포트에 남긴다. 우리가 쓴 오류 문장만 보여주고, 그 외 오류는 내부 경로·스택이
+                    // 새지 않도록(PRD 04 M10) 일반 문구로 가린다.
+                    cwvNote = `Core Web Vitals 측정을 건너뛰었습니다: ${error instanceof CwvMeasurementError || error instanceof SsrfBlockedError
+                        ? error.message
+                        : "예기치 않은 오류로 측정하지 못했습니다"}`;
                 }
             }
             // CWV(Lighthouse)와 동일한 샘플링 정책(진입 페이지만) — PSI도 서버사이드 계산 때문에 느리고
@@ -111,7 +121,7 @@ export async function runAudit(options) {
                 inpProxyTbtMs: cwv?.inpProxyTbtMs ?? null,
                 clsUnitless: cwv?.clsUnitless ?? null,
             });
-            pageReportInputs.push(mergeFieldData({ url: page.url, statusCode: page.statusCode, violations, cwv }, fieldData));
+            pageReportInputs.push(mergeFieldData({ url: page.url, statusCode: page.statusCode, violations, cwv, ...(cwvNote ? { cwvNote } : {}) }, fieldData));
         }
     }
     finally {
