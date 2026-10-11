@@ -5,6 +5,9 @@ export interface PageSignals {
     h1Count: number;
     h1Text: string | null;
     metaRobots: string | null;
+    /** <meta name="googlebot" content>. Google 전용 robots 지시어 — name="robots"와 별개로 noindex를 걸 수 있다
+     * (R-NOINDEX-VARIANT-DETECTED 전용). 기존 metaRobots 의미는 바꾸지 않는다(R-NOINDEX-DETECTED v1 보존). */
+    metaGooglebot: string | null;
     /** <script type="application/ld+json"> 각 블록의 원문 텍스트(trim, 빈 문자열 제외). 존재 여부는 length>0으로 판단 */
     jsonLdBlocks: string[];
     /** <meta property="og:title" content>. og:*는 name이 아니라 property 속성으로 매칭한다 */
@@ -13,6 +16,9 @@ export interface PageSignals {
     ogUrl: string | null;
     /** <meta property="og:description" content> */
     ogDescription: string | null;
+    /** <meta property="og:image" content>. 태그의 content 값만 읽는다 — 이미지 URL을 실제로 요청하지 않는다
+     * (요청하려면 SSRF 가드(M1)가 필요한 신규 공격면이라 의도적으로 제외, 존재 여부·크기 검사는 범위 밖) */
+    ogImage: string | null;
     /** <meta name="description" content> */
     metaDescription: string | null;
     /** <main> 안의 첫 <p> 텍스트(trim, 비어있지 않은 것 중 첫 번째). <main>이 없으면 null —

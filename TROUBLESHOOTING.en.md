@@ -89,6 +89,13 @@ This document and its Korean counterpart (**[TROUBLESHOOTING.md](./TROUBLESHOOTI
 - **Symptom**: GitHub mode runs much slower than local-folder mode
 - **Fix**: this is expected — GitHub mode clones the entire repository, installs dependencies (`npm install`), and re-verifies the build, on top of everything local mode does. Depending on repository size and your internet speed, this can take considerably longer than local mode.
 
+### 21. The report says "Core Web Vitals measurement was skipped"
+- **Symptom**: In the diagnosis report, a ⚠️ notice appears where the Core Web Vitals table should be. The rest of the diagnosis (indexing, meta, and so on) is shown as normal.
+- **Fix**: check according to the reason written in the notice.
+  - **"requests to private/internal addresses were blocked…"**: the page points to an internal address (`127.0.0.1`, `192.168.x.x`, and similar) through a redirect or a request. For security, not sending such requests is the correct behavior. If that setup is not intended, check your site configuration.
+  - **"Lighthouse could not measure the page (code)"**: the page may not have been painted within the time limit. Confirm the page opens normally in a browser, then run again.
+  - **"could not measure because of an unexpected error"**: your network may require its own proxy, or launching Chrome may be blocked. Try again from another network. This measurement applies only to the first page of the diagnosis target.
+
 ---
 
 ## Still not resolved?

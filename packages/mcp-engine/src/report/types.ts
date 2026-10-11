@@ -20,6 +20,11 @@ export interface PageReportInput {
   statusCode: number;
   violations: RuleViolation[];
   cwv?: CwvMeasurement;
+  /**
+   * CWV(lab) 측정이 건너뛰어졌거나 일부 요청이 SSRF 방어로 차단됐을 때 사용자에게 보여줄 사유 한 줄.
+   * 없으면 생략 — 기존 리포트 출력은 바뀌지 않는다. 실패를 조용히 삼키면 "방어가 작동했는지"를 알 수 없다.
+   */
+  cwvNote?: string;
   /** PSI(CrUX) field 데이터 — mergeFieldData가 채운다. 키 미설정·조회 실패 시 undefined(선택 기능). */
   fieldData?: FieldDataSection;
 }

@@ -60,20 +60,39 @@ grep -rhoE '"(WebSite|Organization|Person|Article|BreadcrumbList|Product|FAQPage
 
 | # | 영역 | 상태 | 근거 파일 (실측) |
 |---|------|------|------------------|
-| 1 | **SEO**(일반 검색 노출) | 🟡 부분 | `rules/definitions/content-structure.ts`(title·h1·alt), `og.ts`(meta description) |
+| 1 | **SEO**(일반 검색 노출) | 🟡 부분 | `rules/definitions/content-structure.ts`(title·h1·alt), `og.ts`(meta description). 2026-10-11: title 추출이 인라인 SVG의 `<title>`을 페이지 title로 오인하던 결함 수정(`dom-signals.ts`, raw·rendered 양쪽) |
 | 2 | **Technical SEO** | ✅ | `status-redirect.ts`(4xx·5xx·리다이렉트 체인), `raw-rendered-gap.ts`, `render-bridge/` |
 | 3 | **Schema.org·JSON-LD·Entity SEO** | 🟡 **진행중(2026-09-11 갱신)** | 지원 타입이 **WebSite·Product·FAQPage·Organization 4종**(`jsonld.ts`·`jsonld-required-fields.ts`·`qa-structure.ts`·`organization-fixer.ts`). `R-JSONLD-ORG-MISSING`(gated fixer, name만 자동채움) 신규 — jsonld-website-fixer.ts와 완전히 동일한 site-wide 패턴 재사용. **Person·Article·BreadcrumbList·sameAs = 여전히 코드 0건**(다음 라운드로 명시 이월 — 이유는 CHECKPOINT.md 해당 라운드 기록 참고) |
-| 4 | **OG (Open Graph)** | 🟡 **정정** | `rules/definitions/og.ts` + `fixers/og-fixer.ts`. ⚠️ **og:image를 검사하지 않는다** — `PageSignals`에 `ogImage` 필드 자체가 없음(2026-09-05 3차 조사에서 발견, 최초 ✅ 판정은 과대평가였음) |
+| 4 | **OG (Open Graph)** | 🟡 **진행중(2026-10-11 갱신)** | `rules/definitions/og.ts` + `fixers/og-fixer.ts`. ✅ **og:image 탐지 추가**(`R-OG-IMAGE-MISSING`, report_only — `PageSignals.ogImage`를 raw·rendered 양쪽에 추가). **자동수정은 의도적으로 없음** — 복사할 원본이 페이지에 없고, 이미지 URL을 요청하면 SSRF 신규 공격면이 된다. 남은 것: 이미지 실제 존재·크기 검사(별도 설계 필요), `og:image:url`만 쓰는 페이지는 누락으로 오판할 수 있음(og.ts 주석에 명시) |
 | 5 | **Sitemap + robots.txt** | ✅ | `crawler/sitemap.ts`, `crawler/robots.ts`, `fixers/sitemap-fixer.ts`, `fixers/robots-ai-policy-fixer.ts` |
 | 6 | **Canonical** | ✅ | `canonical.ts`(MISSING·JS-ONLY) + `fixers/canonical-fixer.ts` |
 | 7 | **Core Web Vitals** | ✅ | lab = LCP/CLS/TBT(`cwv-threshold.ts`, TBT는 INP 프록시), field = 진짜 INP(`integrations/psi-client.ts:100`) |
 | 8 | **E-E-A-T** | ❌ | 코드 0건. `RESEARCH_SOURCES*.md`에 개념 언급만 |
-| 9 | **AEO** | 🟡 부분 | `qa-structure.ts`(FAQPage 존재 여부) 규칙 1개가 전부 |
+| 9 | **AEO** | 🟡 부분 | `qa-structure.ts`(FAQPage 존재 여부) 규칙 1개가 전부. **2026-10-11 확장 요구 등록**(아래 "추가 요구" 절·`03_PHASES.md` Phase 2-B). ⚠️ Google이 **FAQ 리치결과를 2026-05-07부터 중단**했다(Search Central 변경 이력) — "FAQPage 마크업 추가"를 AEO의 핵심으로 삼지 말 것. 헤딩 개요 시그널 코드 0건 |
 | 10 | **GEO** | 🟡 부분 | `crawler/ai-crawler-policy.ts`(봇 11종 카탈로그, 확인일 2026-07-14) — **접근 허용 판정만**, 콘텐츠 측 최적화는 없음 |
 | 11 | **LLMO / AI Search 최적화** | 🟡 부분 | 위 10번과 동일 기반. **`llms.txt` = 코드 0건** |
 | 12 | **X Cards** | ❌ | `twitter:` 문자열이 **코드 전체에서 0건** |
 | 13 | **AI Visibility·인용 추적** | ❌ | 측정 기능 자체가 부재. **PRD 확정 결정과 충돌 → 아래 "미결 결정" 참고** |
-| 14 | **Crawler / Indexing 관리** | 🟡 부분 | noindex 규칙+fixer(`indexing.ts`·`noindex-fixer.ts`), AI봇 접근 리포트는 있음. 단 GSC는 `searchanalytics`만 사용 — **URL Inspection API 미사용이라 "실제 색인됐는가"는 확인 불가**(`integrations/gsc-client.ts`) |
+| 14 | **Crawler / Indexing 관리** | 🟡 부분 | noindex 규칙+fixer(`indexing.ts`·`noindex-fixer.ts`), AI봇 접근 리포트는 있음. **2026-10-11 추가**: `R-NOINDEX-VARIANT-DETECTED`(robots 메타의 `none`, `googlebot` 전용 메타의 `noindex`/`none` — report_only, 기존 규칙은 R1에 따라 불변). 아직 못 보는 것: `X-Robots-Tag` 응답 헤더, 같은 이름 메타가 여러 개일 때 첫 번째 외의 것. 단 GSC는 `searchanalytics`만 사용 — **URL Inspection API 미사용이라 "실제 색인됐는가"는 확인 불가**(`integrations/gsc-client.ts`) |
+
+---
+
+## 추가 요구 — 15번째 영역(파비콘) + 4·9번 확장 (2026-10-11 사용자 요청)
+
+사용자가 *"AEO/OG(오픈그래프)/파비콘 관련 기능까지 있었으면 좋겠음"* 이라고 요청했다. 이 문서의 원칙(목표를 줄이거나 늘리는 결정은 사용자만)에 따라 **파비콘을 15번째 영역으로 추가**하고, 4번(OG)·9번(AEO)의 확장 요구를 등록한다.
+요구 정본은 `01_PRD.md` §5 "확장 요구", 설계·근거·위험은 `03_PHASES.md` Phase 2-B다. 아래 규칙 ID는 **제안**이며 구현 전에 바뀔 수 있다(기존 규칙은 R1에 따라 건드리지 않고 전부 새 ID).
+
+| # | 영역 | 현재(2026-10-11 실측) | 규칙 후보 | 수정(fixer) 가능 범위 | 선행 |
+|---|---|---|---|---|---|
+| 15 | **파비콘·브랜드 아이콘** | ❌ 코드 0건(`favicon`·`apple-touch`·`rel="icon"` 검색 0건) | `R-FAVICON-MISSING`·`R-FAVICON-FORMAT`(SVG 단독 경고)·`R-FAVICON-SIZE`·`R-FAVICON-BLOCKED`·`R-APPLE-TOUCH-ICON-MISSING`(권장·low) | **이미 있는** `app/` 아이콘 파일의 `<link>` 노출만(gated). 이미지 생성 없음 | 자산 확인 모듈(M12) |
+| 4 | **OG** (확장) | 🟡 `og:image` 존재 여부까지 구현(`R-OG-IMAGE-MISSING`). `og:type`·`og:image:alt`·`og:site_name`·`og:locale` 시그널 0건 | `R-OG-TYPE-MISSING`(low)·`R-OG-IMAGE-ALT-MISSING`(low)·`R-OG-URL-CANONICAL-MISMATCH`·`R-OG-IMAGE-UNREACHABLE`(실측)·`R-OG-IMAGE-DIMENSIONS`(플랫폼 규격 확인 선행) | `og:title`·`og:url` 복사(기존). 이미지·type·alt는 보고만 | ①은 선행 없음, 실측은 자산 확인 모듈 |
+| 9 | **AEO** (확장) | 🟡 규칙 1개. 헤딩·직답·수정일 시그널 0건 | `R-AEO-HEADING-HIERARCHY`·`R-AEO-QUESTION-NO-DIRECT-ANSWER`·`R-AEO-QA-NOT-VISIBLE`(구조화 데이터↔가시 콘텐츠)·`R-AEO-DATE-MISSING`(8번과 시그널 공유) | 없음(전부 보고 전용) | 콘텐츠 구조 시그널 |
+
+**알아둘 점 (검증된 사실 — 출처·확인일은 `03_PHASES.md` Phase 2-B 표)**
+- Google 파비콘은 **홈페이지** `<head>`의 `<link>`로 찾고, 8×8 이상 필수·48×48 초과 권장이며 **SVG는 지원 형식 목록에 없다.** 48의 배수 요구는 없다 — 이 PRD 작성 전에 가정했던 "48의 배수" 기준은 틀렸으므로 쓰지 않는다.
+- OGP 명세에서 `og:type`을 안 쓰면 `website`로 간주되므로 `R-OG-TYPE-MISSING`의 심각도는 낮게 둔다.
+- Google은 AI Overviews·AI Mode에 **별도 마크업·AI 전용 파일이 필요 없다**고 밝혔다(llms.txt 언급 없음). 11번 `llms.txt`와 9번 AEO의 가치를 Google 기준으로 부풀리지 말 것 — "표준 지위 미확인" 판정이 오히려 강해졌다.
+- **15번 영역은 '14개 목록'에 없던 신규**다. 이 문서의 "14/14" 완성도 지표는 이제 "15개 중 몇 개"로 읽는다(미결 결정 2와 함께 사용자 확정).
 
 ---
 
@@ -81,7 +100,7 @@ grep -rhoE '"(WebSite|Organization|Person|Article|BreadcrumbList|Product|FAQPage
 
 ### 그룹 A — 기존 틀에 그대로 얹힘 (저비용)
 
-SeoMedic은 **규칙(rule) 22개 + 수정기(fixer) 8개를 레지스트리에 등록**하는 구조라,
+SeoMedic은 **규칙(rule) 24개 + 수정기(fixer) 10개를 레지스트리에 등록**하는 구조라,
 아래는 "새 파일 1개 + `rules/registry.ts` 또는 `fixers/registry.ts`에 한 줄 추가"로 끝난다.
 
 - **12번 X Cards** — `og.ts` / `og-fixer.ts`를 그대로 복제하는 형태

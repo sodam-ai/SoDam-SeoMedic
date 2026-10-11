@@ -1,7 +1,5 @@
-import { lookup as dnsLookup } from "node:dns";
-import type { LookupOneOptions, LookupAllOptions } from "node:dns";
 import { Agent, fetch as undiciFetch, type Headers, type Response } from "undici";
-import { assertSafeUrl, isPrivateOrReservedIP, SsrfBlockedError } from "./ssrf-guard.js";
+import { assertSafeUrl, createSsrfSafeLookup, SsrfBlockedError } from "./ssrf-guard.js";
 
 const MAX_RESPONSE_BYTES = 20 * 1024 * 1024; // 20MB 상한(zip bomb류·과대 응답 방어)
 const MAX_REDIRECTS = 5;
@@ -10,38 +8,10 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const USER_AGENT = "SeoMedicBot/0.1 (+https://github.com/seomedic; diagnostic use only, owner-authorized sites only)";
 
 /**
- * DNS 조회 시점에 사설/예약 IP를 걸러내는 커스텀 lookup.
- * 이 lookup을 Agent의 connect 옵션에 연결하면, 실제 소켓 연결 직전 IP를 검사하므로
- * "1차 DNS 조회는 공인 IP, 연결 시점엔 사설 IP로 바뀌는" DNS 리바인딩 공격을 막는다.
+ * 연결 직전 IP 검사(DNS 리바인딩 방어). 구현은 ssrf-guard의 공유 함수 — Lighthouse용 프록시(cwv/ssrf-proxy)도
+ * 같은 판정을 쓰도록 한 곳에 뒀다. 이 lookup을 Agent의 connect 옵션에 연결한다.
  */
-function ssrfSafeLookup(
-  hostname: string,
-  options: LookupOneOptions | LookupAllOptions | number,
-  callback: (err: NodeJS.ErrnoException | null, address: any, family?: number) => void,
-): void {
-  const normalizedOptions = typeof options === "number" ? { family: options } : options;
-  dnsLookup(hostname, normalizedOptions as LookupOneOptions, (err, address, family) => {
-    if (err) {
-      callback(err, address, family);
-      return;
-    }
-    const addresses = Array.isArray(address) ? address : [{ address, family }];
-    for (const entry of addresses) {
-      const ip = typeof entry === "string" ? entry : entry.address;
-      if (isPrivateOrReservedIP(ip)) {
-        callback(
-          Object.assign(new Error(`SSRF 가드: ${hostname} -> ${ip}는 사설/예약 IP`), {
-            code: "ESSRFBLOCKED",
-          }),
-          undefined,
-          undefined,
-        );
-        return;
-      }
-    }
-    callback(err, address, family);
-  });
-}
+const ssrfSafeLookup = createSsrfSafeLookup();
 
 function createSafeAgent(): Agent {
   return new Agent({

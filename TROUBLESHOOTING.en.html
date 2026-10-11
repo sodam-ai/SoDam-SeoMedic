@@ -185,6 +185,16 @@
 <li><strong>Symptom</strong>: GitHub mode runs much slower than local-folder mode</li>
 <li><strong>Fix</strong>: this is expected — GitHub mode clones the entire repository, installs dependencies (<code>npm install</code>), and re-verifies the build, on top of everything local mode does. Depending on repository size and your internet speed, this can take considerably longer than local mode.</li>
 </ul>
+<h3 id="21-the-report-says-core-web-vitals-measurement-was-skipped">21. The report says "Core Web Vitals measurement was skipped"</h3>
+<ul>
+<li><strong>Symptom</strong>: In the diagnosis report, a ⚠️ notice appears where the Core Web Vitals table should be. The rest of the diagnosis (indexing, meta, and so on) is shown as normal.</li>
+<li><strong>Fix</strong>: check according to the reason written in the notice.
+<ul>
+<li><strong>"requests to private/internal addresses were blocked…"</strong>: the page points to an internal address (<code>127.0.0.1</code>, <code>192.168.x.x</code>, and similar) through a redirect or a request. For security, not sending such requests is the correct behavior. If that setup is not intended, check your site configuration.</li>
+<li><strong>"Lighthouse could not measure the page (code)"</strong>: the page may not have been painted within the time limit. Confirm the page opens normally in a browser, then run again.</li>
+<li><strong>"could not measure because of an unexpected error"</strong>: your network may require its own proxy, or launching Chrome may be blocked. Try again from another network. This measurement applies only to the first page of the diagnosis target.</li>
+</ul></li>
+</ul>
 <hr>
 <h2 id="still-not-resolved">Still not resolved?</h2>
 <p>Please file an issue with the exact symptom, the command you ran, and the message shown on screen. A screenshot helps. <strong>Before sharing, please double-check that no GitHub token value appears anywhere in your error message or screenshot.</strong></p>

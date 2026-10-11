@@ -81,7 +81,10 @@ export const jsonLdProductNameMismatchRule = {
                 const name = node.name;
                 if (typeof name !== "string" || name.trim() === "")
                     continue;
-                if (bodyTextLower.includes(name.trim().toLowerCase()))
+                // bodyText는 연속 공백이 1칸으로 정규화돼 있다 — name도 같은 규칙으로 맞춰야 "Blue  Mug"(공백 2칸)
+                // 처럼 사람 눈에 같은 상품명이 오탐으로 잡히지 않는다. 발화 조건을 좁히기만 하는 오탐 수정이라
+                // version은 올리지 않는다(올리면 기존 finding_key가 전부 무효화되어 /seo-check가 거짓 원복을 보고, R1).
+                if (bodyTextLower.includes(name.replace(/\s+/g, " ").trim().toLowerCase()))
                     continue;
                 return {
                     ruleId: CONTENT_MISMATCH_RULE_ID,

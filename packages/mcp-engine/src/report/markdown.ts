@@ -80,6 +80,15 @@ export function buildMarkdownReport(input: AuditReportInput): string {
       lines.push(`| CLS | ${page.cwv.clsUnitless != null ? page.cwv.clsUnitless.toFixed(3) : "측정 안 됨"} |`);
       lines.push(`| INP 근사치(TBT) | ${page.cwv.inpProxyTbtMs != null ? Math.round(page.cwv.inpProxyTbtMs) + "ms" : "측정 안 됨"} |`);
       lines.push("");
+      if (page.cwvNote) {
+        lines.push(`> ⚠️ ${page.cwvNote}`);
+        lines.push("");
+      }
+    } else if (page.cwvNote) {
+      lines.push("### Core Web Vitals (lab 측정)");
+      lines.push("");
+      lines.push(`> ⚠️ ${page.cwvNote}`);
+      lines.push("");
     }
 
     if (page.fieldData) {

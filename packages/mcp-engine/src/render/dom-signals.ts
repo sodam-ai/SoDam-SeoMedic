@@ -7,6 +7,9 @@ export interface PageSignals {
   h1Count: number;
   h1Text: string | null;
   metaRobots: string | null;
+  /** <meta name="googlebot" content>. Google 전용 robots 지시어 — name="robots"와 별개로 noindex를 걸 수 있다
+   * (R-NOINDEX-VARIANT-DETECTED 전용). 기존 metaRobots 의미는 바꾸지 않는다(R-NOINDEX-DETECTED v1 보존). */
+  metaGooglebot: string | null;
   /** <script type="application/ld+json"> 각 블록의 원문 텍스트(trim, 빈 문자열 제외). 존재 여부는 length>0으로 판단 */
   jsonLdBlocks: string[];
   /** <meta property="og:title" content>. og:*는 name이 아니라 property 속성으로 매칭한다 */
@@ -15,6 +18,9 @@ export interface PageSignals {
   ogUrl: string | null;
   /** <meta property="og:description" content> */
   ogDescription: string | null;
+  /** <meta property="og:image" content>. 태그의 content 값만 읽는다 — 이미지 URL을 실제로 요청하지 않는다
+   * (요청하려면 SSRF 가드(M1)가 필요한 신규 공격면이라 의도적으로 제외, 존재 여부·크기 검사는 범위 밖) */
+  ogImage: string | null;
   /** <meta name="description" content> */
   metaDescription: string | null;
   /** <main> 안의 첫 <p> 텍스트(trim, 비어있지 않은 것 중 첫 번째). <main>이 없으면 null —
@@ -63,10 +69,12 @@ export function extractSignalsFromHtml(html: string): PageSignals {
       h1Count: 0,
       h1Text: null,
       metaRobots: null,
+      metaGooglebot: null,
       jsonLdBlocks: [],
       ogTitle: null,
       ogUrl: null,
       ogDescription: null,
+      ogImage: null,
       metaDescription: null,
       mainFirstParagraphText: null,
       imagesWithoutAltCount: 0,
@@ -74,7 +82,11 @@ export function extractSignalsFromHtml(html: string): PageSignals {
     };
   }
 
-  const title = document.querySelector("title")?.textContent?.trim() ?? null;
+  // "문서의 첫 <title>"이 아니라 "SVG 안이 아닌 첫 <title>"이다 — 인라인 SVG의 <title>(접근성 이름)을 페이지
+  // title로 오인하면 head에 title이 없는데도 R-TITLE-MISSING이 조용히 미발화한다(브라우저 document.title도
+  // HTML 네임스페이스의 title만 본다). rendered 추출(extractSignalsFromPage)과 반드시 같은 기준을 쓴다.
+  const title =
+    Array.from(document.querySelectorAll("title")).find((el) => !el.closest("svg"))?.textContent?.trim() ?? null;
 
   const canonicalLink = Array.from(document.querySelectorAll("link")).find(
     (el) => getAttrCI(el, "rel")?.toLowerCase() === "canonical",
@@ -94,10 +106,12 @@ export function extractSignalsFromHtml(html: string): PageSignals {
   };
 
   const metaRobots = metaByName("robots");
+  const metaGooglebot = metaByName("googlebot");
   const metaDescription = metaByName("description");
   const ogTitle = metaByProperty("og:title");
   const ogUrl = metaByProperty("og:url");
   const ogDescription = metaByProperty("og:description");
+  const ogImage = metaByProperty("og:image");
 
   const jsonLdBlocks = Array.from(document.querySelectorAll("script"))
     .filter((el) => getAttrCI(el, "type")?.toLowerCase() === "application/ld+json")
@@ -123,10 +137,12 @@ export function extractSignalsFromHtml(html: string): PageSignals {
     h1Count: h1Elements.length,
     h1Text: h1Elements[0]?.textContent?.trim() ?? null,
     metaRobots,
+    metaGooglebot,
     jsonLdBlocks,
     ogTitle,
     ogUrl,
     ogDescription,
+    ogImage,
     metaDescription,
     mainFirstParagraphText,
     imagesWithoutAltCount,
@@ -140,14 +156,18 @@ export function extractSignalsFromHtml(html: string): PageSignals {
  */
 export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
   return page.evaluate(() => {
-    const titleEl = document.querySelector("title");
+    // extractSignalsFromHtml과 동일 기준(SVG 안의 <title>은 페이지 title이 아니다). page.evaluate로
+    // 직렬화되어 실행되므로 외부 헬퍼를 참조하지 않고 인라인으로 쓴다.
+    const titleEl = Array.from(document.querySelectorAll("title")).find((el) => !el.closest("svg"));
     const canonicalEl = document.querySelector('link[rel="canonical"]');
     const h1Elements = Array.from(document.querySelectorAll("h1"));
     const metaRobotsEl = document.querySelector('meta[name="robots" i]');
+    const metaGooglebotEl = document.querySelector('meta[name="googlebot" i]');
     const metaDescriptionEl = document.querySelector('meta[name="description" i]');
     const ogTitleEl = document.querySelector('meta[property="og:title" i]');
     const ogUrlEl = document.querySelector('meta[property="og:url" i]');
     const ogDescriptionEl = document.querySelector('meta[property="og:description" i]');
+    const ogImageEl = document.querySelector('meta[property="og:image" i]');
     const jsonLdBlocks = Array.from(document.querySelectorAll('script[type="application/ld+json" i]'))
       .map((el) => (el.textContent ?? "").trim())
       .filter((text) => text.length > 0);
@@ -173,10 +193,12 @@ export async function extractSignalsFromPage(page: Page): Promise<PageSignals> {
       h1Count: h1Elements.length,
       h1Text: h1Elements[0]?.textContent?.trim() ?? null,
       metaRobots: metaRobotsEl?.getAttribute("content") ?? null,
+      metaGooglebot: metaGooglebotEl?.getAttribute("content") ?? null,
       jsonLdBlocks,
       ogTitle: ogTitleEl?.getAttribute("content") ?? null,
       ogUrl: ogUrlEl?.getAttribute("content") ?? null,
       ogDescription: ogDescriptionEl?.getAttribute("content") ?? null,
+      ogImage: ogImageEl?.getAttribute("content") ?? null,
       metaDescription: metaDescriptionEl?.getAttribute("content") ?? null,
       mainFirstParagraphText,
       imagesWithoutAltCount,
