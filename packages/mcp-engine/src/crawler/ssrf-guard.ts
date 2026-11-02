@@ -1,5 +1,5 @@
 import { isIP } from "node:net";
-import { lookup as dnsLookup, type LookupAddress } from "node:dns";
+import { lookup as dnsLookup, type LookupAddress, type LookupOneOptions, type LookupAllOptions } from "node:dns";
 
 export class SsrfBlockedError extends Error {
   constructor(reason: string) {
@@ -35,25 +35,66 @@ function isPrivateIPv4(ip: string): boolean {
 }
 
 /**
- * IPv6 주소가 사설/루프백/링크로컬/ULA/IPv4-매핑 사설대역인지 판정한다.
+ * IPv6 텍스트를 16바이트로 파싱한다(전개형·`::` 압축·끝의 점 표기 IPv4·zone id 지원). 해석 불가면 null.
+ * 문자열 접두사 비교로는 같은 주소의 여러 표기("::1"과 "0:0:0:0:0:0:0:1", "::ffff:127.0.0.1"과
+ * "::ffff:7f00:1")를 다 잡을 수 없다 — 특히 WHATWG URL 파서는 `[::ffff:127.0.0.1]`을 16진 표기
+ * `[::ffff:7f00:1]`로 정규화하므로, 바이트로 풀어 판정해야 한다.
+ */
+function parseIPv6(ip: string): number[] | null {
+  let text = ip.split("%")[0]; // zone id(fe80::1%eth0) 제거
+  let embeddedIPv4: number[] | null = null;
+  if (text.includes(".")) {
+    const lastColon = text.lastIndexOf(":");
+    const octets = text.slice(lastColon + 1).split(".").map(Number);
+    if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return null;
+    embeddedIPv4 = octets;
+    text = `${text.slice(0, lastColon + 1)}0:0`; // 끝 32비트 자리를 임시 그룹 2개로 두고 나중에 채운다
+  }
+
+  const halves = text.split("::");
+  if (halves.length > 2) return null;
+  const toGroups = (part: string): string[] => (part === "" ? [] : part.split(":"));
+  const head = toGroups(halves[0]);
+  const tail = halves.length === 2 ? toGroups(halves[1]) : [];
+  const given = head.length + tail.length;
+  if (halves.length === 1 ? given !== 8 : given > 7) return null;
+  const groups = halves.length === 1 ? head : [...head, ...Array<string>(8 - given).fill("0"), ...tail];
+
+  const bytes: number[] = [];
+  for (const group of groups) {
+    if (!/^[0-9a-fA-F]{1,4}$/.test(group)) return null;
+    const value = parseInt(group, 16);
+    bytes.push(value >> 8, value & 0xff);
+  }
+  if (embeddedIPv4) bytes.splice(12, 4, ...embeddedIPv4);
+  return bytes.length === 16 ? bytes : null;
+}
+
+/**
+ * IPv6 주소가 사설/루프백/링크로컬/ULA/멀티캐스트/예약 대역이거나, 내장된 IPv4가 사설/예약인지 판정한다.
+ * 해석 불가한 표기는 안전 측(차단). IPv4를 품는 전환 형식(매핑·NAT64·6to4)은 내장 IPv4로 판정하므로
+ * 내장 IPv4가 공인이면 통과시킨다(정상 사용자를 과차단하지 않기 위해).
  */
 function isPrivateIPv6(ip: string): boolean {
-  const normalized = ip.toLowerCase();
+  const b = parseIPv6(ip);
+  if (!b) return true;
+  const embeddedIPv4 = (offset: number): string => b.slice(offset, offset + 4).join(".");
+  const zeroUntil = (end: number): boolean => b.slice(0, end).every((x) => x === 0);
 
-  if (normalized === "::1") return true; // 루프백
-  if (normalized === "::") return true; // 미지정 주소
-  if (normalized.startsWith("fe8") || normalized.startsWith("fe9") || normalized.startsWith("fea") || normalized.startsWith("feb")) {
-    return true; // 링크로컬 fe80::/10
+  if (zeroUntil(12)) return true; // ::/96 — 미지정(::)·루프백(::1)·IPv4 호환(::a.b.c.d, 폐기된 형식)
+  if (zeroUntil(10) && b[10] === 0xff && b[11] === 0xff) return isPrivateIPv4(embeddedIPv4(12)); // ::ffff:0:0/96 IPv4-매핑
+  if (b[0] === 0x00 && b[1] === 0x64 && b[2] === 0xff && b[3] === 0x9b) {
+    if (b.slice(4, 12).every((x) => x === 0)) return isPrivateIPv4(embeddedIPv4(12)); // 64:ff9b::/96 NAT64
+    if (b[4] === 0x00 && b[5] === 0x01) return true; // 64:ff9b:1::/48 로컬용 NAT64
   }
-  if (normalized.startsWith("fc") || normalized.startsWith("fd")) {
-    return true; // ULA fc00::/7
-  }
-
-  // IPv4-매핑 IPv6 (::ffff:127.0.0.1 형태) — 내부 IPv4 부분을 다시 검사
-  const mappedMatch = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  if (mappedMatch) {
-    return isPrivateIPv4(mappedMatch[1]);
-  }
+  if (b[0] === 0x20 && b[1] === 0x02) return isPrivateIPv4(embeddedIPv4(2)); // 2002::/16 6to4
+  if (b[0] === 0x20 && b[1] === 0x01 && b[2] === 0x00 && b[3] === 0x00) return true; // 2001::/32 Teredo
+  if (b[0] === 0x20 && b[1] === 0x01 && b[2] === 0x0d && b[3] === 0xb8) return true; // 2001:db8::/32 문서용
+  if (b[0] === 0x01 && b[1] === 0x00 && b.slice(2, 8).every((x) => x === 0)) return true; // 100::/64 폐기용
+  if (b[0] === 0xfe && (b[1] & 0xc0) === 0x80) return true; // fe80::/10 링크로컬
+  if (b[0] === 0xfe && (b[1] & 0xc0) === 0xc0) return true; // fec0::/10 사이트 로컬(폐기된 형식)
+  if ((b[0] & 0xfe) === 0xfc) return true; // fc00::/7 ULA
+  if (b[0] === 0xff) return true; // ff00::/8 멀티캐스트
 
   return false;
 }
@@ -87,12 +128,54 @@ export function assertSafeUrl(rawUrl: string): URL {
     throw new SsrfBlockedError(`허용되지 않은 스킴: ${url.protocol} (http/https만 허용)`);
   }
 
-  // hostname 자체가 이미 IP 리터럴인 경우 즉시 판정 가능
-  if (isIP(url.hostname) > 0 && isPrivateOrReservedIP(url.hostname)) {
-    throw new SsrfBlockedError(`사설/예약 IP 직접 접근 차단: ${url.hostname}`);
+  // hostname 자체가 이미 IP 리터럴인 경우 즉시 판정 가능 (IPv6는 대괄호를 벗긴 형태로 판정한다)
+  const host = url.hostname.startsWith("[") && url.hostname.endsWith("]") ? url.hostname.slice(1, -1) : url.hostname;
+  if (isIP(host) > 0 && isPrivateOrReservedIP(host)) {
+    throw new SsrfBlockedError(`사설/예약 IP 직접 접근 차단: ${host}`);
   }
 
   return url;
+}
+
+/**
+ * DNS 조회 시점에 사설/예약 IP를 걸러내는 dns.lookup 호환 함수를 만든다.
+ * 이 lookup을 소켓 연결(undici Agent의 connect 옵션, net.connect/http.request의 lookup 옵션)에 연결하면,
+ * 실제 연결 직전에 해석된 **모든** 주소를 검사하고 그 주소로만 연결하므로 "1차 조회는 공인 IP, 연결 시점엔
+ * 사설 IP로 바뀌는" DNS 리바인딩(TOCTOU)을 막는다. 주소 중 하나라도 차단 대상이면 전체를 거부한다(fail-closed).
+ * 차단되면 `code: "ESSRFBLOCKED"` 오류로 콜백한다. 크롤러(fetch-client)와 Lighthouse용 프록시(cwv/ssrf-proxy)가
+ * 같은 판정을 쓰도록 한 곳에 둔다.
+ *
+ * `isBlockedIp`는 기본값(사설/예약 대역 차단)이 프로덕션 정책이다. 테스트에서 로컬 서버로 검증할 때만 재정의한다.
+ */
+export function createSsrfSafeLookup(isBlockedIp: (ip: string) => boolean = isPrivateOrReservedIP) {
+  return function ssrfSafeLookup(
+    hostname: string,
+    options: LookupOneOptions | LookupAllOptions | number,
+    callback: (err: NodeJS.ErrnoException | null, address: any, family?: number) => void,
+  ): void {
+    const normalizedOptions = typeof options === "number" ? { family: options } : options;
+    dnsLookup(hostname, normalizedOptions as LookupOneOptions, (err, address, family) => {
+      if (err) {
+        callback(err, address, family);
+        return;
+      }
+      const addresses = Array.isArray(address) ? address : [{ address, family }];
+      for (const entry of addresses) {
+        const ip = typeof entry === "string" ? entry : entry.address;
+        if (isBlockedIp(ip)) {
+          callback(
+            Object.assign(new Error(`SSRF 가드: ${hostname} -> ${ip}는 사설/예약 IP`), {
+              code: "ESSRFBLOCKED",
+            }),
+            undefined,
+            undefined,
+          );
+          return;
+        }
+      }
+      callback(err, address, family);
+    });
+  };
 }
 
 export function resolveAndCheck(hostname: string): Promise<SsrfCheckResult> {

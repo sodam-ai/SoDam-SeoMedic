@@ -171,6 +171,45 @@ describe("buildMarkdownReport", () => {
     expect(md).toContain("CrUX");
   });
 
+  describe("cwvNote — CWV 측정 건너뜀·SSRF 차단 사유(조용히 삼키지 않는다)", () => {
+    const page = (extra: Partial<AuditReportInput["pages"][number]> = {}): AuditReportInput => ({
+      target: "https://example.com",
+      generatedAt: GENERATED_AT,
+      pages: [{ url: "https://example.com/", statusCode: 200, violations: [], ...extra }],
+    });
+    const measured = { lcpMs: 1200, clsUnitless: 0.02, inpProxyTbtMs: 50, isLabData: true as const, runsCompleted: 3 };
+
+    it("측정이 건너뛰어졌으면 CWV 표 대신 사유 경고문을 보여준다", () => {
+      const md = buildMarkdownReport(page({ cwvNote: "Core Web Vitals 측정을 건너뛰었습니다: 예시 사유" }));
+      expect(md).toContain("### Core Web Vitals (lab 측정)");
+      expect(md).toContain("> ⚠️ Core Web Vitals 측정을 건너뛰었습니다: 예시 사유");
+      expect(md).not.toContain("| LCP |");
+    });
+
+    it("측정은 됐지만 일부 요청이 차단됐으면 표 아래에 사실을 덧붙인다", () => {
+      const md = buildMarkdownReport(page({ cwv: measured, cwvNote: "일부 요청이 차단되었습니다" }));
+      expect(md).toContain("| LCP | 1200ms |");
+      expect(md).toContain("> ⚠️ 일부 요청이 차단되었습니다");
+    });
+
+    it("사유가 없으면 기존 출력은 그대로다(경고 문구가 새로 생기지 않는다)", () => {
+      const md = buildMarkdownReport(page({ cwv: measured }));
+      expect(md).toContain("| LCP | 1200ms |");
+      expect(md).not.toContain("측정을 건너뛰었습니다");
+      expect(md).not.toContain("차단");
+    });
+
+    it("JSON: cwvNote가 있을 때만 필드가 생기고 스키마를 통과한다", () => {
+      const withNote = buildJsonReport(page({ cwvNote: "사유" }));
+      expect(withNote.pages[0].cwvNote).toBe("사유");
+      expect(() => JsonReportSchema.parse(withNote)).not.toThrow();
+
+      const without = buildJsonReport(page({ cwv: measured }));
+      expect("cwvNote" in without.pages[0]).toBe(false);
+      expect(() => JsonReportSchema.parse(without)).not.toThrow();
+    });
+  });
+
   it("테이블 셀의 파이프 문자를 이스케이프한다(마크다운 표 깨짐 방지)", () => {
     const input: AuditReportInput = {
       target: "https://example.com",

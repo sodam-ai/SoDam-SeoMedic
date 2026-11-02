@@ -77,7 +77,7 @@ Verify the install:
 ```
 Success looks like: `sodam-seomedic` shows up in the list with status "enabled".
 
-> **Note**: Around 2026-08-10, some environments hit an issue where `/reload-plugins` showed "2 errors during load" and commands like `/seo-audit` didn't appear at all. Both root causes (an install-cache issue from the plugin's version number never being bumped, and a missed build-output regeneration step) were identified and fixed, and the fix is already merged into this repository's `master` (default) branch (see the "Rediscovered after M9" entry in `CHECKPOINT.md` for the full story). If you install fresh today, you will not encounter this issue.
+> **Note**: Around 2026-08-10, some environments hit an issue where `/reload-plugins` showed "2 errors during load" and commands like `/seo-audit` didn't appear at all. Both root causes (an install-cache issue from the plugin's version number never being bumped, and a missed build-output regeneration step) were identified and fixed, and the fix is already merged into this repository's `master` (default) branch (see the "Rediscovered after M9" entry in `.PRD/CHECKPOINT.md` for the full story). If you install fresh today, you will not encounter this issue.
 
 ## 4. Quick Start (5 minutes)
 
@@ -193,6 +193,33 @@ if needed
 
 This project deliberately built its highest-risk capability (actually modifying real files) in stages. Click each item to expand it.
 
+The features in the top two items (2026-10-11 to 12) arrived in plugin versions 0.1.10 to 0.1.12, in order (og:image detection in 0.1.10; the noindex-variant and title fixes in 0.1.11; the security hardening below in 0.1.12). If an older version is installed, those features are not there.
+
+<details>
+<summary><strong>✅ Security — Block internal-address access during speed (Core Web Vitals) measurement + fix 2 IPv6-notation bypasses (Implemented and verified, plugin 0.1.12)</strong></summary>
+
+We closed a gap where only the address you typed was checked. Even when that address is safe, if it redirects somewhere else, the browser could reach an internal-network address during the speed-measurement step. We confirmed this by experiment (reproduced with two local servers) and blocked it.
+
+- **Every request the browser makes during measurement is now checked.** For the duration of the measurement only, requests pass through an internal-only relay opened briefly inside this program; requests to private/internal addresses (including addresses reached through redirects) are blocked. When something is blocked, the report shows the reason and the rest of the diagnosis continues as normal.
+- **We fixed 2 pre-existing IPv6-notation bypasses.** Depending on how an IPv6 address was written (bracket notation, variant notations), some internal addresses used to slip through the check.
+- **Speed impact**: on the sample site (example.com), the LCP — averaged over 3 sets of Lighthouse measurements (median of 3 runs each) — rose from 794 ms to about 807 ms (about +1.7%). This was measured on one site and one computer, so it may differ in other environments.
+
+**What is not yet confirmed**: the only environment a human has run this in is Windows (macOS and Linux were not run by hand and rely on the automated checks (CI)). In environments where the company network requires its own proxy, the measurement may fail; the fix for that is in item 21 of **[TROUBLESHOOTING.en.md](./TROUBLESHOOTING.en.md)**.
+</details>
+
+<details>
+<summary><strong>✅ Phase 2 — Accuracy hardening: link-preview image (og:image) and noindex-variant detection + an accuracy measurement harness (Done, 2026-10-11)</strong></summary>
+
+We built, for the first time, a **harness that measures in numbers whether each check rule judges correctly** (for every rule, sample "healthy" and "problem" pages are kept and scored automatically). Right now 8 of the 24 rules are measured; on the prepared samples there are 0 healthy pages wrongly flagged and 0 problem pages missed. The remaining rules are not measured yet. Along the way it exposed 4 places that were actually wrong, and we fixed them.
+
+- **Reports a missing link-preview image (og:image).** It only reports; it does not fill the value in automatically — it never invents values the page doesn't already have, and it never opens the image URL itself (an unsafe action).
+- **Reports pages that are kept out of search via `noindex` written as `none` or as Google's own `googlebot` meta tag.** These used to come out as "no problem". It only reports; it does not fix them automatically.
+- **Fixed: a missing page title (title) was mistaken as present when an inline icon (SVG) in the body had its own name.**
+- **Fixed: a false alarm saying "structured data differs from the page" when a product name simply had two spaces in a row.**
+
+The versions of existing check rules were left unchanged and the new check was added as a separate rule, so baseline comparisons you saved earlier (`/seo-check`) are not broken. However, problems newly detected this way (the 2nd and 3rd items above) may show up once as "newly appeared".
+</details>
+
 <details>
 <summary><strong>✅ Phase 2 — Organization structured-data auto-generation (Done, 2026-09-11)</strong></summary>
 
@@ -244,7 +271,7 @@ Checks how your `robots.txt` treats the crawlers used by AI search and AI traini
 <details>
 <summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
 
-We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 603** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
+We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 681** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
 </details>
 
 <details>
@@ -268,7 +295,7 @@ Checks whether the product name declared in a page's JSON-LD structured data act
 <details>
 <summary><strong>✅ 2026-08-09 to 10 — Plugin failed to load via the real install path (root cause found, fixed, and merged)</strong></summary>
 
-For the first time in this project's history, a real user testing via the **actual install path** (`/plugin marketplace add` → `/plugin install`), rather than an isolated test session, discovered that the SEO diagnostic commands never loaded into the session at all. Both root causes were confirmed by direct code comparison: (1) the plugin's version number had never been bumped in the repository's entire history, so the install cache kept serving old content; (2) even after fixing the source code, the manual step required to regenerate the actual deployed bundle had been skipped, so two recent fixes were missing from what gets installed. Both issues were fixed and are already merged into this repository's default branch (`master`) — to prevent a repeat, section 15 ("Deployment") now spells out the rule of always bumping the version and rebuilding together with any source change. See `CHECKPOINT.md` for the full story.
+For the first time in this project's history, a real user testing via the **actual install path** (`/plugin marketplace add` → `/plugin install`), rather than an isolated test session, discovered that the SEO diagnostic commands never loaded into the session at all. Both root causes were confirmed by direct code comparison: (1) the plugin's version number had never been bumped in the repository's entire history, so the install cache kept serving old content; (2) even after fixing the source code, the manual step required to regenerate the actual deployed bundle had been skipped, so two recent fixes were missing from what gets installed. Both issues were fixed and are already merged into this repository's default branch (`master`) — to prevent a repeat, section 15 ("Deployment") now spells out the rule of always bumping the version and rebuilding together with any source change. See `.PRD/CHECKPOINT.md` for the full story.
 </details>
 
 <details>
@@ -315,7 +342,7 @@ In some environments, the diagnostic engine itself failed to connect right after
 - **The database file where results are stored is locked down to owner-only access** (on Mac/Linux — Windows does not support this mechanism the same way due to OS differences, so this is not yet verified on Windows).
 - **Raw crawled HTML is never stored in full** — only a hash (fingerprint) and a ≤500-character excerpt are kept (to respect copyright).
 - **Zero telemetry.** Nothing is sent anywhere except requests to the URL (or GitHub repository, in GitHub mode) you specify.
-- **Private/internal network addresses are never diagnosed** (SSRF protection — `127.0.0.1`, `192.168.x.x`, cloud metadata endpoints, and similar are automatically blocked).
+- **Private/internal network addresses are never diagnosed** (SSRF protection — `127.0.0.1`, `192.168.x.x`, cloud metadata endpoints, and similar are automatically blocked). This covers not only the address you diagnose but also **addresses reached through redirects** and **every request the browser makes during the Core Web Vitals measurement** (these pass through an internal-only relay that is opened inside this program only while measuring and closed afterwards). Internal addresses written in IPv6 form (such as `[::1]`) are blocked too. Because of this check, Core Web Vitals numbers can rise very slightly (about +1.7% on the sample site). In environments where the company network requires its own proxy, the Core Web Vitals measurement may fail; the report then shows the reason and the rest of the diagnosis continues as normal.
 - **`/seo-fix` (local mode) only runs when git is clean, and backs up any file it's about to touch.** Changes affecting indexing/display are never applied without your approval, and a failed post-apply build triggers an immediate automatic rollback.
 - **The GitHub token is read only from an environment variable (`SEOMEDIC_GITHUB_TOKEN`).** It is never hardcoded, and the token value itself is never printed in chat, command arguments, logs, or error messages. If the variable isn't set, GitHub mode refuses to run and explains why.
 - **GitHub-repository fixes are always proposed via a new branch + Pull Request.** Direct pushes to the default branch, force-pushes, and auto-merge are not implemented in the code at all — they are structurally impossible, not just disabled.
@@ -352,7 +379,7 @@ The plugin (a thin shell) and the diagnostic engine (the actual heavy lifting) a
 | This plugin's own source | `packages/plugin/` (the installed part), `packages/mcp-engine/` (the engine) |
 | GitHub-integration source | `packages/mcp-engine/src/github/` |
 | Planning documents (PRD) | `.PRD/` |
-| Progress/verification records | `CHECKPOINT.md` (Phase 1), `CHECKPOINT_1.5.md` (Phase 1.5), `CHECKPOINT_2.md` (Phase 2) |
+| Progress/verification records | `.PRD/CHECKPOINT.md` (Phase 1), `.PRD/CHECKPOINT_1.5.md` (Phase 1.5), `.PRD/CHECKPOINT_2.md` (Phase 2) |
 | Security policy | `packages/plugin/SECURITY.md` |
 | Disclaimer | `packages/plugin/DISCLAIMER.md` |
 | License | `LICENSE`, `THIRD_PARTY_NOTICES.md` |
@@ -361,15 +388,70 @@ The plugin (a thin shell) and the diagnostic engine (the actual heavy lifting) a
 
 ## 12. Troubleshooting
 
-See **[TROUBLESHOOTING.en.md](./TROUBLESHOOTING.en.md)** for a full symptom → cause → fix matrix. The three most common issues:
+See **[TROUBLESHOOTING.en.md](./TROUBLESHOOTING.en.md)** for a full symptom → cause → fix matrix. The four most common issues:
 
 1. **Installed, but `/seo-audit` doesn't show up** → Did you fully quit and restart Claude Code? (a new chat window alone is not enough)
 2. **First run takes a long time** → The Chromium browser engine may be installing automatically (a few hundred MB, 1-2 minutes).
 3. **"Results are empty"** → The target site may be blocking access via `robots.txt` or a firewall.
+4. **The report says "Core Web Vitals measurement was skipped"** → follow the reason written in the notice (internal address blocked, measurement failed, company proxy, etc.) and check item 21 of **[TROUBLESHOOTING.en.md](./TROUBLESHOOTING.en.md)**. The rest of the diagnosis results are fine.
 
 ## 13. FAQ
 
-See **[FAQ.en.md](./FAQ.en.md)** for frequently asked questions.
+The nine questions a first-time user is most likely to ask are answered right below (click one to expand it). The full list is in **[FAQ.en.md](./FAQ.en.md)**.
+
+<details>
+<summary><strong>Q. Does SeoMedic improve my search ranking?</strong></summary>
+
+No. SeoMedic is a **diagnostic tool**. It finds and reports problems, but does not guarantee search rankings or AI-search visibility. No tool can honestly "guarantee" rankings.
+</details>
+
+<details>
+<summary><strong>Q. Can I diagnose a site I don't own?</strong></summary>
+
+Technically yes, but you should **only target sites you own or have explicit permission to test.** Crawling third-party sites without authorization can create legal exposure.
+</details>
+
+<details>
+<summary><strong>Q. Does it actually fix the code while diagnosing?</strong></summary>
+
+**Yes, for Next.js projects.** You can target either a local folder (`/seo-fix ./your-project-folder`) or a GitHub repository URL (`/seo-fix https://github.com/owner/repo`). Purely additive fixes are applied automatically; changes affecting how the site is indexed/displayed only go into effect after your approval. Other frameworks (React, Vue, etc.) are not yet supported.
+</details>
+
+<details>
+<summary><strong>Q. Can I diagnose a site running on my own computer (localhost) or an internal company address?</strong></summary>
+
+No. For security (SSRF protection), internal addresses such as `127.0.0.1`, `localhost` and `192.168.x.x` are never diagnosed and are blocked automatically. Please diagnose a publicly reachable address (`https://...`). `/seo-fix ./folder`, which targets a Next.js project folder, is a separate feature described in section 5 above.
+</details>
+
+<details>
+<summary><strong>Q. Can I paste my GitHub token into the chat?</strong></summary>
+
+**Absolutely not.** Chat conversations are logged, so the moment a token is typed even once, it must be treated as compromised. Always register it only as an environment variable (`SEOMEDIC_GITHUB_TOKEN`) on your own computer. If you accidentally paste it, immediately revoke that token on GitHub and generate a new one.
+</details>
+
+<details>
+<summary><strong>Q. Is my personal data or crawled site content sent anywhere?</strong></summary>
+
+No. There is zero telemetry. All data stays inside the `.seomedic/` folder in the project where you ran the diagnosis (and, for GitHub mode, also `.seomedic-github-cache/` under your home folder).
+</details>
+
+<details>
+<summary><strong>Q. Is it free?</strong></summary>
+
+Yes, SeoMedic itself is free and runs locally with no credits or billing. Your separate Claude Code usage costs still apply, of course.
+</details>
+
+<details>
+<summary><strong>Q. If I don't like a fix /seo-fix applied, can I undo it?</strong></summary>
+
+**In local-folder mode**, yes — ask to "undo the fix I just applied" and it restores from the backup made at apply time. If `next build` fails immediately after applying, it's automatically rolled back even without you asking. **In GitHub mode**, the result only ever exists as a Pull Request (a proposal), so if you don't like it, just close that PR — the default branch was never touched in the first place.
+</details>
+
+<details>
+<summary><strong>Q. Can I use this commercially (company projects, client delivery, etc.)?</strong></summary>
+
+This project has adopted the **Apache License 2.0** (finalized 2026-08-10) — it broadly permits modification, redistribution, and commercial use, provided you preserve copyright/patent notices, mark changed files as changed, and comply with the NOTICE-file terms. That said, the copyright-holder attribution in the `LICENSE` file ("SoDam AI Studio", 2026) and a few other legal-review items are still pending final expert confirmation. Before any commercial distribution, please check section 14 of this document (Legal, Copyright, License, and Commercial Use) and the `LICENSE` file itself, and consult a legal professional if needed. This answer is not legal advice.
+</details>
 
 ## 14. Legal, Copyright, License, and Commercial Use
 
@@ -430,9 +512,8 @@ SoDam-SeoMedic/
 │       ├── src/                       # TypeScript source
 │       ├── test/                      # vitest tests
 │       └── scripts/                   # Build-then-copy automation scripts
-├── .PRD/                              # Planning documents
+├── .PRD/                              # Planning documents + CHECKPOINT*.md (per-phase progress/verification records)
 ├── README.md / README.en.md           # This document
-├── CHECKPOINT*.md                     # Per-phase progress/verification records
 ├── LICENSE, THIRD_PARTY_NOTICES.md
 └── TROUBLESHOOTING*.md, FAQ*.md
 ```
@@ -453,8 +534,8 @@ npm run audit   # Checks only for high-severity vulnerabilities (npm audit --aud
 This project does not publish an npm package or a separate CLI executable (there is no standalone command-line tool yet — see section 6). Instead, **the Claude Code marketplace reads this GitHub repository directly.** So "deployment" simply means "merging the correct content into the repository's default branch (`master`)":
 
 1. Edit the source under `packages/mcp-engine/src/`.
-2. `cd packages/mcp-engine && npm run package:plugin` — builds, then re-copies the output into `packages/plugin/mcp-server/` (⚠️ skipping this step means the source is fixed but the actually-deployed file isn't — this really happened on 2026-08-10, see `CHECKPOINT.md`).
-3. Bump the `version` field in `packages/plugin/.claude-plugin/plugin.json` (⚠️ skipping this means already-installed users' caches never refresh — also documented in `CHECKPOINT.md`).
+2. `cd packages/mcp-engine && npm run package:plugin` — builds, then re-copies the output into `packages/plugin/mcp-server/` (⚠️ skipping this step means the source is fixed but the actually-deployed file isn't — this really happened on 2026-08-10, see `.PRD/CHECKPOINT.md`).
+3. Bump the `version` field in `packages/plugin/.claude-plugin/plugin.json` (⚠️ skipping this means already-installed users' caches never refresh — also documented in `.PRD/CHECKPOINT.md`).
 4. Commit → Pull Request → review → merge into `master`.
 
 ### Environment variables
@@ -470,7 +551,7 @@ GSC and GA4 each activate only when *all* of their related variables are set (a 
 
 ### Operational notes
 - `packages/plugin/mcp-server/dist/` is explicitly **exempted** from the general `.gitignore` rule that excludes `dist/` — it must stay committed. Accidentally removing this exception breaks marketplace installs.
-- `CHECKPOINT.md` is this repository's real verification history — decide commit timing for it carefully (it may be managed separately per team convention).
+- `.PRD/CHECKPOINT.md` is this repository's real verification history — decide commit timing for it carefully (it may be managed separately per team convention).
 
 ---
 
