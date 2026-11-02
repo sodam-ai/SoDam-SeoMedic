@@ -152,7 +152,7 @@ Instead of a local folder, give it a **GitHub repository URL**. SeoMedic tempora
 | Command | Description | Notes (can be requested in natural language) |
 |---|---|---|
 | `/seo-audit <url>` | Diagnose a URL (analysis only) | Site-wide crawl option, max pages (default 200), depth (default 3), requests/sec (default 1) |
-| `/seo-check <url>` | Check for regressions against the saved baseline | - |
+| `/seo-check [url]` | Check for regressions against the saved baseline | If you leave out the address, the last diagnosed site is used |
 | `/seo-fix <local-folder>` | Auto-fix a local Next.js project (approval-gated) | Approve/reject via conversation |
 | `/seo-fix <GitHub repo URL>` | GitHub-repository auto-fix proposal (PR, experimental) | Requires `SEOMEDIC_GITHUB_TOKEN` environment variable |
 
@@ -217,7 +217,7 @@ We built, for the first time, a **harness that measures in numbers whether each 
 - **Fixed: a missing page title (title) was mistaken as present when an inline icon (SVG) in the body had its own name.**
 - **Fixed: a false alarm saying "structured data differs from the page" when a product name simply had two spaces in a row.**
 
-The versions of existing check rules were left unchanged and the new check was added as a separate rule, so baseline comparisons you saved earlier (`/seo-check`) are not broken. However, problems newly detected this way (the 2nd and 3rd items above) may show up once as "newly appeared".
+The versions of existing check rules were left unchanged and the new check was added as a separate rule, so baseline comparisons you saved earlier (`/seo-check`) are not broken. However, problems newly detected this way (the 1st, 2nd and 3rd items above) may show up once as "newly appeared".
 </details>
 
 <details>
@@ -253,7 +253,7 @@ The "your own repository" flow (new branch + Pull Request) has been confirmed ag
 <details>
 <summary><strong>✅ Phase 2 Stage 1 — Structured Data (JSON-LD) Detection (Done)</strong></summary>
 
-Automatically detects when a page is missing structured data (JSON-LD — a special markup that helps search engines understand your content more precisely) or has malformed JSON-LD, and flags it in the report. **This only detects the issue — it does not auto-generate a fix.** Creating structured-data values from scratch was deliberately left out, since fabricating them carries real risk.
+Automatically detects when a page is missing structured data (JSON-LD — a special markup that helps search engines understand your content more precisely) or has malformed JSON-LD, and flags it in the report. **This only detects the issue — it does not auto-generate a fix.** Creating structured-data values from scratch was deliberately left out, since fabricating them carries real risk. An exception was added after this stage: when a site has no structured data anywhere, a minimal version (such as just the site name) can be filled in after your approval (see "Basic structured-data (JSON-LD) auto-generation" and "Organization structured-data auto-generation" below).
 </details>
 
 <details>
@@ -265,13 +265,13 @@ Checks whether the title and URL shown when a link is shared on social media (Op
 <details>
 <summary><strong>✅ Phase 2 Stage 3 — AI Crawler Policy (GEO) Detection (Done)</strong></summary>
 
-Checks how your `robots.txt` treats the crawlers used by AI search and AI training (11 bots, including GPTBot and ClaudeBot) and reports whether each is allowed or blocked. **This only detects the current state — it does not recommend a policy.** Whether allowing or blocking is the right call is a decision for the site owner, so this reports the facts neutrally, without opinion.
+Checks how your `robots.txt` treats the crawlers used by AI search and AI training (11 bots, including GPTBot and ClaudeBot) and reports whether each is allowed or blocked. **The diagnosis report only shows the current state, neutrally.** Whether allowing or blocking is the right call is a decision for the site owner, so the report does not recommend a policy. One exception was added to `/seo-fix` after this stage: if a Next.js project has no `robots.ts` file at all, it may propose creating a new one that allows search crawlers and blocks AI-training crawlers. It is applied only if you approve, and if a `robots.ts` already exists it is left untouched (you only get a suggestion).
 </details>
 
 <details>
 <summary><strong>🔧 2026-07-06 — Introduced automated quality CI + fixed real cross-platform bugs</strong></summary>
 
-We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 681** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
+We added a new automated check that confirms the build and all tests pass on Windows, macOS, and Linux (260 tests as of 2026-07-06; **now 697** as more features were added — see the items below). In the process, we found and fixed several real bugs that had gone unnoticed because development had only ever happened on Windows (for example, the GitHub auto-fix feature failing to locate an internal program path on macOS/Linux). All three operating systems now automatically pass build + test on every change, but **this does not yet include a human manually running the commands on macOS/Linux** — the automated checks reduce this risk, they don't fully eliminate it.
 </details>
 
 <details>
@@ -338,10 +338,10 @@ In some environments, the diagnostic engine itself failed to connect right after
 
 ## 9. Security & Data Flow
 
-- **Everything is stored only in the `.seomedic/` folder.** Running a diagnosis creates a single SQLite database file (`.seomedic/seomedic.db`) inside the project folder, holding diagnosis history, baselines, and regression records. This folder is set up to be excluded from git tracking automatically.
+- **Everything is stored only in the `.seomedic/` folder.** Running a diagnosis creates a single SQLite database file (`.seomedic/seomedic.db`) inside the project folder, holding diagnosis history, baselines, and regression records. We recommend adding `.seomedic/` to the `.gitignore` of your project yourself (SeoMedic does not set this up for you). Even if you have not, `/seo-fix` does not treat this folder as "changed" and keeps working normally.
 - **The database file where results are stored is locked down to owner-only access** (on Mac/Linux — Windows does not support this mechanism the same way due to OS differences, so this is not yet verified on Windows).
-- **Raw crawled HTML is never stored in full** — only a hash (fingerprint) and a ≤500-character excerpt are kept (to respect copyright).
-- **Zero telemetry.** Nothing is sent anywhere except requests to the URL (or GitHub repository, in GitHub mode) you specify.
+- **Raw crawled HTML is never stored in full** — only a hash (fingerprint) of the original and the first 500 characters of the page are kept (to respect copyright). If you use auto-fix (`/seo-fix`), a backup of each file is also saved in the same `.seomedic/` folder just before it is changed.
+- **No telemetry.** In the default setup, nothing is sent anywhere except requests to the URL (or GitHub repository, in GitHub mode) you specify. However, if you turn on the optional features (PageSpeed Insights, Search Console, Analytics 4), requests go to the matching Google service (PageSpeed Insights sends the address of the page being diagnosed to Google).
 - **Private/internal network addresses are never diagnosed** (SSRF protection — `127.0.0.1`, `192.168.x.x`, cloud metadata endpoints, and similar are automatically blocked). This covers not only the address you diagnose but also **addresses reached through redirects** and **every request the browser makes during the Core Web Vitals measurement** (these pass through an internal-only relay that is opened inside this program only while measuring and closed afterwards). Internal addresses written in IPv6 form (such as `[::1]`) are blocked too. Because of this check, Core Web Vitals numbers can rise very slightly (about +1.7% on the sample site). In environments where the company network requires its own proxy, the Core Web Vitals measurement may fail; the report then shows the reason and the rest of the diagnosis continues as normal.
 - **`/seo-fix` (local mode) only runs when git is clean, and backs up any file it's about to touch.** Changes affecting indexing/display are never applied without your approval, and a failed post-apply build triggers an immediate automatic rollback.
 - **The GitHub token is read only from an environment variable (`SEOMEDIC_GITHUB_TOKEN`).** It is never hardcoded, and the token value itself is never printed in chat, command arguments, logs, or error messages. If the variable isn't set, GitHub mode refuses to run and explains why.
@@ -414,7 +414,7 @@ Technically yes, but you should **only target sites you own or have explicit per
 <details>
 <summary><strong>Q. Does it actually fix the code while diagnosing?</strong></summary>
 
-**Yes, for Next.js projects.** You can target either a local folder (`/seo-fix ./your-project-folder`) or a GitHub repository URL (`/seo-fix https://github.com/owner/repo`). Purely additive fixes are applied automatically; changes affecting how the site is indexed/displayed only go into effect after your approval. Other frameworks (React, Vue, etc.) are not yet supported.
+**Yes, for Next.js projects.** You can target either a local folder (`/seo-fix ./your-project-folder`) or a GitHub repository URL (`/seo-fix https://github.com/owner/repo`). The only change applied automatically is adding missing addresses to the sitemap. Anything that affects how the site appears in search results or is indexed — title, description, canonical, Open Graph, structured data — is shown to you as a diff and applied only after you approve it (in GitHub mode, risky changes are split into a separate Pull Request, and the repository admin decides whether to merge). Other frameworks (React, Vue, etc.) are not yet supported.
 </details>
 
 <details>
@@ -432,7 +432,7 @@ No. For security (SSRF protection), internal addresses such as `127.0.0.1`, `loc
 <details>
 <summary><strong>Q. Is my personal data or crawled site content sent anywhere?</strong></summary>
 
-No. There is zero telemetry. All data stays inside the `.seomedic/` folder in the project where you ran the diagnosis (and, for GitHub mode, also `.seomedic-github-cache/` under your home folder).
+Not in the default setup. There is no telemetry. All data stays inside the `.seomedic/` folder in the project where you ran the diagnosis (and, for GitHub mode, also `.seomedic-github-cache/` under your home folder). However, if you turn on optional features such as PageSpeed Insights, Search Console, or Analytics 4, requests go to the matching Google service (PageSpeed Insights sends the address of the page being diagnosed to Google).
 </details>
 
 <details>
@@ -459,7 +459,7 @@ This project has adopted the **Apache License 2.0** (finalized 2026-08-10) — i
 
 ### License
 - This project is licensed under the **Apache License 2.0** (broadly permits modification, redistribution, commercial use, and an express patent license, provided you preserve copyright/patent notices, mark changed files as changed, and comply with the NOTICE-file terms). See the `LICENSE` file for the exact text.
-- **Current copyright notice: SoDam AI Studio (2026).** This is the exact text currently in the `LICENSE` file. However, **final legal sign-off on this exact name/year has not yet happened** (see item L1 under "Items still pending legal review" below) — the decision to adopt Apache License 2.0 as the license type is already finalized by the project owner, but final legal approval of the copyright-holder wording itself remains a separate, still-open matter.
+- **Current copyright notice: SoDam AI Studio (2026).** This is the exact text currently in the `LICENSE` file. However, **final legal sign-off on this exact name/year has not yet happened** (see the first item under "Items still pending legal review" below) — the decision to adopt Apache License 2.0 as the license type is already finalized by the project owner, but final legal approval of the copyright-holder wording itself remains a separate, still-open matter.
 - Third-party open-source dependencies and their licenses are listed in `THIRD_PARTY_NOTICES.md`. **An automated scan (license-checker)** found no copyleft licenses (e.g., GPL, which impose source-disclosure obligations on redistribution) — however, this is an **automated-scan result only; final sign-off from a legal professional has not yet been obtained** (see "Items still pending legal review" below). The NOTICE-republishing obligation for the Apache-2.0-licensed dependencies among them (e.g., Playwright) is already fulfilled in that same file.
 
 ### What you can do
@@ -470,7 +470,7 @@ This project has adopted the **Apache License 2.0** (finalized 2026-08-10) — i
 ### What you cannot do / must be careful about
 - **Diagnosing or modifying a site or repository you don't own or don't have explicit permission for** — legal responsibility rests entirely with the user. SeoMedic is designed to always ask for permission confirmation before proceeding, but it cannot prevent someone from answering that confirmation dishonestly.
 - **Using this tool's results as the basis for exaggerated claims** like "guaranteed #1 ranking" or "guaranteed AI-search visibility" — see the no-warranty section below.
-- **Collecting or redistributing the full raw text of crawled web pages** — SeoMedic itself is designed to store only a hash and a ≤500-character excerpt, so it cannot be used for this purpose; separately collecting full page content requires its own review of the target site's copyright and terms of service.
+- **Collecting or redistributing the full raw text of crawled web pages** — SeoMedic itself is designed to store only a hash and the first 500 characters of the page, so it cannot be used for this purpose; separately collecting full page content requires its own review of the target site's copyright and terms of service.
 - When using the GitHub-repository feature, **creating Pull Requests in bulk without the repository owner's consent** (this may be treated as spam-like behavior).
 
 ### No warranty (please read)
@@ -483,13 +483,13 @@ This project has adopted the **Apache License 2.0** (finalized 2026-08-10) — i
 
 ### Items still pending legal review
 - **Final legal sign-off on the copyright-holder name and year** (currently "SoDam AI Studio, 2026") — the license *type* (Apache License 2.0) is already finalized, but this exact wording is still awaiting separate final confirmation.
-- **Final legal-professional approval of the dependency license scan result** (no copyleft found) — confirmed by an automated scanning tool, but not yet re-confirmed by a legal professional.
+- **Final legal-professional approval of the dependency license scan result** (0 strong-copyleft licenses — GPL, AGPL, LGPL; 3 weak, file-level copyleft MPL-2.0 packages are used unmodified) — confirmed by an automated scanning tool, but not yet re-confirmed by a legal professional.
 - Potential copyright issues in crawled content (including country-specific fair-use boundaries)
 - Scope of fair use regarding trademarks (Google, Naver, Bing, Next.js, Claude, ChatGPT, and other third-party service names, as well as this project's own product name)
 - Copyright attribution and commercial-use eligibility for AI-generated code/documentation output (including this README and the project's documentation in general)
 - Whether this project's own product name ("SeoMedic") requires trademark registration
 
-**Until all six of these items are resolved, the "copyright holder" notice and the "no copyleft found" statement above should be read as "our best current confirmation," not as a legally finalized fact.**
+**Until all six of these items are resolved, the "copyright holder" notice and the "no strong copyleft" statement above should be read as "our best current confirmation," not as a legally finalized fact.**
 
 ⚠️ **None of the above constitutes legal advice.** A professional legal review is strongly recommended before commercial distribution, delivery to clients, or offering this as a service to third parties.
 
@@ -504,6 +504,7 @@ SoDam-SeoMedic/
 │   ├── plugin/                        # The part that actually gets installed (the marketplace only copies this folder into its cache)
 │   │   ├── .claude-plugin/plugin.json # Plugin name, version, description
 │   │   ├── .mcp.json                  # Defines how the MCP server is launched
+│   │   ├── commands/                  # Definitions of the /seo-audit, /seo-check, /seo-fix slash commands
 │   │   ├── hooks/                     # Hooks run automatically at session start
 │   │   ├── scripts/                   # Scripts the hooks run (e.g. auto-installing dependencies)
 │   │   ├── skills/                    # Claude Code skill definitions
@@ -512,6 +513,8 @@ SoDam-SeoMedic/
 │       ├── src/                       # TypeScript source
 │       ├── test/                      # vitest tests
 │       └── scripts/                   # Build-then-copy automation scripts
+├── .claude-plugin/marketplace.json    # The "list of plugins in this repository" the marketplace reads
+├── .github/workflows/ci.yml           # Automated checks (CI)
 ├── .PRD/                              # Planning documents + CHECKPOINT*.md (per-phase progress/verification records)
 ├── README.md / README.en.md           # This document
 ├── LICENSE, THIRD_PARTY_NOTICES.md
@@ -526,7 +529,7 @@ npm run typecheck   # Full type check including test files (separate from build)
 
 ### Test
 ```
-npm test        # Runs the full vitest suite in packages/mcp-engine (includes one real-network smoke test against example.com — requires internet access)
+npm test        # Runs the full vitest suite in packages/mcp-engine (includes several tests that really connect to the internet, e.g. loading example.com — requires internet access; a step that downloads the parts of a sample test project runs automatically first, and the rendering/speed-measurement tests need the Playwright Chromium browser)
 npm run audit   # Checks only for high-severity vulnerabilities (npm audit --audit-level=high)
 ```
 
@@ -547,7 +550,7 @@ This project does not publish an npm package or a separate CLI executable (there
 | `GSC_PROPERTY_SCOPE` | Optional (only for Search Console integration) | The Search Console property to query (e.g. `sc-domain:example.com` or `https://example.com/`) |
 | `GA4_PROPERTY_ID` | Optional (only for Analytics 4 integration) | GA4 property ID (numeric only, no `properties/` prefix) |
 
-GSC and GA4 each activate only when *all* of their related variables are set (a partial setup is treated the same as no setup — this prevents a half-finished configuration from silently misbehaving). See `.PRD/HUMAN_ACTION_CHECKLIST.md` for the issuance procedure. No other environment variables are used anywhere in this project's code (confirmed by a full source search, updated 2026-08-20).
+GSC and GA4 each activate only when *all* of their related variables are set (a partial setup is treated the same as no setup — this prevents a half-finished configuration from silently misbehaving). See `.PRD/HUMAN_ACTION_CHECKLIST.md` for the issuance procedure. The five variables above are the only ones you need to set yourself (`CLAUDE_PLUGIN_ROOT`, `CLAUDE_PLUGIN_DATA`, and `npm_execpath` are filled in automatically by Claude Code and npm — the code reads them, but you never need to touch them).
 
 ### Operational notes
 - `packages/plugin/mcp-server/dist/` is explicitly **exempted** from the general `.gitignore` rule that excludes `dist/` — it must stay committed. Accidentally removing this exception breaks marketplace installs.
